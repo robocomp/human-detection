@@ -1,9 +1,10 @@
+import "HumanPose.idsl";
 
 Component humanmatching
 {
     Communications
     {
-     
+     	subscribesTo HumanPose;
     };
 	language python;
 	gui Qt(QWidget);
