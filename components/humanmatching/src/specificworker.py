@@ -59,3 +59,13 @@ class SpecificWorker(GenericWorker):
 
 		return True
 
+
+	#
+	# obtainHumanPose
+	#
+	def obtainHumanPose(self, list_of_humans):
+		#
+		#subscribesToCODE
+		#
+		pass
+

@@ -106,9 +106,36 @@ if __name__ == '__main__':
     parameters = {}
     for i in ic.getProperties():
         parameters[str(i)] = str(ic.getProperties().getProperty(i))
+
+	# Topic Manager
+	proxy = ic.getProperties().getProperty("TopicManager.Proxy")
+	obj = ic.stringToProxy(proxy)
+	try:
+		topicManager = IceStorm.TopicManagerPrx.checkedCast(obj)
+	except Ice.ConnectionRefusedException, e:
+		print 'Cannot connect to IceStorm! ('+proxy+')'
+		sys.exit(-1)
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
+
+	HumanPose_adapter = ic.createObjectAdapter("HumanPoseTopic")
+	humanposeI_ = HumanPoseI(worker)
+	humanpose_proxy = HumanPose_adapter.addWithUUID(humanposeI_).ice_oneway()
+
+	subscribeDone = False
+	while not subscribeDone:
+		try:
+			humanpose_topic = topicManager.retrieve("HumanPose")
+			subscribeDone = True
+		except Ice.Exception, e:
+			print "Error. Topic does not exist (yet)"
+			status = 0
+			time.sleep(1)
+	qos = {}
+	humanpose_topic.subscribeAndGetPublisher(qos, humanpose_proxy)
+	HumanPose_adapter.activate()
+
 
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     app.exec_()

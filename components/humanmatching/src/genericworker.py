@@ -42,8 +42,21 @@ except:
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
 
+ice_HumanPose = False
+for p in icePaths:
+	if os.path.isfile(p+'/HumanPose.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"HumanPose.ice"
+		Ice.loadSlice(wholeStr)
+		ice_HumanPose = True
+		break
+if not ice_HumanPose:
+	print 'Couln\'t load HumanPose'
+	sys.exit(-1)
+from RoboCompHumanPose import *
 
 
+from humanposeI import *
 
 try:
 	from ui_mainUI import *
