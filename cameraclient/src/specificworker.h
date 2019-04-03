@@ -29,6 +29,7 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <ipcamreader.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -45,7 +46,7 @@ public slots:
 	void initialize(int period);
 
 private:
-	InnerModel *innerModel;
+	IPCamReader cam;
 
 };
 

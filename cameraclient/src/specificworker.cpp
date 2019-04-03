@@ -46,24 +46,22 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //	}
 //	catch(std::exception e) { qFatal("Error reading config params"); }
 
-
-
-
-	
-
-
 	return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
+
 	this->Period = period;
+	timer.setSingleShot(true);
 	timer.start(Period);
 }
 
 void SpecificWorker::compute()
 {
+	qDebug() << "compute";
+	cam.init();
 	//computeCODE
 //	QMutexLocker locker(mutex); 
 // 	try

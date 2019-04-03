@@ -1,12 +1,8 @@
-CommonBehavior.Endpoints=tcp -p 10000
+CommonBehavior.Endpoints=tcp -p 10011
 
 
 # Endpoints for implemented interfaces
-CameraSimple.Endpoints=tcp -p 0
-
-
-# Proxies for required interfaces
-GetAprilTagsProxy = getapriltags:tcp -h localhost -p 0
+CameraSimple.Endpoints=tcp -p 12299
 
 
 
