@@ -1,0 +1,31 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  Edge.cc
+  FloatImage.cc
+  Gaussian.cc
+  GLine2D.cc
+  GLineSegment2D.cc
+  GrayModel.cc
+  Homography33.cc
+  MathUtil.cc
+  Quad.cc
+  Segment.cc
+  TagDetection.cc
+  TagDetector.cc
+  TagFamily.cc
+  UnionFindSimple.cc
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+)
+
+include_directories ( ${CMAKE_CURRENT_SOURCE_DIR}/AprilTags )
+ADD_DEFINITIONS( -I/usr/include/eigen3 -I/usr/local/include/eigen3)
+set(CMAKE_CXX_STANDARD 11)
+

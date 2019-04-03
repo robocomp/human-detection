@@ -1,0 +1,11 @@
+import "AprilTagsServer.idsl";
+
+Component AprilTagsServer
+{
+	Communications
+	{
+		implements AprilTagsServer;
+	};
+	language Cpp;
+};
+
