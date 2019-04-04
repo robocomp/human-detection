@@ -1,3 +1,7 @@
+# Endpoints for subscriptions
+HumanPoseTopic.Endpoints=tcp -p 19199
+
+
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
