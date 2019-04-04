@@ -61,7 +61,7 @@ public:
 	QMutex *mutex;
 
 
-	HumanPosePrx humanpose_proxy;
+	HumanPosePrx humanpose_pubproxy;
 
 
 protected:

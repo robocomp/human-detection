@@ -28,7 +28,7 @@ QObject()
 #endif
 
 {
-	humanpose_proxy = (*(HumanPosePrx*)mprx["HumanPosePub"]);
+	humanpose_pubproxy = (*(HumanPosePrx*)mprx["HumanPosePub"]);
 
 	mutex = new QMutex(QMutex::Recursive);
 

@@ -74,14 +74,16 @@ void SpecificWorker::compute()
 // 	}
 }
 
+
+
 void SpecificWorker::publish_person()
 {
     std::cout << "Publish person" << std::endl;
-    RoboCompHumanPose::humansDetected human_list;
+    RoboCompHumanPose::humansDetected humans_detected;
     RoboCompHumanPose::PersonType person;
     
     //camera
-    person.IDcamera = cameraID_sb->value();
+    humans_detected.idCamera = cameraID_sb->value();
     
     QStringList lines = person_te->toPlainText().split('\n', QString::SkipEmptyParts);
     for(auto line: lines)
@@ -95,13 +97,13 @@ void SpecificWorker::publish_person()
         person.pos.pos_good = aux[3].contains("true");
         person.pos.rot_good = aux[4].contains("true");
         person.pos.confidence = aux[5].toInt();
-        human_list.push_back(person);
+        humans_detected.humanList.push_back(person);
 qDebug()<<"PersonData"<<person.id<<person.pos.x<<person.pos.z<<person.pos.ry<<person.pos.pos_good<<person.pos.rot_good<<person.pos.confidence;
         
     }
     try
     {
-        humanpose_proxy->obtainHumanPose(human_list);
+        humanpose_pubproxy->obtainHumanPose(humans_detected);
     }
     catch(...)
     {
