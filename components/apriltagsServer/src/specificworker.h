@@ -29,7 +29,15 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include "opencv2/opencv.hpp"
 
+// April tags detector and various families that can be selected by command line option
+#include <AprilTags/TagDetector.h>
+#include <AprilTags/Tag16h5.h>
+#include <AprilTags/Tag25h7.h>
+#include <AprilTags/Tag25h9.h>
+#include <AprilTags/Tag36h9.h>
+#include <AprilTags/Tag36h11.h>
 
 class SpecificWorker : public GenericWorker
 {
@@ -45,9 +53,12 @@ public slots:
             void compute();
 
 private:
-    InnerModel *innerModel;
     AprilTags::TagDetector* m_tagDetector;
-    AprilTags::TagCodes m_tagCodes;
+    cv::Mat image_gray, image_color;
+    bool flip;
+    void searchTags(const cv::Mat &image_gray);
+
+
 
 };
 

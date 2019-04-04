@@ -2,7 +2,7 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 # Endpoints for implemented interfaces
-GetAprilTags.Endpoints=tcp -p 12555
+AprilTagsServer.Endpoints=tcp -p 12555
 
 
 

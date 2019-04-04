@@ -1,0 +1,13 @@
+import "CameraSimple.idsl";
+import "AprilTagsServer.idsl";
+
+Component camerasimple
+{
+	Communications
+	{
+		implements CameraSimple;
+		requires AprilTagsServer;
+	};
+	language Python;
+};
+

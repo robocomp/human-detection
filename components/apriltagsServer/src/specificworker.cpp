@@ -74,8 +74,32 @@ void SpecificWorker::compute()
 
 tagsList SpecificWorker::getAprilTags(const Image &frame)
 {
-
+    cout << "Hey!" << endl;
+//    try
+//    {
+//        auto f = frame.data;
+//        memcpy(image_gray.data, &f[0], frame.frmt.width*frame.frmt.height*sizeof(uchar));
+//        searchTags(image_gray);
+//    }
+//    catch(const Ice::Exception &e)
+//    {
+//        std::cout << "Error reading from Camera" << e << std::endl;
+//    }
+    return(RoboCompAprilTagsServer::tagsList{});
 
 }
 
+void SpecificWorker::searchTags(const cv::Mat &image_gray)
+{
+    cv::Mat dst = image_gray;          // dst must be a different Mat
+    if(this->flip)
+    {
+        cv::flip(image_gray, dst, 0);
+    }
+    vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(dst);
 
+    std::cout << detections.size() << " tags detected:" << std::endl;
+
+    for ( auto &x : detections)
+        cout << "ID: "<<x.id<<endl;
+}

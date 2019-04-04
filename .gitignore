@@ -1,0 +1,12 @@
+
+components/apriltagsServer/\.idea/
+
+components/apriltagsServer/bin/
+
+components/apriltagsServer/cmake-build-debug/
+
+components/apriltagsServer/CMakeFiles/
+
+*.new
+
+*.pyc
