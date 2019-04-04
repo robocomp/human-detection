@@ -67,45 +67,46 @@ from specificworker import *
 
 
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
-    def __init__(self, _handler):
-        self.handler = _handler
-        self.communicator = _communicator
-    def getFreq(self, current = None):
-        self.handler.getFreq()
-    def setFreq(self, freq, current = None):
-        self.handler.setFreq()
-    def timeAwake(self, current = None):
-        try:
-            return self.handler.timeAwake()
-        except:
-            print 'Problem getting timeAwake'
-    def killYourSelf(self, current = None):
-        self.handler.killYourSelf()
-    def getAttrList(self, current = None):
-        try:
-            return self.handler.getAttrList()
-        except:
-            print 'Problem getting getAttrList'
-            traceback.print_exc()
-            status = 1
-            return
+	def __init__(self, _handler):
+		self.handler = _handler
+	def getFreq(self, current = None):
+		self.handler.getFreq()
+	def setFreq(self, freq, current = None):
+		self.handler.setFreq()
+	def timeAwake(self, current = None):
+		try:
+			return self.handler.timeAwake()
+		except:
+			print 'Problem getting timeAwake'
+	def killYourSelf(self, current = None):
+		self.handler.killYourSelf()
+	def getAttrList(self, current = None):
+		try:
+			return self.handler.getAttrList()
+		except:
+			print 'Problem getting getAttrList'
+			traceback.print_exc()
+			status = 1
+			return
 
-
-
+#SIGNALS handler
+def sigint_handler(*args):
+	QtCore.QCoreApplication.quit()
+    
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)
-    params = copy.deepcopy(sys.argv)
-    if len(params) > 1:
-        if not params[1].startswith('--Ice.Config='):
-            params[1] = '--Ice.Config=' + params[1]
-    elif len(params) == 1:
-        params.append('--Ice.Config=config')
-    ic = Ice.initialize(params)
-    status = 0
-    mprx = {}
-    parameters = {}
-    for i in ic.getProperties():
-        parameters[str(i)] = str(ic.getProperties().getProperty(i))
+	params = copy.deepcopy(sys.argv)
+	if len(params) > 1:
+		if not params[1].startswith('--Ice.Config='):
+			params[1] = '--Ice.Config=' + params[1]
+	elif len(params) == 1:
+		params.append('--Ice.Config=config')
+	ic = Ice.initialize(params)
+	status = 0
+	mprx = {}
+	parameters = {}
+	for i in ic.getProperties():
+		parameters[str(i)] = str(ic.getProperties().getProperty(i))
 
 	# Topic Manager
 	proxy = ic.getProperties().getProperty("TopicManager.Proxy")
@@ -114,10 +115,13 @@ if __name__ == '__main__':
 		topicManager = IceStorm.TopicManagerPrx.checkedCast(obj)
 	except Ice.ConnectionRefusedException, e:
 		print 'Cannot connect to IceStorm! ('+proxy+')'
-		sys.exit(-1)
+		status = 1
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
+	else:
+		print "Error getting required connections, check config file"
+		sys.exit(-1)
 
 	HumanPose_adapter = ic.createObjectAdapter("HumanPoseTopic")
 	humanposeI_ = HumanPoseI(worker)
@@ -129,20 +133,25 @@ if __name__ == '__main__':
 			humanpose_topic = topicManager.retrieve("HumanPose")
 			subscribeDone = True
 		except Ice.Exception, e:
-			print "Error. Topic does not exist (yet)"
-			status = 0
+			print "Error. Topic does not exist (creating)"
 			time.sleep(1)
+			try:
+				differentialrobot_topic = topicManager.create("DifferentialRobot")
+				subscribeDone = True
+			except:
+				print "Error. Topic could not be created. Exiting"
+				status = 0
 	qos = {}
 	humanpose_topic.subscribeAndGetPublisher(qos, humanpose_proxy)
 	HumanPose_adapter.activate()
 
 
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-    app.exec_()
+	signal.signal(signal.SIGINT, sigint_handler)
+	app.exec_()
 
-    if ic:
-        try:
-            ic.destroy()
-        except:
-            traceback.print_exc()
-            status = 1
+	if ic:
+		try:
+			ic.destroy()
+		except:
+			traceback.print_exc()
+			status = 1

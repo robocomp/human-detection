@@ -37,41 +37,27 @@ class SpecificWorker(GenericWorker):
 		self.Period = 2000
 		self.timer.start(self.Period)
 		self._matching_graph = nx.Graph()
+		self._current_person_list = None
+
+	def __del__(self):
+		print 'SpecificWorker destructor'
 
 	def setParams(self, params):
-		#try:
-		#	self.innermodel = InnerModel(params["InnerModelPath"])
-		#except:
-		#	traceback.print_exc()
-		#	print "Error reading config params"
 		return True
 
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
-		#computeCODE
-		#try:
-		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
-		#except Ice.Exception, e:
-		#	traceback.print_exc()
-		#	print e
-
-		# The API of python-innermodel is not exactly the same as the C++ version
-		# self.innermodel.updateTransformValues("head_rot_tilt_pose", 0, 0, 0, 1.3, 0, 0)
-		# z = librobocomp_qmat.QVec(3,0)
-		# r = self.innermodel.transform("rgbd", z, "laser")
-		# r.printvector("d")
-		# print r[0], r[1], r[2]
-
 		return True
 
 	def calculate_matching(self, input):
-		camera_id, persons_list = input
-		for index_detected, detected_person in persons_list:
-			for index_existing, existing_person in self._current_person_list:
+		camera_id = input.idCamera
+		persons_list = input.humanList
+		for index_detected, detected_person in enumerate(persons_list):
+			for index_existing, existing_person in enumerate(self._current_person_list):
 				dist = self._calculate_person_distance(detected_person, existing_person)
 				if dist < ABS_THR:
-					self._matching_graph.addNode(str(index_detected)+str(index_existing), person1=detected_person, person2=existing_person)
+					self._matching_graph.add_node(str(index_detected)+str(index_existing), person1=detected_person, person2=existing_person)
 
 		for node1_id, node1 in self._matching_graph.nodes.data():
 			for node2_id, node2 in self._matching_graph.nodes.data():
@@ -85,18 +71,15 @@ class SpecificWorker(GenericWorker):
 
 
 	def _calculate_person_distance(self, p1, p2):
-		a = numpy.array((p1.x, p1.y))
-		b = numpy.array((p2.x, p2.y))
+		a = numpy.array((p1.pos.x, p1.pos.z))
+		b = numpy.array((p2.pos.x, p2.pos.z))
 		dist_a_b = numpy.sqrt(numpy.sum((a - b) ** 2))
 		return dist_a_b
 
 
-	#
-	# obtainHumanPose
-	#
-	def obtainHumanPose(self, list_of_humans):
-		#
-		#subscribesToCODE
-		#
-		pass
-
+	def obtainHumanPose(self, humansFromCam):
+		if self._current_person_list is None:
+			self._current_person_list = humansFromCam.humanList
+			# print self._current_person_list
+		else:
+			self.calculate_matching(humansFromCam)
