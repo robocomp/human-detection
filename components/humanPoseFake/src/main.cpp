@@ -82,7 +82,6 @@
 #include "commonbehaviorI.h"
 
 
-#include <HumanPose.h>
 
 
 // User includes here
@@ -134,7 +133,7 @@ int ::humanPose::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	HumanPosePrx humanpose_proxy;
+	HumanPosePrx humanpose_pubproxy;
 
 	string proxy, tmp;
 	initialize();
@@ -172,8 +171,8 @@ int ::humanPose::run(int argc, char* argv[])
 	}
 
 	Ice::ObjectPrx humanpose_pub = humanpose_topic->getPublisher()->ice_oneway();
-	humanpose_proxy = HumanPosePrx::uncheckedCast(humanpose_pub);
-	mprx["HumanPosePub"] = (::IceProxy::Ice::Object*)(&humanpose_proxy);
+	humanpose_pubproxy = HumanPosePrx::uncheckedCast(humanpose_pub);
+	mprx["HumanPosePub"] = (::IceProxy::Ice::Object*)(&humanpose_pubproxy);
 
 	SpecificWorker *worker = new SpecificWorker(mprx);
 	//Monitor thread
