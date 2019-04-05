@@ -17,6 +17,7 @@
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "specificworker.h"
+#include <chrono>
 
 /**
 * \brief Default constructor
@@ -36,16 +37,6 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = new InnerModel(innermodel_path);
-//	}
-//	catch(std::exception e) { qFatal("Error reading config params"); }
-
 	return true;
 }
 
@@ -53,29 +44,34 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-	this->Period = period;
-	timer.setSingleShot(true);
+	pMOG2 = cv::createBackgroundSubtractorMOG2();
+	size_t erosion_size = 2;
+	kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE, 
+										cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                        cv::Point( erosion_size, erosion_size ) );
+	cam.run();
+
+	this->Period = 50;
+	//timer.setSingleShot(true);
 	timer.start(Period);
+	
 }
 
 void SpecificWorker::compute()
 {
-	qDebug() << "compute";
-	cam.init();
-	//computeCODE
-//	QMutexLocker locker(mutex); 
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
+	if(!cam.empty())
+	{
+		cv::Mat &frame = cam.front();	
+		pMOG2->apply(frame, fgMaskMOG2);
+        cv::erode(fgMaskMOG2, erode, kernel);
+        cv::dilate(erode, dilate, kernel);
+		qDebug() << cv::countNonZero(dilate);
+		cv::imshow("Camara sala de reuniones", erode);
+		//qDebug() << "compute" << frame.rows << frame.cols;
+        cvWaitKey(1);
+		cam.pop();
+	}
 }
-
 
 void SpecificWorker::CameraSimple_getImage(TImage &im)
 {

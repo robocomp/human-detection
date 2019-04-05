@@ -94,11 +94,11 @@ void SpecificWorker::publish_person()
         person.pos.x = aux[0].toFloat();
         person.pos.z = aux[1].toFloat();
         person.pos.ry = aux[2].toFloat();
-        person.pos.pos_good = aux[3].contains("true");
-        person.pos.rot_good = aux[4].contains("true");
+        person.pos.posGood = aux[3].contains("true");
+        person.pos.rotGood = aux[4].contains("true");
         person.pos.confidence = aux[5].toInt();
         humans_detected.humanList.push_back(person);
-qDebug()<<"PersonData"<<person.id<<person.pos.x<<person.pos.z<<person.pos.ry<<person.pos.pos_good<<person.pos.rot_good<<person.pos.confidence;
+qDebug()<<"PersonData"<<person.id<<person.pos.x<<person.pos.z<<person.pos.ry<<person.pos.posGood<<person.pos.rotGood<<person.pos.confidence;
         
     }
     try
