@@ -6,5 +6,5 @@ Component openpifpafServer
 	{
 		implements PeopleServer;
 	};
-	language Cpp11;
+	language Python;
 };
