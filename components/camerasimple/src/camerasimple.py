@@ -60,7 +60,7 @@ import sys, traceback, IceStorm, subprocess, threading, time, Queue, os, copy
 # Ctrl+c handling
 import signal
 
-from PySide import QtGui, QtCore
+from PySide2 import QtCore
 
 from specificworker import *
 
@@ -68,7 +68,6 @@ from specificworker import *
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 	def __init__(self, _handler):
 		self.handler = _handler
-		self.communicator = _communicator
 	def getFreq(self, current = None):
 		self.handler.getFreq()
 	def setFreq(self, freq, current = None):
@@ -89,8 +88,10 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 			status = 1
 			return
 
-
-
+#SIGNALS handler
+def sigint_handler(*args):
+	QtCore.QCoreApplication.quit()
+    
 if __name__ == '__main__':
 	app = QtCore.QCoreApplication(sys.argv)
 	params = copy.deepcopy(sys.argv)
@@ -111,7 +112,7 @@ if __name__ == '__main__':
 		proxyString = ic.getProperties().getProperty('AprilTagsServerProxy')
 		try:
 			basePrx = ic.stringToProxy(proxyString)
-			apriltagsserver_proxy = AprilTagsServerPrx.checkedCast(basePrx)
+			apriltagsserver_proxy = None#AprilTagsServerPrx.checkedCast(basePrx)
 			mprx["AprilTagsServerProxy"] = apriltagsserver_proxy
 		except Ice.Exception:
 			print 'Cannot connect to the remote object (AprilTagsServer)', proxyString
@@ -122,16 +123,36 @@ if __name__ == '__main__':
 		print 'Cannot get AprilTagsServerProxy property.'
 		status = 1
 
+
+	# Remote object connection for PeopleServer
+	try:
+		proxyString = ic.getProperties().getProperty('PeopleServerProxy')
+		try:
+			basePrx = ic.stringToProxy(proxyString)
+			peopleserver_proxy = PeopleServerPrx.checkedCast(basePrx)
+			mprx["PeopleServerProxy"] = peopleserver_proxy
+		except Ice.Exception:
+			print 'Cannot connect to the remote object (PeopleServer)', proxyString
+			#traceback.print_exc()
+			status = 1
+	except Ice.Exception, e:
+		print e
+		print 'Cannot get PeopleServerProxy property.'
+		status = 1
+
 	if status == 0:
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
+	else:
+		print "Error getting required connections, check config file"
+		sys.exit(-1)
 
 	adapter = ic.createObjectAdapter('CameraSimple')
 	adapter.add(CameraSimpleI(worker), ic.stringToIdentity('camerasimple'))
 	adapter.activate()
 
 
-	signal.signal(signal.SIGINT, signal.SIG_DFL)
+	signal.signal(signal.SIGINT, sigint_handler)
 	app.exec_()
 
 	if ic:

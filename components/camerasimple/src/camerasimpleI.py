@@ -41,20 +41,6 @@ except:
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
 
-ice_CameraSimple = False
-for p in icePaths:
-	print 'Trying', p, 'to load CameraSimple.ice'
-	if os.path.isfile(p+'/CameraSimple.ice'):
-		print 'Using', p, 'to load CameraSimple.ice'
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"CameraSimple.ice"
-		Ice.loadSlice(wholeStr)
-		ice_CameraSimple = True
-		break
-if not ice_CameraSimple:
-	print 'Couldn\'t load CameraSimple'
-	sys.exit(-1)
-from RoboCompCameraSimple import *
 ice_AprilTagsServer = False
 for p in icePaths:
 	print 'Trying', p, 'to load AprilTagsServer.ice'
@@ -69,6 +55,34 @@ if not ice_AprilTagsServer:
 	print 'Couldn\'t load AprilTagsServer'
 	sys.exit(-1)
 from RoboCompAprilTagsServer import *
+ice_CameraSimple = False
+for p in icePaths:
+	print 'Trying', p, 'to load CameraSimple.ice'
+	if os.path.isfile(p+'/CameraSimple.ice'):
+		print 'Using', p, 'to load CameraSimple.ice'
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"CameraSimple.ice"
+		Ice.loadSlice(wholeStr)
+		ice_CameraSimple = True
+		break
+if not ice_CameraSimple:
+	print 'Couldn\'t load CameraSimple'
+	sys.exit(-1)
+from RoboCompCameraSimple import *
+ice_PeopleServer = False
+for p in icePaths:
+	print 'Trying', p, 'to load PeopleServer.ice'
+	if os.path.isfile(p+'/PeopleServer.ice'):
+		print 'Using', p, 'to load PeopleServer.ice'
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"PeopleServer.ice"
+		Ice.loadSlice(wholeStr)
+		ice_PeopleServer = True
+		break
+if not ice_PeopleServer:
+	print 'Couldn\'t load PeopleServer'
+	sys.exit(-1)
+from RoboCompPeopleServer import *
 
 class CameraSimpleI(CameraSimple):
 	def __init__(self, worker):

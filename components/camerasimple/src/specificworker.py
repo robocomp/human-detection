@@ -38,7 +38,7 @@ class SpecificWorker(GenericWorker):
         self.timer.start(self.Period)
 
     def setParams(self, params):
-        self.capL = cv2.VideoCapture(1)
+        self.capL = cv2.VideoCapture(0)
         return True
 
     @QtCore.Slot()
@@ -52,6 +52,9 @@ class SpecificWorker(GenericWorker):
                 self.apriltagsserver_proxy.getAprilTags(self.getImage())
             else:
                 print "No apriltag server"
+            if self.peopleserver_proxy is not None:
+                people = self.peopleserver_proxy.processImage(self.getImage2(), 0.3)
+                print people
             # if cv2.waitKey(1) & 0xFF == ord('q'):  # wait for ESC key to exit
             # 	break
         else:
@@ -65,4 +68,10 @@ class SpecificWorker(GenericWorker):
         im.timeStamp = time.time()
         im.data = self.frameL.data
         im.frmt.width, im.frmt.height, _ = self.frameL.shape
+        return im
+
+    def getImage2(self):
+        im = TImage()
+        im.image = self.frameL.data
+        im.width, im.height, im.depth = self.frameL.shape
         return im

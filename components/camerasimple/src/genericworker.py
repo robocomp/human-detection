@@ -17,7 +17,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, Ice, os
-from PySide import QtGui, QtCore
+from PySide2 import QtWidgets, QtCore
 
 ROBOCOMP = ''
 try:
@@ -42,18 +42,6 @@ except:
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
 
-ice_CameraSimple = False
-for p in icePaths:
-	if os.path.isfile(p+'/CameraSimple.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"CameraSimple.ice"
-		Ice.loadSlice(wholeStr)
-		ice_CameraSimple = True
-		break
-if not ice_CameraSimple:
-	print 'Couln\'t load CameraSimple'
-	sys.exit(-1)
-from RoboCompCameraSimple import *
 ice_AprilTagsServer = False
 for p in icePaths:
 	if os.path.isfile(p+'/AprilTagsServer.ice'):
@@ -66,6 +54,18 @@ if not ice_AprilTagsServer:
 	print 'Couln\'t load AprilTagsServer'
 	sys.exit(-1)
 from RoboCompAprilTagsServer import *
+ice_PeopleServer = False
+for p in icePaths:
+	if os.path.isfile(p+'/PeopleServer.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"PeopleServer.ice"
+		Ice.loadSlice(wholeStr)
+		ice_PeopleServer = True
+		break
+if not ice_PeopleServer:
+	print 'Couln\'t load PeopleServer'
+	sys.exit(-1)
+from RoboCompPeopleServer import *
 
 
 from camerasimpleI import *
@@ -80,6 +80,7 @@ class GenericWorker(QtCore.QObject):
 
 
 		self.apriltagsserver_proxy = mprx["AprilTagsServerProxy"]
+		self.peopleserver_proxy = mprx["PeopleServerProxy"]
 
 
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)

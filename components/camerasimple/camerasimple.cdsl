@@ -1,12 +1,13 @@
 import "CameraSimple.idsl";
 import "AprilTagsServer.idsl";
+import "PeopleServer.idsl";
 
 Component camerasimple
 {
 	Communications
 	{
 		implements CameraSimple;
-		requires AprilTagsServer;
+		requires AprilTagsServer, PeopleServer;
 	};
 	language Python;
 };
