@@ -1,0 +1,10 @@
+import "PeopleServer.idsl";
+
+Component openpifpafServer
+{
+	Communications
+	{
+		implements PeopleServer;
+	};
+	language Cpp11;
+};
