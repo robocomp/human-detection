@@ -12,3 +12,4 @@ components/apriltagsServer/CMakeFiles/
 *.pyc
 
 components/humanPoseFake/\.idea/
+components/camerasimple/\.idea/
