@@ -28,7 +28,7 @@ CameraSimpleI::~CameraSimpleI()
 {
 }
 
-void CameraSimpleI::getImage( TImage  &im, const Ice::Current&)
+void CameraSimpleI::getImage( RoboCompCameraSimple::TImage  &im, const Ice::Current&)
 {
 	worker->CameraSimple_getImage(im);
 }

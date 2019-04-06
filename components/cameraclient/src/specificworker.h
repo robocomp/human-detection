@@ -39,7 +39,7 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	void CameraSimple_getImage(TImage &im);
+	void CameraSimple_getImage(RoboCompCameraSimple::TImage &im);
 
 public slots:
 	void compute();

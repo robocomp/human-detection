@@ -59,21 +59,38 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	if(!cam.empty())
+	//qDebug() << "compute";
+	auto [ret, frame] = cam.read();	//access without copy
+	if(ret == false) return;
+	pMOG2->apply(frame, fgMaskMOG2);
+	//cv::erode(fgMaskMOG2, erode, kernel);
+	//cv::dilate(erode, dilate, kernel);
+	cv::countNonZero(fgMaskMOG2);
+	// if count > TH 
+	RoboCompPeopleServer::TImage img;
+	img.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
+	img.width = frame.cols;
+	img.height = frame.rows;
+	img.depth = 3;
+	try
 	{
-		cv::Mat &frame = cam.front();	
-		pMOG2->apply(frame, fgMaskMOG2);
-        cv::erode(fgMaskMOG2, erode, kernel);
-        cv::dilate(erode, dilate, kernel);
-		qDebug() << cv::countNonZero(dilate);
-		cv::imshow("Camara sala de reuniones", erode);
-		//qDebug() << "compute" << frame.rows << frame.cols;
-        cvWaitKey(1);
-		cam.pop();
+		auto people = peopleserver_proxy->processImage(img);
+		//	go from feet upwards
+		//		compute floor position
+		// publish results
 	}
+	catch(const Ice::Exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
+	
+	cv::imshow("Camara sala de reuniones", frame);
+	//qDebug() << "compute" << frame.rows << frame.cols;
+	cvWaitKey(1);
 }
 
-void SpecificWorker::CameraSimple_getImage(TImage &im)
+void SpecificWorker::CameraSimple_getImage(RoboCompCameraSimple::TImage &im)
 {
 //implementCODE
 

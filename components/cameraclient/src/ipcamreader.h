@@ -23,7 +23,18 @@ class IPCamReader
             free(chunk.memory);
             curl_global_cleanup();
         }
-        
+        std::tuple<bool, cv::Mat> read() const 
+        { 
+            if(micola.empty() == false)
+            {
+                auto frame = micola.front(); 
+                micola.pop(); 
+                return std::make_tuple(true, frame); 
+            }
+            else
+                return std::make_tuple(false, cv::Mat());
+        }
+
         bool empty() const { return micola.empty();};
         cv::Mat& front() { return micola.front();};
         void pop() { micola.pop();};

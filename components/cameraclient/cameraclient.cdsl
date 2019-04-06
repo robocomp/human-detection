@@ -1,12 +1,13 @@
 import "CameraSimple.idsl";
 import "GetAprilTags.idsl";
+import "PeopleServer.idsl";
 
 Component cameraclient
 {
     Communications
     {
         implements CameraSimple;
-        requires GetAprilTags;
+        requires GetAprilTags, PeopleServer;
     };
     language Cpp11;
 };

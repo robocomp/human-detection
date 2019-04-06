@@ -34,7 +34,7 @@ public:
 CameraSimpleI(GenericWorker *_worker);
 	~CameraSimpleI();
 
-	void getImage( TImage  &im, const Ice::Current&);
+	void getImage( RoboCompCameraSimple::TImage  &im, const Ice::Current&);
 
 private:
 

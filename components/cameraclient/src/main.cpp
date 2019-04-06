@@ -131,6 +131,7 @@ int ::cameraclient::run(int argc, char* argv[])
 	int status=EXIT_SUCCESS;
 
 	GetAprilTagsPrxPtr getapriltags_proxy;
+	PeopleServerPrxPtr peopleserver_proxy;
 
 	string proxy, tmp;
 	initialize();
@@ -152,7 +153,23 @@ int ::cameraclient::run(int argc, char* argv[])
 	rInfo("GetAprilTagsProxy initialized Ok!");
 
 
-	tprx = std::make_tuple(getapriltags_proxy);
+	try
+	{
+		if (not GenericMonitor::configGetString(communicator(), prefix, "PeopleServerProxy", proxy, ""))
+		{
+			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy PeopleServerProxy\n";
+		}
+		peopleserver_proxy = Ice::uncheckedCast<PeopleServerPrx>( communicator()->stringToProxy( proxy ) );
+	}
+	catch(const Ice::Exception& ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy PeopleServer: " << ex;
+		return EXIT_FAILURE;
+	}
+	rInfo("PeopleServerProxy initialized Ok!");
+
+
+	tprx = std::make_tuple(getapriltags_proxy,peopleserver_proxy);
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
