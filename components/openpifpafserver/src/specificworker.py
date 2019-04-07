@@ -74,15 +74,19 @@ class SpecificWorker(GenericWorker):
 			connection_method = 'max'
 			fixed_b = None
 			pif_fixed_scale = None
-			profile_decoder = None
-			instance_threshold = 0.0
+			profile_decoder = False
+			instance_threshold = 0.05
+			device = torch.device('cuda')
+			disable_cuda = False
+			scale = 0.5
+			key_point_threshold = 0.05
 
 		args = Args()
-		
 		model, _ = nets.factory(args)
-		model = model.to(torch.device('cuda'))
-		self.processors = decoder.factory(args, model)
-
+		model = model.to(args.device)
+		#self.processors = decoder.factory(args, model)
+		decode = decoder.factory(args,model)
+		self.processor = decoder.Processor(model, decode)
 		self.src = np.zeros( (480, 640, 3), np.uint8)
 		
 	def setParams(self, params):
@@ -101,15 +105,18 @@ class SpecificWorker(GenericWorker):
 	def processImage(self, img):
 		print("llega imagen")
 		scale = 0.5
-		self.src = np.fromstring(img.image, np.uint8).reshape( img.height, img.width, img.depth )
+		self.src = np.frombuffer(img.image, np.uint8).reshape( img.height, img.width, img.depth )
+		#self.src = np.fromstring(img.image, np.uint8).reshape( img.height, img.width, img.depth )
 		#print(src.shape)
 		image = cv2.resize(self.src, None, fx=scale, fy=scale)
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 		processed_image_cpu = transforms.image_transform(image.copy())
 		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
-		keypoint_sets, _ = self.processor.keypoint_sets(fields)
-		print("keyPoints", keypoint_sets)
+
+		#fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
+		#keypoint_sets, _ = self.processors[0].keypoint_sets(fields)
+		#print("keyPoints", keypoint_sets)
 
 		# # save in ice structure
 		# keypoint = KeyPoint()
