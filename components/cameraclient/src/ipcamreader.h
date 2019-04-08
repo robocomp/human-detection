@@ -9,8 +9,8 @@
 #include <chrono>
 
 //#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
-//#define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
-#define URL "http://pbustos:Zebulon00@192.168.1.104:20004/videostream.cgi"
+#define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
+//#define URL "http://pbustos:Zebulon00@192.168.1.104:20004/videostream.cgi"
 
 static std::queue<cv::Mat> micola;
 

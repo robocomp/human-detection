@@ -83,11 +83,19 @@ class SpecificWorker(GenericWorker):
 
 		args = Args()
 		model, _ = nets.factory(args)
-		model = model.to(args.device)
-		#self.processors = decoder.factory(args, model)
+		#model, _ = nets.factory()
+		
+		#model = model.to(args.device)
+		self.processors = decoder.factory(args, model)
 		decode = decoder.factory(args,model)
-		self.processor = decoder.Processor(model, decode)
+		#decode = decoder.factory_decode(model)
+		
+		#self.processor = decoder.Processor(model, decode)
 		self.src = np.zeros( (480, 640, 3), np.uint8)
+		
+		#model, _ = nets.factory()
+		#decode = decoder.factory_decode(model)
+		#self.processor = decoder.Processor(model, decode)
 		
 	def setParams(self, params):
 		return True
@@ -112,24 +120,25 @@ class SpecificWorker(GenericWorker):
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 		processed_image_cpu = transforms.image_transform(image.copy())
 		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
-		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
+		fields = self.processors[0].fields(torch.unsqueeze(processed_image, 0))[0]
 
 		#fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
-		#keypoint_sets, _ = self.processors[0].keypoint_sets(fields)
-		#print("keyPoints", keypoint_sets)
+		keypoint_sets, _ = self.processors[0].keypoint_sets(fields)
+		print("keyPoints", keypoint_sets)
 
 		# # save in ice structure
-		# keypoint = KeyPoint()
-		# person = Person()
-		# for id, person in enumerate(keypoint_sets):
-		# 	joints = TJoints()
-		# 	for pos, joint in enumerate(person):
-		# 		keypoint.x = joint[0]
-		# 		keypoint.y = joint[1]
-		# 		keypoint.score = joint[2]
-		# 		joints[COCO_ID[pos]] = keypoint
-		# 	person.id = id
-		# 	person.joints = joints
-		# 	people.append(person)
-		# return people
+		keypoint = KeyPoint()
+		person = Person()
+		people = []
+		for id, person in enumerate(keypoint_sets):
+			joints =  []
+			for pos, joint in enumerate(person):
+				keypoint.x = joint[0]
+				keypoint.y = joint[1]
+				keypoint.score = joint[2]
+				joints[COCO_ID[pos]] = keypoint
+			person.id = id
+			person.joints = joints
+			people.append(person)
+		return people
 
