@@ -34,7 +34,7 @@ public:
 AprilTagsServerI(GenericWorker *_worker);
 	~AprilTagsServerI();
 
-	tagsList getAprilTags(const Image  &frame, const Ice::Current&);
+	tagsList getAprilTags(const Image  &frame, const double  tagsize, const double  mfx, const double  mfy, const Ice::Current&);
 
 private:
 

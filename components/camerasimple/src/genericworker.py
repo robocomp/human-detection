@@ -54,18 +54,6 @@ if not ice_AprilTagsServer:
 	print 'Couln\'t load AprilTagsServer'
 	sys.exit(-1)
 from RoboCompAprilTagsServer import *
-ice_PeopleServer = False
-for p in icePaths:
-	if os.path.isfile(p+'/PeopleServer.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"PeopleServer.ice"
-		Ice.loadSlice(wholeStr)
-		ice_PeopleServer = True
-		break
-if not ice_PeopleServer:
-	print 'Couln\'t load PeopleServer'
-	sys.exit(-1)
-from RoboCompPeopleServer import *
 
 
 from camerasimpleI import *
@@ -80,7 +68,6 @@ class GenericWorker(QtCore.QObject):
 
 
 		self.apriltagsserver_proxy = mprx["AprilTagsServerProxy"]
-		self.peopleserver_proxy = mprx["PeopleServerProxy"]
 
 
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)

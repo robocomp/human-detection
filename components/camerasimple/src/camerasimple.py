@@ -112,7 +112,7 @@ if __name__ == '__main__':
 		proxyString = ic.getProperties().getProperty('AprilTagsServerProxy')
 		try:
 			basePrx = ic.stringToProxy(proxyString)
-			apriltagsserver_proxy = None#AprilTagsServerPrx.checkedCast(basePrx)
+			apriltagsserver_proxy = AprilTagsServerPrx.checkedCast(basePrx)
 			mprx["AprilTagsServerProxy"] = apriltagsserver_proxy
 		except Ice.Exception:
 			print 'Cannot connect to the remote object (AprilTagsServer)', proxyString
@@ -121,23 +121,6 @@ if __name__ == '__main__':
 	except Ice.Exception, e:
 		print e
 		print 'Cannot get AprilTagsServerProxy property.'
-		status = 1
-
-
-	# Remote object connection for PeopleServer
-	try:
-		proxyString = ic.getProperties().getProperty('PeopleServerProxy')
-		try:
-			basePrx = ic.stringToProxy(proxyString)
-			peopleserver_proxy = PeopleServerPrx.checkedCast(basePrx)
-			mprx["PeopleServerProxy"] = peopleserver_proxy
-		except Ice.Exception:
-			print 'Cannot connect to the remote object (PeopleServer)', proxyString
-			#traceback.print_exc()
-			status = 1
-	except Ice.Exception, e:
-		print e
-		print 'Cannot get PeopleServerProxy property.'
 		status = 1
 
 	if status == 0:

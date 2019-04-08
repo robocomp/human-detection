@@ -47,17 +47,17 @@ public:
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-    tagsList getAprilTags(const Image &frame);
+    tagsList AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy);
 
 public slots:
-            void compute();
+    void compute();
+    void initialize(int period);
 
 private:
     AprilTags::TagDetector* m_tagDetector;
     cv::Mat image_gray, image_color;
-    bool flip;
-    void searchTags(const cv::Mat &image_gray);
-
+    RoboCompAprilTagsServer::tag send_detection(::AprilTags::TagDetection detection, double tagsize, double mfx, double mfy, double mpx, double mpy);
+    void rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz);
 
 
 };

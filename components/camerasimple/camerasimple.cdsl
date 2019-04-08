@@ -7,7 +7,7 @@ Component camerasimple
 	Communications
 	{
 		implements CameraSimple;
-		requires AprilTagsServer, PeopleServer;
+		requires AprilTagsServer;
 	};
 	language Python;
 };
