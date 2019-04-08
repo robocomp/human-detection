@@ -23,9 +23,13 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-    connect(publish_pb, SIGNAL(pressed()), this, SLOT(publish_person()));
+	publish_timer = new QTimer();
+	current_frame_index = 0;
+    connect(publish_pb, SIGNAL(pressed()), this, SLOT(publish_clicked()));
     connect(save_pb, SIGNAL(pressed()), this, SLOT(save_file()));
     connect(load_pb, SIGNAL(pressed()), this, SLOT(load_file()));
+    connect(add_pb, SIGNAL(pressed()), this, SLOT(add_frame()));
+    connect(publish_timer, SIGNAL(timeout()), this, SLOT(publish_next()));
 }
 
 /**
@@ -76,20 +80,69 @@ void SpecificWorker::compute()
 
 
 
-void SpecificWorker::publish_person()
+void SpecificWorker::publish_humans(RoboCompHumanPose::humansDetected humans_detected)
 {
-    std::cout << "Publish person" << std::endl;
+
+	try {
+		humanpose_pubproxy->obtainHumanPose(humans_detected);
+	}
+	catch (...) {
+		std::cout << "ERROR publishing person, check IceStorm is running" << std::endl;
+	}
+
+}
+
+void SpecificWorker::publish_clicked()
+{
+	auto selected_items = frames_list->selectedItems();
+	qDebug()<<"Items selected:"<<frames_list->selectedItems().size();
+	if(selected_items.isEmpty()) {
+		RoboCompHumanPose::humansDetected humans_detected = this->ui_to_human_struct();
+		this->publish_humans(humans_detected);
+	}
+	else
+	{
+		current_frame_index = 0;
+		publish_pb->setEnabled(false);
+		qDebug()<<"\tStarting publish timer with"<<timer_sb->value();
+		publish_next();
+		publish_timer->start(float(timer_sb->value())*1000);
+	}
+}
+
+void SpecificWorker::publish_next()
+{
+
+	if(current_frame_index < frames_list->selectedItems().size())
+	{
+		qDebug()<<"To publish next"<<current_frame_index<<frames_list->selectedItems().size();
+		auto item = frames_list->item(current_frame_index);
+		auto vari = item->data(Qt::UserRole);
+		RoboCompHumanPose::humansDetected humans_detected = vari.value<RoboCompHumanPose::humansDetected>();
+		qDebug()<<"Humans detected:"<<humans_detected.humanList.size();
+		this->publish_humans(humans_detected);
+		current_frame_index++;
+	}
+	else
+	{
+		qDebug()<<"Stoping publish task";
+		publish_pb->setEnabled(true);
+		current_frame_index=0;
+		publish_timer->stop();
+	}
+}
+
+RoboCompHumanPose::humansDetected SpecificWorker::ui_to_human_struct() {
     RoboCompHumanPose::humansDetected humans_detected;
     RoboCompHumanPose::PersonType person;
-    
+
     //camera
     humans_detected.idCamera = cameraID_sb->value();
-    
-    QStringList lines = person_te->toPlainText().split('\n', QString::SkipEmptyParts);
-    for(auto line: lines)
-    {
+	qDebug()<<"Converting UI data to Humans Detected Struct...";
+	QStringList lines = person_te->toPlainText().split('\n', QString::SkipEmptyParts);
+    for (auto line: lines) {
         person.id = line.split(',')[0].toInt();
-        QStringList aux = line.mid(line.indexOf('(')+1,line.indexOf(')')-line.indexOf('(')-1).split(',');
+        QStringList aux = line.mid(line.indexOf('(') + 1, line.indexOf(')') - line.indexOf('(') - 1).split(',');
 
         person.pos.x = aux[0].toFloat();
         person.pos.z = aux[1].toFloat();
@@ -98,18 +151,11 @@ void SpecificWorker::publish_person()
         person.pos.rotGood = aux[4].contains("true");
         person.pos.confidence = aux[5].toInt();
         humans_detected.humanList.push_back(person);
-qDebug()<<"PersonData"<<person.id<<person.pos.x<<person.pos.z<<person.pos.ry<<person.pos.posGood<<person.pos.rotGood<<person.pos.confidence;
-        
+        qDebug() << "\tPersonData" << person.id << person.pos.x << person.pos.z << person.pos.ry << person.pos.posGood
+                 << person.pos.rotGood << person.pos.confidence;
+
     }
-    try
-    {
-        humanpose_pubproxy->obtainHumanPose(humans_detected);
-    }
-    catch(...)
-    {
-        std::cout <<"ERROR publishing person, check IceStorm is running"<<std::endl;
-    }
-    
+    return humans_detected;
 }
 
 void SpecificWorker::load_file()
@@ -137,5 +183,29 @@ void SpecificWorker::save_file()
     QString content = person_te->toPlainText();
     file.write(content.toUtf8());
     file.close();
+}
+
+
+void SpecificWorker::add_frame() {
+    QString name = name_te->text();
+    if(!name.isEmpty())
+    {
+        RoboCompHumanPose::humansDetected humans_detected = this->ui_to_human_struct();
+        QListWidgetItem *item = new QListWidgetItem();
+        item->setText(name);
+        QVariant a = QVariant::fromValue<RoboCompHumanPose::humansDetected>( humans_detected);
+        item->setData(Qt::UserRole, a);
+        frames_list->addItem(item);
+    }
+    else
+    {
+        QMessageBox::information(
+                this,
+                tr("Name of frame"),
+                tr("You have to set a name for the frame.") );
+        name_te->setFocus();
+    }
+
+
 }
 
