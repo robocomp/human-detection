@@ -13,5 +13,5 @@ SET ( HEADERS
 
 INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )
 set(CMAKE_CXX_STANDARD 17)
-
+ADD_DEFINITIONS( -O3 -mavx2 -Wfatal-errors -fmax-errors=5)
 set( SPECIFIC_LIBS -lcurl)

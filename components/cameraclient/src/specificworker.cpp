@@ -49,7 +49,9 @@ void SpecificWorker::initialize(int period)
 	kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE, 
 										cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                         cv::Point( erosion_size, erosion_size ) );
-	cam.run();
+	
+	//cam.run();
+	camcv.open(0);
 
 	this->Period = 50;
 	//timer.setSingleShot(true);
@@ -59,8 +61,10 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	//qDebug() << "compute";
-	auto [ret, frame] = cam.read();	//access without copy
+	//auto [ret, frame] = cam.read();	//access without copy
+	cv::Mat frame; bool ret = true;
+	camcv >> frame;  
+
 	if(ret == false) return;
 	pMOG2->apply(frame, fgMaskMOG2);
 	//cv::erode(fgMaskMOG2, erode, kernel);
@@ -75,6 +79,7 @@ void SpecificWorker::compute()
 	try
 	{
 		auto people = peopleserver_proxy->processImage(img, 0.5);
+		drawBody(frame, people);
 		//	go from feet upwards
 		//		compute floor position
 		// publish results
@@ -93,6 +98,21 @@ void SpecificWorker::compute()
 	//qDebug() << "compute" << frame.rows << frame.cols;
 	cvWaitKey(1);
 }
+
+void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People &people)
+{
+	for(auto &p : people)
+	{
+		qDebug() << p.id;
+		for(auto &[part, kp] : p.joints)
+		{
+			qDebug() << "	" << QString::fromStdString(part) << kp.x << kp.y << "(" << kp.score << ")";
+		}
+	}
+	cv::imshow("Camara IP", frame);
+	cvWaitKey(1);
+}
+
 
 void SpecificWorker::CameraSimple_getImage(RoboCompCameraSimple::TImage &im)
 {
