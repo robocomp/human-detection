@@ -43,18 +43,18 @@ class SpecificWorker(GenericWorker):
 
     @QtCore.Slot()
     def compute(self):
-        print 'SpecificWorker.compute...'
+        # print 'SpecificWorker.compute...'
         retL, self.frameL = self.capL.read()
         if retL:
             rows, cols, depth = self.frameL.shape
             cv2.imshow("frameL", self.frameL)
             if self.apriltagsserver_proxy is not None:
-                self.apriltagsserver_proxy.getAprilTags(self.getImage())
+                print(self.apriltagsserver_proxy.getAprilTags(self.getImage(), 30, 458, 458))
             else:
                 print "No apriltag server"
-            if self.peopleserver_proxy is not None:
-                people = self.peopleserver_proxy.processImage(self.getImage2(), 0.3)
-                print people
+            # if self.peopleserver_proxy is not None:
+            #     people = self.peopleserver_proxy.processImage(self.getImage2(), 0.3)
+            #     print people
             # if cv2.waitKey(1) & 0xFF == ord('q'):  # wait for ESC key to exit
             # 	break
         else:

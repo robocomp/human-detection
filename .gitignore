@@ -15,3 +15,11 @@ components/humanPoseFake/\.idea/
 components/camerasimple/\.idea/
 
 components/humanmatching/\.idea/
+
+components/apriltagsServer/src/AprilTagsServer_autogen/
+
+components/apriltagsServer/src/cmake-build-debug/
+
+components/apriltagsServer/src/CMakeFiles/
+
+components/apriltagsComp/\.idea/

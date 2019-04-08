@@ -36,24 +36,25 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
-//       THE FOLLOWING IS JUST AN EXAMPLE
-//	To use innerModelPath parameter you should uncomment specificmonitor.cpp readConfig method content
-//	try
-//	{
-//		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
-//		std::string innermodel_path = par.value;
-//		innerModel = new InnerModel(innermodel_path);
-//	}
-//	catch(std::exception e) { qFatal("Error reading config params"); }
-
-
-
 
     timer.start(Period);
-
+//    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
+//    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes25h7);
+//    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes25h9);
+//    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
+//    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);
+    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
 
     return true;
 }
+
+void SpecificWorker::initialize(int period)
+{
+    std::cout << "Initialize worker" << std::endl;
+    this->Period = period;
+    timer.start(Period);
+}
+
 
 void SpecificWorker::compute()
 {
@@ -72,34 +73,76 @@ void SpecificWorker::compute()
 }
 
 
-tagsList SpecificWorker::getAprilTags(const Image &frame)
+tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy)
 {
-    cout << "Hey!" << endl;
-//    try
-//    {
-//        auto f = frame.data;
-//        memcpy(image_gray.data, &f[0], frame.frmt.width*frame.frmt.height*sizeof(uchar));
-//        searchTags(image_gray);
-//    }
-//    catch(const Ice::Exception &e)
-//    {
-//        std::cout << "Error reading from Camera" << e << std::endl;
-//    }
-    return(RoboCompAprilTagsServer::tagsList{});
+//    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<endl;
+    image_gray.create(frame.frmt.height,frame.frmt.width,CV_8UC1);
+    image_color.create(frame.frmt.height,frame.frmt.width,CV_8UC3);
+    RoboCompAprilTagsServer::tagsList tagsList1;
+    try
+    {
+        image_color.data = (uchar *)(&frame.data[0]);
+        cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+        vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
+//        std::cout << detections.size() << " tags detected:" << std::endl;
+        if (detections.size() > 0)
+            for (auto &d : detections)
+                tagsList1.push_back(send_detection(d, tagsize, mfx, mfy, frame.frmt.width/2, frame.frmt.height/2));
+    }
+    catch(const Ice::Exception &e)
+    {
+        std::cout << "Error reading from Camera" << e << std::endl;
+    }
+    return(tagsList1);
 
 }
 
-void SpecificWorker::searchTags(const cv::Mat &image_gray)
-{
-    cv::Mat dst = image_gray;          // dst must be a different Mat
-    if(this->flip)
+void SpecificWorker::rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz) {
+    QMat v(3,3);
+    for (uint32_t f=0; f<3; f++)
     {
-        cv::flip(image_gray, dst, 0);
+        for (uint32_t c=0; c<3; c++)
+        {
+            v(f,c) = R(f,c);
+        }
     }
-    vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(dst);
+    QVec ret = v.extractAnglesR_min();
+    rx = ret(0)+M_PIl;
+    while (rx >= M_PIl) rx -= 2.*M_PIl;
+    while (rx < -M_PIl) rx += 2.*M_PIl;
+    ry = -ret(1);
+    rz = ret(2);
 
-    std::cout << detections.size() << " tags detected:" << std::endl;
+}
 
-    for ( auto &x : detections)
-        cout << "ID: "<<x.id<<endl;
+RoboCompAprilTagsServer::tag SpecificWorker::send_detection(::AprilTags::TagDetection detection, double tagsize, double mfx, double mfy, double mpx, double mpy)
+{
+    cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ") ";
+    Eigen::Vector3d translation;
+    Eigen::Matrix3d rotation;
+    detection.getRelativeTranslationRotation(tagsize, mfx, mfy, mpx, mpy, translation, rotation);
+    QVec T(3);
+    T(0) = -translation(1);//*0.65;
+    T(1) =  translation(2);//*0.65;
+    T(2) =  translation(0);//*0.65;
+    Eigen::Matrix3d F;
+    F << 1, 0,  0,	0,  -1,  0,	0,  0,  1;
+    Eigen::Matrix3d fixed_rot = F*rotation;
+
+    double rx, ry, rz;
+    rotationFromMatrix(fixed_rot, rx, ry, rz);
+    cout << mfx << "  " << mfy << endl;
+    cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+
+    RoboCompAprilTagsServer::tag t;
+    t.id=detection.id;
+    t.tx=T(0);
+    t.ty=T(1);
+    t.tz=T(2);
+    t.rx=rx;
+    t.ry=ry;
+    t.rz=rz;
+
+    return t;
+
 }

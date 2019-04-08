@@ -141,7 +141,7 @@ public:
 
     static const ::std::string& ice_staticId();
 
-    virtual ::RoboCompAprilTagsServer::tagsList getAprilTags(::RoboCompAprilTagsServer::Image, const ::Ice::Current&) = 0;
+    virtual ::RoboCompAprilTagsServer::tagsList getAprilTags(::RoboCompAprilTagsServer::Image, double, double, double, const ::Ice::Current&) = 0;
     bool _iceD_getAprilTags(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual bool _iceDispatch(::IceInternal::Incoming&, const ::Ice::Current&) override;
@@ -156,29 +156,29 @@ class AprilTagsServerPrx : public virtual ::Ice::Proxy<AprilTagsServerPrx, ::Ice
 {
 public:
 
-    ::RoboCompAprilTagsServer::tagsList getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::Context& context = Ice::noExplicitContext)
+    ::RoboCompAprilTagsServer::tagsList getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, double iceP_tagsize, double iceP_mfx, double iceP_mfy, const ::Ice::Context& context = Ice::noExplicitContext)
     {
-        return _makePromiseOutgoing<::RoboCompAprilTagsServer::tagsList>(true, this, &RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags, iceP_frame, context).get();
+        return _makePromiseOutgoing<::RoboCompAprilTagsServer::tagsList>(true, this, &RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags, iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, context).get();
     }
 
     template<template<typename> class P = ::std::promise>
-    auto getAprilTagsAsync(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::Context& context = Ice::noExplicitContext)
+    auto getAprilTagsAsync(const ::RoboCompAprilTagsServer::Image& iceP_frame, double iceP_tagsize, double iceP_mfx, double iceP_mfy, const ::Ice::Context& context = Ice::noExplicitContext)
         -> decltype(::std::declval<P<::RoboCompAprilTagsServer::tagsList>>().get_future())
     {
-        return _makePromiseOutgoing<::RoboCompAprilTagsServer::tagsList, P>(false, this, &RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags, iceP_frame, context);
+        return _makePromiseOutgoing<::RoboCompAprilTagsServer::tagsList, P>(false, this, &RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags, iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, context);
     }
 
     ::std::function<void()>
-    getAprilTagsAsync(const ::RoboCompAprilTagsServer::Image& iceP_frame,
+    getAprilTagsAsync(const ::RoboCompAprilTagsServer::Image& iceP_frame, double iceP_tagsize, double iceP_mfx, double iceP_mfy,
                       ::std::function<void(::RoboCompAprilTagsServer::tagsList)> response,
                       ::std::function<void(::std::exception_ptr)> ex = nullptr,
                       ::std::function<void(bool)> sent = nullptr,
                       const ::Ice::Context& context = Ice::noExplicitContext)
     {
-        return _makeLamdaOutgoing<::RoboCompAprilTagsServer::tagsList>(response, ex, sent, this, &RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags, iceP_frame, context);
+        return _makeLamdaOutgoing<::RoboCompAprilTagsServer::tagsList>(response, ex, sent, this, &RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags, iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, context);
     }
 
-    void _iceI_getAprilTags(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<::RoboCompAprilTagsServer::tagsList>>&, const ::RoboCompAprilTagsServer::Image&, const ::Ice::Context&);
+    void _iceI_getAprilTags(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<::RoboCompAprilTagsServer::tagsList>>&, const ::RoboCompAprilTagsServer::Image&, double, double, double, const ::Ice::Context&);
 
     static const ::std::string& ice_staticId();
 
@@ -438,41 +438,41 @@ class AprilTagsServer : public virtual ::Ice::Proxy<AprilTagsServer, ::IceProxy:
 {
 public:
 
-    ::RoboCompAprilTagsServer::tagsList getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::Context& context = ::Ice::noExplicitContext)
+    ::RoboCompAprilTagsServer::tagsList getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, ::Ice::Double iceP_tagsize, ::Ice::Double iceP_mfx, ::Ice::Double iceP_mfy, const ::Ice::Context& context = ::Ice::noExplicitContext)
     {
-        return end_getAprilTags(_iceI_begin_getAprilTags(iceP_frame, context, ::IceInternal::dummyCallback, 0, true));
+        return end_getAprilTags(_iceI_begin_getAprilTags(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, context, ::IceInternal::dummyCallback, 0, true));
     }
 
-    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::Context& context = ::Ice::noExplicitContext)
+    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, ::Ice::Double iceP_tagsize, ::Ice::Double iceP_mfx, ::Ice::Double iceP_mfy, const ::Ice::Context& context = ::Ice::noExplicitContext)
     {
-        return _iceI_begin_getAprilTags(iceP_frame, context, ::IceInternal::dummyCallback, 0);
+        return _iceI_begin_getAprilTags(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, context, ::IceInternal::dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::CallbackPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
+    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, ::Ice::Double iceP_tagsize, ::Ice::Double iceP_mfx, ::Ice::Double iceP_mfy, const ::Ice::CallbackPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
     {
-        return _iceI_begin_getAprilTags(iceP_frame, ::Ice::noExplicitContext, del, cookie);
+        return _iceI_begin_getAprilTags(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, ::Ice::noExplicitContext, del, cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::Context& context, const ::Ice::CallbackPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
+    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, ::Ice::Double iceP_tagsize, ::Ice::Double iceP_mfx, ::Ice::Double iceP_mfy, const ::Ice::Context& context, const ::Ice::CallbackPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
     {
-        return _iceI_begin_getAprilTags(iceP_frame, context, del, cookie);
+        return _iceI_begin_getAprilTags(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, context, del, cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::RoboCompAprilTagsServer::Callback_AprilTagsServer_getAprilTagsPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
+    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, ::Ice::Double iceP_tagsize, ::Ice::Double iceP_mfx, ::Ice::Double iceP_mfy, const ::RoboCompAprilTagsServer::Callback_AprilTagsServer_getAprilTagsPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
     {
-        return _iceI_begin_getAprilTags(iceP_frame, ::Ice::noExplicitContext, del, cookie);
+        return _iceI_begin_getAprilTags(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, ::Ice::noExplicitContext, del, cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::Context& context, const ::RoboCompAprilTagsServer::Callback_AprilTagsServer_getAprilTagsPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
+    ::Ice::AsyncResultPtr begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, ::Ice::Double iceP_tagsize, ::Ice::Double iceP_mfx, ::Ice::Double iceP_mfy, const ::Ice::Context& context, const ::RoboCompAprilTagsServer::Callback_AprilTagsServer_getAprilTagsPtr& del, const ::Ice::LocalObjectPtr& cookie = 0)
     {
-        return _iceI_begin_getAprilTags(iceP_frame, context, del, cookie);
+        return _iceI_begin_getAprilTags(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, context, del, cookie);
     }
 
     ::RoboCompAprilTagsServer::tagsList end_getAprilTags(const ::Ice::AsyncResultPtr&);
 
 private:
 
-    ::Ice::AsyncResultPtr _iceI_begin_getAprilTags(const ::RoboCompAprilTagsServer::Image&, const ::Ice::Context&, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& cookie = 0, bool sync = false);
+    ::Ice::AsyncResultPtr _iceI_begin_getAprilTags(const ::RoboCompAprilTagsServer::Image&, ::Ice::Double, ::Ice::Double, ::Ice::Double, const ::Ice::Context&, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& cookie = 0, bool sync = false);
 
 public:
 
@@ -505,7 +505,7 @@ public:
 
     static const ::std::string& ice_staticId();
 
-    virtual ::RoboCompAprilTagsServer::tagsList getAprilTags(const ::RoboCompAprilTagsServer::Image&, const ::Ice::Current& = ::Ice::emptyCurrent) = 0;
+    virtual ::RoboCompAprilTagsServer::tagsList getAprilTags(const ::RoboCompAprilTagsServer::Image&, ::Ice::Double, ::Ice::Double, ::Ice::Double, const ::Ice::Current& = ::Ice::emptyCurrent) = 0;
     bool _iceD_getAprilTags(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual bool _iceDispatch(::IceInternal::Incoming&, const ::Ice::Current&);
