@@ -24,7 +24,7 @@ import torch
 import cv2
 import numpy as np
 
-#COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
+COCO_ID=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
 
 class SpecificWorker(GenericWorker):
 	processor = None
@@ -41,21 +41,12 @@ class SpecificWorker(GenericWorker):
 		print('SpecificWorker destructor')
 
 	def initialize(self):
-		#TODO: Change parameters read
-		#parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
-		#parser.add_argument('--no-colored-connections', dest='colored_connections', default=True, action='store_false', help='do not use colored connections to draw poses')
-		#parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
-		#parser.add_argument('--source', default=0, help='OpenCV source url. Integer for webcams. Or ipwebcam streams.')
-		#parser.add_argument('--scale', default=0.1, type=float, help='input image scale factor')
-		#nets.cli(parser)
-		#decoder.cli(parser, force_complete_pose=False, instance_threshold=0.05)
-
+		
 		# add args.device
 		torch.device('cpu')
 		if torch.cuda.is_available():
 			torch.device('cuda')
 		# load model
-		#args = parser.parse_args()
 		class Args:
 			source = 0
 			checkpoint = None
@@ -82,20 +73,12 @@ class SpecificWorker(GenericWorker):
 			key_point_threshold = 0.05
 
 		args = Args()
-		model, _ = nets.factory(args)
-		#model, _ = nets.factory()
-		
-		#model = model.to(args.device)
-		self.processors = decoder.factory(args, model)
-		decode = decoder.factory(args,model)
-		#decode = decoder.factory_decode(model)
-		
-		#self.processor = decoder.Processor(model, decode)
+		model, _ = nets.factory()
+		decode = decoder.factory_decode(model)
+		self.processor = decoder.Processor(model, decode)
+
+
 		self.src = np.zeros( (480, 640, 3), np.uint8)
-		
-		#model, _ = nets.factory()
-		#decode = decoder.factory_decode(model)
-		#self.processor = decoder.Processor(model, decode)
 		
 	def setParams(self, params):
 		return True
@@ -103,15 +86,15 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		print('SpecificWorker.compute...')
-		cv2.imshow("", self.src)
-		cv2.waitKey(1)
+		#cv2.imshow("", self.src)
+		#cv2.waitKey(1)
 		return True
 
 	#
 	# SERVANT processImage
 	#
 	def processImage(self, img):
-		print("llega imagen")
+		#print("llega imagen")
 		scale = 0.5
 		self.src = np.frombuffer(img.image, np.uint8).reshape( img.height, img.width, img.depth )
 		#self.src = np.fromstring(img.image, np.uint8).reshape( img.height, img.width, img.depth )
@@ -120,19 +103,19 @@ class SpecificWorker(GenericWorker):
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 		processed_image_cpu = transforms.image_transform(image.copy())
 		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
-		fields = self.processors[0].fields(torch.unsqueeze(processed_image, 0))[0]
+		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
 		#fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
-		keypoint_sets, _ = self.processors[0].keypoint_sets(fields)
-		print("keyPoints", keypoint_sets)
+		keypoint_sets, _ = self.processor.keypoint_sets(fields)
+		#print("keyPoints", keypoint_sets)
 
 		# # save in ice structure
 		keypoint = KeyPoint()
 		person = Person()
 		people = []
-		for id, person in enumerate(keypoint_sets):
-			joints =  []
-			for pos, joint in enumerate(person):
+		for id, p in enumerate(keypoint_sets):
+			joints =  {}
+			for pos, joint in enumerate(p):
 				keypoint.x = joint[0]
 				keypoint.y = joint[1]
 				keypoint.score = joint[2]
