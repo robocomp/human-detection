@@ -13,3 +13,5 @@ components/apriltagsServer/CMakeFiles/
 
 components/humanPoseFake/\.idea/
 components/camerasimple/\.idea/
+
+components/humanmatching/\.idea/
