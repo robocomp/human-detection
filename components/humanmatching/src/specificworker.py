@@ -41,10 +41,11 @@ class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
-		self.Period = 2000
+		self.Period = 500
 		self.timer.start(self.Period)
 		self._matching_graph = nx.Graph()
-		self._current_person_list = None
+		self._current_person_list = []
+		self._next_person_list = []
 		self._main_layout = QVBoxLayout()
 		self.setLayout(self._main_layout)
 		self.widget_graph = QNetworkxController()
@@ -52,19 +53,17 @@ class SpecificWorker(GenericWorker):
 
 		self._maps_layout = QHBoxLayout()
 		self._main_layout.addLayout(self._maps_layout)
-		self._current_view = HumanVisualizationWidget()
-		self._current_view.setMinimumSize(QSize(400,400))
-		self._current_view.setWindowTitle("Current view")
-		self._current_view.move(500, 100)
-		# self._current_view.show()
-		self._maps_layout.addWidget(self._current_view)
+		self._first_view = HumanVisualizationWidget()
+		self._first_view.setMinimumSize(QSize(400, 400))
+		self._first_view.setWindowTitle("Current view")
+		self._maps_layout.addWidget(self._first_view)
 
-		self._arriving_view = HumanVisualizationWidget()
-		self._arriving_view.setMinimumSize(QSize(400, 400))
-		self._arriving_view.setWindowTitle("Next view")
-		self._arriving_view.move(910, 100)
+		self._second_view = HumanVisualizationWidget()
+		self._second_view.setMinimumSize(QSize(400, 400))
+		self._second_view.setWindowTitle("Next view")
 		# self._arriving_view.show()
-		self._maps_layout.addWidget(self._arriving_view)
+		self._maps_layout.addWidget(self._second_view)
+		self._update_views = False
 
 	def __del__(self):
 		print 'SpecificWorker destructor'
@@ -75,18 +74,23 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
+		if self._update_views:
+			self._update_person_list_view(self._current_person_list, self._first_view)
+			self._update_person_list_view(self._next_person_list, self._second_view)
+			self._update_views = False
 		return True
 
 	def calculate_matching(self, input):
+		self._matching_graph.clear()
+		self.widget_graph.clear()
 		camera_id = input.idCamera
 		persons_list = input.humanList
-		self._update_new_person_list(persons_list)
 		print("Person list input: ", persons_list)
 		for detected_person in persons_list:
 			for existing_person in self._current_person_list:
 				print("Indexes:", detected_person.id," ", existing_person.id)
 				dist = self._calculate_person_distance(detected_person, existing_person)
-				# print("Distance persons: ", dist)
+				print("Distance persons: ", dist)
 				if dist < ABS_THR:
 					print("adding node")
 					self._matching_graph.add_node(str(detected_person.id)+"_"+str(existing_person.id), person1=existing_person, person2=detected_person)
@@ -105,7 +109,7 @@ class SpecificWorker(GenericWorker):
 
 		result = nx.find_cliques(self._matching_graph)
 		for r in result:
-			print("Nodes in result: ", r)
+			# print("Nodes in result: ", r)
 			for node_id in r:
 				node = self._matching_graph.nodes[node_id]
 				if node_id in self._matching_graph.nodes:
@@ -113,21 +117,23 @@ class SpecificWorker(GenericWorker):
 					r = lambda: random.randint(0, 255)
 					next_color = '#%02X%02X%02X' % (r(), r(), r())
 
-					self._current_view.set_human_color(node["person1"].id, QColor(next_color))
-					self._arriving_view.set_human_color(node["person2"].id, QColor(next_color))
+					self._first_view.set_human_color(node["person1"].id, QColor(next_color))
+					self._second_view.set_human_color(node["person2"].id, QColor(next_color))
+
 		return result
 
-	def _update_current_person_list(self):
-		self._update_person_list(self._current_person_list, self._current_view)
+	# def _update_current_person_list_view(self):
+	# 	self._update_person_list_view(self._current_person_list, self._first_view)
+	# 	pass
+	#
+	# def _update_new_person_list_view(self, list):
+	# 	self._update_person_list_view(list, self._second_view)
 
-	def _update_new_person_list(self, list):
-		self._update_person_list(list, self._arriving_view)
-
-	def _update_person_list(self, person_list, view):
+	def _update_person_list_view(self, person_list, view):
 		view.clear()
-		for existing_person in person_list:
-			view.add_human_by_pos(existing_person.id, (existing_person.pos.x, existing_person.pos.z))
-		view.update()
+		print("Updating %d persons on view %s"%(len(person_list), str(view)))
+		for person in person_list:
+			view.add_human_by_pos(person.id, (person.pos.x, person.pos.z))
 
 
 	def _calculate_person_distance(self, p1, p2):
@@ -138,9 +144,17 @@ class SpecificWorker(GenericWorker):
 
 
 	def obtainHumanPose(self, humansFromCam):
-		if self._current_person_list is None:
-			self._current_person_list = humansFromCam.humanList
-			self._update_current_person_list()
+		if len(self._next_person_list) == 0:
+			print("obtainHumanPose: First humans detected")
+			self._next_person_list = humansFromCam.humanList
+			self._update_views = True
 			# print self._current_person_list
 		else:
+			print("obtainHumanPose: New humans detected")
+			#copy
+			self._current_person_list = self._next_person_list[:]
+			self._next_person_list = humansFromCam.humanList[:]
+			# self._update_current_person_list_view()
 			self.calculate_matching(humansFromCam)
+
+
