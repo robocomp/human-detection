@@ -74,10 +74,14 @@ void SpecificWorker::compute()
 	img.depth = 3;
 	try
 	{
-		auto people = peopleserver_proxy->processImage(img);
+		auto people = peopleserver_proxy->processImage(img, 0.5);
 		//	go from feet upwards
 		//		compute floor position
 		// publish results
+		for (auto person: people)
+		{
+			
+		}
 	}
 	catch(const Ice::Exception& e)
 	{
