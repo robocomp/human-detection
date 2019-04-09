@@ -17,6 +17,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 import random
+from Queue import Queue, Empty
 
 import numpy
 from PySide2.QtCore import QSize
@@ -64,6 +65,7 @@ class SpecificWorker(GenericWorker):
 		# self._arriving_view.show()
 		self._maps_layout.addWidget(self._second_view)
 		self._update_views = False
+		self._detection_queue = Queue()
 
 	def __del__(self):
 		print 'SpecificWorker destructor'
@@ -74,10 +76,28 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		print 'SpecificWorker.compute...'
-		if self._update_views:
-			self._update_person_list_view(self._current_person_list, self._first_view)
-			self._update_person_list_view(self._next_person_list, self._second_view)
-			self._update_views = False
+		try:
+			humansFromCam = self._detection_queue.get_nowait()
+			if len(self._next_person_list) == 0:
+				print("obtainHumanPose: First humans detected")
+				self._next_person_list = humansFromCam.humanList
+
+			# print self._current_person_list
+			else:
+				print("obtainHumanPose: New humans detected")
+				# copy
+				self._current_person_list = self._next_person_list[:]
+				self._next_person_list = humansFromCam.humanList[:]
+				# self._update_current_person_list_view()
+				self._update_person_list_view(self._current_person_list, self._first_view)
+				self._update_person_list_view(self._next_person_list, self._second_view)
+
+				self.calculate_matching(humansFromCam)
+
+
+		except Empty as e:
+			print("No new detection")
+
 		return True
 
 	def calculate_matching(self, input):
@@ -144,17 +164,6 @@ class SpecificWorker(GenericWorker):
 
 
 	def obtainHumanPose(self, humansFromCam):
-		if len(self._next_person_list) == 0:
-			print("obtainHumanPose: First humans detected")
-			self._next_person_list = humansFromCam.humanList
-			self._update_views = True
-			# print self._current_person_list
-		else:
-			print("obtainHumanPose: New humans detected")
-			#copy
-			self._current_person_list = self._next_person_list[:]
-			self._next_person_list = humansFromCam.humanList[:]
-			# self._update_current_person_list_view()
-			self.calculate_matching(humansFromCam)
+		self._detection_queue.put(humansFromCam)
 
 
