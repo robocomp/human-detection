@@ -24,14 +24,33 @@
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 {
-
+	skeleton = SKELETON_CONNECTIONS({
+		{"left_ankle","left_knee"},
+		{"left_knee","left_hip"},
+		{"right_ankle", "right_knee"},
+		{"right_knee", "right_hip"},
+		{"left_hip", "right_hip"},
+		{"left_shoulder", "left_hip"},
+		{"right_shoulder", "right_hip"},
+		{"left_shoulder", "right_shoulder"},
+		{"left_shoulder", "left_elbow"},
+		{"right_shoulder", "right_elbow"},
+		{"left_elbow", "left_wrist"},
+		{"right_elbow", "right_wrist"},		
+		{"left_eye", "right_eye"},		
+		{"nose", "left_eye"},
+		{"nose", "right_eye"},
+		{"left_eye", "left_ear"},
+		{"right_eye", "right_ear"},
+		{"left_ear", "left_shoulder"},
+		{"right_ear", "right_shoulder"}});
 }
-
 /**
 * \brief Default destructor
 */
 SpecificWorker::~SpecificWorker()
 {
+	camcv.release();
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
@@ -78,15 +97,12 @@ void SpecificWorker::compute()
 	img.depth = 3;
 	try
 	{
-		auto people = peopleserver_proxy->processImage(img, 0.5);
+		scale = 0.5;
+		auto people = peopleserver_proxy->processImage(img, scale);
 		drawBody(frame, people);
 		//	go from feet upwards
 		//		compute floor position
 		// publish results
-		for (auto person: people)
-		{
-			
-		}
 	}
 	catch(const Ice::Exception& e)
 	{
@@ -94,7 +110,7 @@ void SpecificWorker::compute()
 	}
 	
 	
-	cv::imshow("Camara sala de reuniones", frame);
+//	cv::imshow("Camara sala de reuniones", frame);
 	//qDebug() << "compute" << frame.rows << frame.cols;
 	cvWaitKey(1);
 }
@@ -103,10 +119,17 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 {
 	for(auto &p : people)
 	{
-		qDebug() << p.id;
-		for(auto &[part, kp] : p.joints)
+		qDebug()<<"person"<<p.id;
+		for (auto &connection: skeleton)
 		{
-			qDebug() << "	" << QString::fromStdString(part) << kp.x << kp.y << "(" << kp.score << ")";
+			auto j1 = &p.joints.at(std::get<0>(connection));
+			auto j2 = &p.joints.at(std::get<1>(connection));
+			if (j1->score > 0)
+				cv::circle(frame,cv::Point(j1->x/scale, j1->y/scale),10,cv::Scalar(0,0,255));
+			if (j2->score > 0)
+				cv::circle(frame,cv::Point(j2->x/scale, j2->y/scale),10,cv::Scalar(0,0,255));
+			if (j1->score > 0 and j2->score > 0)
+				cv::line(frame, cv::Point(j1->x/scale, j1->y/scale), cv::Point(j2->x/scale, j2->y/scale), cv::Scalar(0,255,0), 2);
 		}
 	}
 	cv::imshow("Camara IP", frame);

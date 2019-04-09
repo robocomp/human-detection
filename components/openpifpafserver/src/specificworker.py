@@ -45,9 +45,9 @@ class SpecificWorker(GenericWorker):
 	def initialize(self):
 		
 		# add args.device
-		torch.device('cpu')
-		if torch.cuda.is_available():
-			torch.device('cuda')
+		#torch.device('cpu')
+		#if torch.cuda.is_available():
+		#	torch.device('cuda')
 		# load model
 		class Args:
 			source = 0
@@ -69,7 +69,7 @@ class SpecificWorker(GenericWorker):
 			pif_fixed_scale = None
 			profile_decoder = False
 			instance_threshold = 0.05
-			device = torch.device('cuda')
+			device = torch.device(type="cpu")
 			disable_cuda = False
 			scale = 0.5
 			key_point_threshold = 0.05
@@ -97,7 +97,7 @@ class SpecificWorker(GenericWorker):
 
 	def processImage(self, img, scale):
 		print("llega imagen", scale)
-		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth )
+		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth)
 		image = cv2.resize(self.src, None, fx=scale, fy=scale)
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 		processed_image_cpu = transforms.image_transform(image.copy())
@@ -107,12 +107,13 @@ class SpecificWorker(GenericWorker):
 		print("keyPoints", keypoint_sets)
 
 		# # save in ice structure
-		keypoint = KeyPoint()
-		person = Person()
 		people = []
+		joints = {}
 		for id, p in enumerate(keypoint_sets):
-			joints =  {}
+			person = Person()
+			joints.clear()
 			for pos, joint in enumerate(p):
+				keypoint = KeyPoint()
 				keypoint.x = joint[0]
 				keypoint.y = joint[1]
 				keypoint.score = joint[2]
