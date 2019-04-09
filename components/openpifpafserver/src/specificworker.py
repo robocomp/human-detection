@@ -24,7 +24,6 @@ import torch
 import cv2
 import numpy as np
 
-
 COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
 
 class SpecificWorker(GenericWorker):
@@ -45,10 +44,6 @@ class SpecificWorker(GenericWorker):
 	def initialize(self):
 		
 		# add args.device
-		#torch.device('cpu')
-		#if torch.cuda.is_available():
-		#	torch.device('cuda')
-		# load model
 		class Args:
 			source = 0
 			checkpoint = None
@@ -104,21 +99,20 @@ class SpecificWorker(GenericWorker):
 		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
-		print("keyPoints", keypoint_sets)
+		#print("keyPoints", keypoint_sets)
 
 		# # save in ice structure
 		people = []
-		joints = {}
-		for id, p in enumerate(keypoint_sets):
+		for p in keypoint_sets:
+			joints = {}
 			person = Person()
-			joints.clear()
 			for pos, joint in enumerate(p):
 				keypoint = KeyPoint()
 				keypoint.x = joint[0]
 				keypoint.y = joint[1]
 				keypoint.score = joint[2]
 				joints[COCO_IDS[pos]] = keypoint
-			person.id = id
+			person.id = 0
 			person.joints = joints
 			people.append(person)
 		return people
