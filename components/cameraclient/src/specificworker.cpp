@@ -69,8 +69,8 @@ void SpecificWorker::initialize(int period)
 										cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                         cv::Point( erosion_size, erosion_size ) );
 	
-	//cam.run();
-	camcv.open(0);
+	cam.run();
+	//camcv.open(0);
 
 	this->Period = 50;
 	//timer.setSingleShot(true);
@@ -80,9 +80,9 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	//auto [ret, frame] = cam.read();	//access without copy
-	cv::Mat frame; bool ret = true;
-	camcv >> frame;  
+	auto [ret, frame] = cam.read();	//access without copy
+	//cv::Mat frame; bool ret = true;
+	//camcv >> frame;  
 
 	if(ret == false) return;
 	pMOG2->apply(frame, fgMaskMOG2);
@@ -110,7 +110,7 @@ void SpecificWorker::compute()
 	}
 	
 	
-//	cv::imshow("Camara sala de reuniones", frame);
+	//cv::imshow("Camara sala de reuniones", frame);
 	//qDebug() << "compute" << frame.rows << frame.cols;
 	cvWaitKey(1);
 }
@@ -119,7 +119,7 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 {
 	for(auto &p : people)
 	{
-		qDebug()<<"person"<<p.id;
+		qDebug()<<"person id "<<p.id;
 		for (auto &connection: skeleton)
 		{
 			auto j1 = &p.joints.at(std::get<0>(connection));
