@@ -30,6 +30,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     connect(load_pb, SIGNAL(pressed()), this, SLOT(load_file()));
     connect(add_pb, SIGNAL(pressed()), this, SLOT(add_frame()));
     connect(publish_timer, SIGNAL(timeout()), this, SLOT(publish_next()));
+    controlKeyPressed = false;
 }
 
 /**
@@ -97,8 +98,8 @@ void SpecificWorker::publish_clicked()
 	auto selected_items = frames_list->selectedItems();
 	qDebug()<<"Items selected:"<<frames_list->selectedItems().size();
 	if(selected_items.isEmpty()) {
-		RoboCompHumanPose::humansDetected humans_detected = this->ui_to_human_struct();
-		this->publish_humans(humans_detected);
+		FakePoses pose = this->ui_to_human_struct();
+		this->publish_humans(pose.data);
 	}
 	else
 	{
@@ -118,9 +119,9 @@ void SpecificWorker::publish_next()
 		qDebug()<<"To publish next"<<current_frame_index<<frames_list->selectedItems().size();
 		auto item = frames_list->item(current_frame_index);
 		auto vari = item->data(Qt::UserRole);
-		RoboCompHumanPose::humansDetected humans_detected = vari.value<RoboCompHumanPose::humansDetected>();
-		qDebug()<<"Humans detected:"<<humans_detected.humanList.size();
-		this->publish_humans(humans_detected);
+		FakePoses poses = vari.value<FakePoses>();
+		qDebug()<<"Humans detected:"<<poses.data.humanList.size();
+		this->publish_humans(poses.data);
 		current_frame_index++;
 	}
 	else
@@ -132,12 +133,13 @@ void SpecificWorker::publish_next()
 	}
 }
 
-RoboCompHumanPose::humansDetected SpecificWorker::ui_to_human_struct() {
-    RoboCompHumanPose::humansDetected humans_detected;
+FakePoses SpecificWorker::ui_to_human_struct() {
+	FakePoses pose;
+	pose.text = person_te->toPlainText();
     RoboCompHumanPose::PersonType person;
 
     //camera
-    humans_detected.idCamera = cameraID_sb->value();
+    pose.data.idCamera = cameraID_sb->value();
 	qDebug()<<"Converting UI data to Humans Detected Struct...";
 	QStringList lines = person_te->toPlainText().split('\n', QString::SkipEmptyParts);
     for (auto line: lines) {
@@ -150,39 +152,123 @@ RoboCompHumanPose::humansDetected SpecificWorker::ui_to_human_struct() {
         person.pos.posGood = aux[3].contains("true");
         person.pos.rotGood = aux[4].contains("true");
         person.pos.confidence = aux[5].toInt();
-        humans_detected.humanList.push_back(person);
+        pose.data.humanList.push_back(person);
         qDebug() << "\tPersonData" << person.id << person.pos.x << person.pos.z << person.pos.ry << person.pos.posGood
                  << person.pos.rotGood << person.pos.confidence;
 
     }
-    return humans_detected;
+    return pose;
+}
+
+void SpecificWorker::keyPressEvent(QKeyEvent *event)
+{
+	if(event->key() == Qt::Key_Control){
+		save_pb->setText("Save all");
+		load_pb->setText("Load all");
+		controlKeyPressed = true;
+	}
+}
+
+void SpecificWorker::keyReleaseEvent(QKeyEvent *event)
+{
+
+	if(event->key() == Qt::Key_Control){
+		save_pb->setText("Save");
+		load_pb->setText("Load");
+		controlKeyPressed = false;
+	}
 }
 
 void SpecificWorker::load_file()
 {
-    QString filename = QFileDialog::getOpenFileName(this, tr("Open file"), "", tr("Text Files (*.txt )"));
-    QFile file(filename);
-    if(!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::information(0, "error", file.errorString());
-        return;
-    }
-    QTextStream in(&file);
-    QString text = in.readAll();
-    person_te->clear();
-    person_te->setText(text);
+	if(!controlKeyPressed)
+	{
+		QString filename = QFileDialog::getOpenFileName(this, tr("Open file"), "", tr("Text Files (*.txt )"));
+		QFile file(filename);
+		if(!file.open(QIODevice::ReadOnly)) {
+			QMessageBox::information(0, "error", file.errorString());
+			return;
+		}
+		QTextStream in(&file);
+		QString text = in.readAll();
+		person_te->clear();
+		person_te->setText(text);
+	}
+	else
+	{
+		qDebug() << "Loading multiple poses from files:...";
+		//Select directory
+		QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
+														"",
+														QFileDialog::ShowDirsOnly
+														| QFileDialog::DontResolveSymlinks);
+		if(!dir.isEmpty())
+		{
+			QDirIterator it(dir, QStringList() << "*.txt", QDir::Files);
+			while (it.hasNext()) {
+				auto the_file = it.next();
+				qDebug() << "\tLoading from file"<<the_file;
+				QFile file(the_file);
+				if(!file.open(QIODevice::ReadOnly)) {
+					QMessageBox::information(0, "error", file.errorString());
+					return;
+				}
+				QTextStream in(&file);
+				QString text = in.readAll();
+				person_te->clear();
+				person_te->setText(text);
+				name_te->setText(QFileInfo(file).baseName());
+				this->add_frame();
+			}
+		}
+	}
+}
+
+void SpecificWorker::save_file(QString filename, QString text)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly)) {
+		QMessageBox::information(0, "error", file.errorString());
+		return;
+	}
+	file.write(text.toUtf8());
+	file.close();
 }
 
 void SpecificWorker::save_file()
 {
-    QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), "", tr("Text Files (*.txt )"));
-    QFile file(filename);
-    if(!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::information(0, "error", file.errorString());
-        return;
-    }
-    QString content = person_te->toPlainText();
-    file.write(content.toUtf8());
-    file.close();
+	if(!controlKeyPressed) {
+		QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), "", tr("Text Files (*.txt )"));
+		this->save_file(filename, person_te->toPlainText());
+	}
+	else
+	{
+		//Select directory
+		QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
+														"",
+														QFileDialog::ShowDirsOnly
+														| QFileDialog::DontResolveSymlinks);
+		if(!dir.isEmpty())
+		{
+
+
+			//loop over items in list
+			for(int i = 0; i < frames_list->count(); ++i)
+			{
+				auto item = frames_list->item(i);
+				auto name = item->text();
+				auto vari = item->data(Qt::UserRole);
+				FakePoses poses = vari.value<FakePoses>();
+				qDebug()<<"Humans detected:"<<poses.data.humanList.size();
+				//for item, save struct to file
+				auto file_path = QDir::cleanPath(dir + QDir::separator() + name+".txt");
+				qDebug()<<"Writting to :"<<file_path;
+
+				this->save_file(file_path, person_te->toPlainText());
+			}
+		}
+
+	}
 }
 
 
@@ -190,10 +276,10 @@ void SpecificWorker::add_frame() {
     QString name = name_te->text();
     if(!name.isEmpty())
     {
-        RoboCompHumanPose::humansDetected humans_detected = this->ui_to_human_struct();
+        FakePoses poses = this->ui_to_human_struct();
         QListWidgetItem *item = new QListWidgetItem();
         item->setText(name);
-        QVariant a = QVariant::fromValue<RoboCompHumanPose::humansDetected>( humans_detected);
+        QVariant a = QVariant::fromValue<FakePoses>( poses);
         item->setData(Qt::UserRole, a);
         frames_list->addItem(item);
     }
