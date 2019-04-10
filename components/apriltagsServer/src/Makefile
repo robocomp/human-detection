@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/crivac/robocomp/components/human-detection/components/apriltagsServer
+CMAKE_SOURCE_DIR = /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/crivac/robocomp/components/human-detection/components/apriltagsServer
+CMAKE_BINARY_DIR = /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -126,14 +126,14 @@ install/local/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(CMAKE_COMMAND) -E cmake_progress_start /home/crivac/robocomp/components/human-detection/components/apriltagsServer/CMakeFiles /home/crivac/robocomp/components/human-detection/components/apriltagsServer/src/CMakeFiles/progress.marks
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f CMakeFiles/Makefile2 src/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/crivac/robocomp/components/human-detection/components/apriltagsServer/CMakeFiles 0
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(CMAKE_COMMAND) -E cmake_progress_start /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old/CMakeFiles /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old/src/CMakeFiles/progress.marks
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f CMakeFiles/Makefile2 src/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f CMakeFiles/Makefile2 src/clean
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f CMakeFiles/Makefile2 src/clean
 .PHONY : clean
 
 # The main clean target
@@ -143,22 +143,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 src/CMakeFiles/AprilTagsServer.dir/rule:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/AprilTagsServer.dir/rule
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/AprilTagsServer.dir/rule
 .PHONY : src/CMakeFiles/AprilTagsServer.dir/rule
 
 # Convenience name for target.
@@ -168,12 +168,12 @@ AprilTagsServer: src/CMakeFiles/AprilTagsServer.dir/rule
 
 # fast build rule for target.
 AprilTagsServer/fast:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/build
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/build
 .PHONY : AprilTagsServer/fast
 
 # Convenience name for target.
 src/CMakeFiles/AprilTagsServer_autogen.dir/rule:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/AprilTagsServer_autogen.dir/rule
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/AprilTagsServer_autogen.dir/rule
 .PHONY : src/CMakeFiles/AprilTagsServer_autogen.dir/rule
 
 # Convenience name for target.
@@ -183,7 +183,7 @@ AprilTagsServer_autogen: src/CMakeFiles/AprilTagsServer_autogen.dir/rule
 
 # fast build rule for target.
 AprilTagsServer_autogen/fast:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer_autogen.dir/build.make src/CMakeFiles/AprilTagsServer_autogen.dir/build
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer_autogen.dir/build.make src/CMakeFiles/AprilTagsServer_autogen.dir/build
 .PHONY : AprilTagsServer_autogen/fast
 
 AprilTagsServer.o: AprilTagsServer.cpp.o
@@ -192,7 +192,7 @@ AprilTagsServer.o: AprilTagsServer.cpp.o
 
 # target to build an object file
 AprilTagsServer.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer.cpp.o
 .PHONY : AprilTagsServer.cpp.o
 
 AprilTagsServer.i: AprilTagsServer.cpp.i
@@ -201,7 +201,7 @@ AprilTagsServer.i: AprilTagsServer.cpp.i
 
 # target to preprocess a source file
 AprilTagsServer.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer.cpp.i
 .PHONY : AprilTagsServer.cpp.i
 
 AprilTagsServer.s: AprilTagsServer.cpp.s
@@ -210,7 +210,7 @@ AprilTagsServer.s: AprilTagsServer.cpp.s
 
 # target to generate assembly for a file
 AprilTagsServer.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer.cpp.s
 .PHONY : AprilTagsServer.cpp.s
 
 AprilTagsServer_autogen/mocs_compilation.o: AprilTagsServer_autogen/mocs_compilation.cpp.o
@@ -219,7 +219,7 @@ AprilTagsServer_autogen/mocs_compilation.o: AprilTagsServer_autogen/mocs_compila
 
 # target to build an object file
 AprilTagsServer_autogen/mocs_compilation.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer_autogen/mocs_compilation.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer_autogen/mocs_compilation.cpp.o
 .PHONY : AprilTagsServer_autogen/mocs_compilation.cpp.o
 
 AprilTagsServer_autogen/mocs_compilation.i: AprilTagsServer_autogen/mocs_compilation.cpp.i
@@ -228,7 +228,7 @@ AprilTagsServer_autogen/mocs_compilation.i: AprilTagsServer_autogen/mocs_compila
 
 # target to preprocess a source file
 AprilTagsServer_autogen/mocs_compilation.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer_autogen/mocs_compilation.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer_autogen/mocs_compilation.cpp.i
 .PHONY : AprilTagsServer_autogen/mocs_compilation.cpp.i
 
 AprilTagsServer_autogen/mocs_compilation.s: AprilTagsServer_autogen/mocs_compilation.cpp.s
@@ -237,7 +237,7 @@ AprilTagsServer_autogen/mocs_compilation.s: AprilTagsServer_autogen/mocs_compila
 
 # target to generate assembly for a file
 AprilTagsServer_autogen/mocs_compilation.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer_autogen/mocs_compilation.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/AprilTagsServer_autogen/mocs_compilation.cpp.s
 .PHONY : AprilTagsServer_autogen/mocs_compilation.cpp.s
 
 CommonBehavior.o: CommonBehavior.cpp.o
@@ -246,7 +246,7 @@ CommonBehavior.o: CommonBehavior.cpp.o
 
 # target to build an object file
 CommonBehavior.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/CommonBehavior.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/CommonBehavior.cpp.o
 .PHONY : CommonBehavior.cpp.o
 
 CommonBehavior.i: CommonBehavior.cpp.i
@@ -255,7 +255,7 @@ CommonBehavior.i: CommonBehavior.cpp.i
 
 # target to preprocess a source file
 CommonBehavior.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/CommonBehavior.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/CommonBehavior.cpp.i
 .PHONY : CommonBehavior.cpp.i
 
 CommonBehavior.s: CommonBehavior.cpp.s
@@ -264,7 +264,7 @@ CommonBehavior.s: CommonBehavior.cpp.s
 
 # target to generate assembly for a file
 CommonBehavior.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/CommonBehavior.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/CommonBehavior.cpp.s
 .PHONY : CommonBehavior.cpp.s
 
 Edge.o: Edge.cc.o
@@ -273,7 +273,7 @@ Edge.o: Edge.cc.o
 
 # target to build an object file
 Edge.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Edge.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Edge.cc.o
 .PHONY : Edge.cc.o
 
 Edge.i: Edge.cc.i
@@ -282,7 +282,7 @@ Edge.i: Edge.cc.i
 
 # target to preprocess a source file
 Edge.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Edge.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Edge.cc.i
 .PHONY : Edge.cc.i
 
 Edge.s: Edge.cc.s
@@ -291,7 +291,7 @@ Edge.s: Edge.cc.s
 
 # target to generate assembly for a file
 Edge.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Edge.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Edge.cc.s
 .PHONY : Edge.cc.s
 
 FloatImage.o: FloatImage.cc.o
@@ -300,7 +300,7 @@ FloatImage.o: FloatImage.cc.o
 
 # target to build an object file
 FloatImage.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/FloatImage.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/FloatImage.cc.o
 .PHONY : FloatImage.cc.o
 
 FloatImage.i: FloatImage.cc.i
@@ -309,7 +309,7 @@ FloatImage.i: FloatImage.cc.i
 
 # target to preprocess a source file
 FloatImage.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/FloatImage.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/FloatImage.cc.i
 .PHONY : FloatImage.cc.i
 
 FloatImage.s: FloatImage.cc.s
@@ -318,7 +318,7 @@ FloatImage.s: FloatImage.cc.s
 
 # target to generate assembly for a file
 FloatImage.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/FloatImage.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/FloatImage.cc.s
 .PHONY : FloatImage.cc.s
 
 GLine2D.o: GLine2D.cc.o
@@ -327,7 +327,7 @@ GLine2D.o: GLine2D.cc.o
 
 # target to build an object file
 GLine2D.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLine2D.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLine2D.cc.o
 .PHONY : GLine2D.cc.o
 
 GLine2D.i: GLine2D.cc.i
@@ -336,7 +336,7 @@ GLine2D.i: GLine2D.cc.i
 
 # target to preprocess a source file
 GLine2D.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLine2D.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLine2D.cc.i
 .PHONY : GLine2D.cc.i
 
 GLine2D.s: GLine2D.cc.s
@@ -345,7 +345,7 @@ GLine2D.s: GLine2D.cc.s
 
 # target to generate assembly for a file
 GLine2D.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLine2D.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLine2D.cc.s
 .PHONY : GLine2D.cc.s
 
 GLineSegment2D.o: GLineSegment2D.cc.o
@@ -354,7 +354,7 @@ GLineSegment2D.o: GLineSegment2D.cc.o
 
 # target to build an object file
 GLineSegment2D.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLineSegment2D.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLineSegment2D.cc.o
 .PHONY : GLineSegment2D.cc.o
 
 GLineSegment2D.i: GLineSegment2D.cc.i
@@ -363,7 +363,7 @@ GLineSegment2D.i: GLineSegment2D.cc.i
 
 # target to preprocess a source file
 GLineSegment2D.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLineSegment2D.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLineSegment2D.cc.i
 .PHONY : GLineSegment2D.cc.i
 
 GLineSegment2D.s: GLineSegment2D.cc.s
@@ -372,7 +372,7 @@ GLineSegment2D.s: GLineSegment2D.cc.s
 
 # target to generate assembly for a file
 GLineSegment2D.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLineSegment2D.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GLineSegment2D.cc.s
 .PHONY : GLineSegment2D.cc.s
 
 Gaussian.o: Gaussian.cc.o
@@ -381,7 +381,7 @@ Gaussian.o: Gaussian.cc.o
 
 # target to build an object file
 Gaussian.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Gaussian.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Gaussian.cc.o
 .PHONY : Gaussian.cc.o
 
 Gaussian.i: Gaussian.cc.i
@@ -390,7 +390,7 @@ Gaussian.i: Gaussian.cc.i
 
 # target to preprocess a source file
 Gaussian.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Gaussian.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Gaussian.cc.i
 .PHONY : Gaussian.cc.i
 
 Gaussian.s: Gaussian.cc.s
@@ -399,7 +399,7 @@ Gaussian.s: Gaussian.cc.s
 
 # target to generate assembly for a file
 Gaussian.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Gaussian.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Gaussian.cc.s
 .PHONY : Gaussian.cc.s
 
 GrayModel.o: GrayModel.cc.o
@@ -408,7 +408,7 @@ GrayModel.o: GrayModel.cc.o
 
 # target to build an object file
 GrayModel.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GrayModel.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GrayModel.cc.o
 .PHONY : GrayModel.cc.o
 
 GrayModel.i: GrayModel.cc.i
@@ -417,7 +417,7 @@ GrayModel.i: GrayModel.cc.i
 
 # target to preprocess a source file
 GrayModel.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GrayModel.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GrayModel.cc.i
 .PHONY : GrayModel.cc.i
 
 GrayModel.s: GrayModel.cc.s
@@ -426,7 +426,7 @@ GrayModel.s: GrayModel.cc.s
 
 # target to generate assembly for a file
 GrayModel.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GrayModel.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/GrayModel.cc.s
 .PHONY : GrayModel.cc.s
 
 Homography33.o: Homography33.cc.o
@@ -435,7 +435,7 @@ Homography33.o: Homography33.cc.o
 
 # target to build an object file
 Homography33.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Homography33.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Homography33.cc.o
 .PHONY : Homography33.cc.o
 
 Homography33.i: Homography33.cc.i
@@ -444,7 +444,7 @@ Homography33.i: Homography33.cc.i
 
 # target to preprocess a source file
 Homography33.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Homography33.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Homography33.cc.i
 .PHONY : Homography33.cc.i
 
 Homography33.s: Homography33.cc.s
@@ -453,7 +453,7 @@ Homography33.s: Homography33.cc.s
 
 # target to generate assembly for a file
 Homography33.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Homography33.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Homography33.cc.s
 .PHONY : Homography33.cc.s
 
 MathUtil.o: MathUtil.cc.o
@@ -462,7 +462,7 @@ MathUtil.o: MathUtil.cc.o
 
 # target to build an object file
 MathUtil.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/MathUtil.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/MathUtil.cc.o
 .PHONY : MathUtil.cc.o
 
 MathUtil.i: MathUtil.cc.i
@@ -471,7 +471,7 @@ MathUtil.i: MathUtil.cc.i
 
 # target to preprocess a source file
 MathUtil.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/MathUtil.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/MathUtil.cc.i
 .PHONY : MathUtil.cc.i
 
 MathUtil.s: MathUtil.cc.s
@@ -480,7 +480,7 @@ MathUtil.s: MathUtil.cc.s
 
 # target to generate assembly for a file
 MathUtil.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/MathUtil.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/MathUtil.cc.s
 .PHONY : MathUtil.cc.s
 
 Quad.o: Quad.cc.o
@@ -489,7 +489,7 @@ Quad.o: Quad.cc.o
 
 # target to build an object file
 Quad.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Quad.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Quad.cc.o
 .PHONY : Quad.cc.o
 
 Quad.i: Quad.cc.i
@@ -498,7 +498,7 @@ Quad.i: Quad.cc.i
 
 # target to preprocess a source file
 Quad.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Quad.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Quad.cc.i
 .PHONY : Quad.cc.i
 
 Quad.s: Quad.cc.s
@@ -507,7 +507,7 @@ Quad.s: Quad.cc.s
 
 # target to generate assembly for a file
 Quad.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Quad.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Quad.cc.s
 .PHONY : Quad.cc.s
 
 Segment.o: Segment.cc.o
@@ -516,7 +516,7 @@ Segment.o: Segment.cc.o
 
 # target to build an object file
 Segment.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Segment.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Segment.cc.o
 .PHONY : Segment.cc.o
 
 Segment.i: Segment.cc.i
@@ -525,7 +525,7 @@ Segment.i: Segment.cc.i
 
 # target to preprocess a source file
 Segment.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Segment.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Segment.cc.i
 .PHONY : Segment.cc.i
 
 Segment.s: Segment.cc.s
@@ -534,7 +534,7 @@ Segment.s: Segment.cc.s
 
 # target to generate assembly for a file
 Segment.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Segment.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/Segment.cc.s
 .PHONY : Segment.cc.s
 
 TagDetection.o: TagDetection.cc.o
@@ -543,7 +543,7 @@ TagDetection.o: TagDetection.cc.o
 
 # target to build an object file
 TagDetection.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetection.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetection.cc.o
 .PHONY : TagDetection.cc.o
 
 TagDetection.i: TagDetection.cc.i
@@ -552,7 +552,7 @@ TagDetection.i: TagDetection.cc.i
 
 # target to preprocess a source file
 TagDetection.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetection.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetection.cc.i
 .PHONY : TagDetection.cc.i
 
 TagDetection.s: TagDetection.cc.s
@@ -561,7 +561,7 @@ TagDetection.s: TagDetection.cc.s
 
 # target to generate assembly for a file
 TagDetection.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetection.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetection.cc.s
 .PHONY : TagDetection.cc.s
 
 TagDetector.o: TagDetector.cc.o
@@ -570,7 +570,7 @@ TagDetector.o: TagDetector.cc.o
 
 # target to build an object file
 TagDetector.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetector.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetector.cc.o
 .PHONY : TagDetector.cc.o
 
 TagDetector.i: TagDetector.cc.i
@@ -579,7 +579,7 @@ TagDetector.i: TagDetector.cc.i
 
 # target to preprocess a source file
 TagDetector.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetector.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetector.cc.i
 .PHONY : TagDetector.cc.i
 
 TagDetector.s: TagDetector.cc.s
@@ -588,7 +588,7 @@ TagDetector.s: TagDetector.cc.s
 
 # target to generate assembly for a file
 TagDetector.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetector.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagDetector.cc.s
 .PHONY : TagDetector.cc.s
 
 TagFamily.o: TagFamily.cc.o
@@ -597,7 +597,7 @@ TagFamily.o: TagFamily.cc.o
 
 # target to build an object file
 TagFamily.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagFamily.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagFamily.cc.o
 .PHONY : TagFamily.cc.o
 
 TagFamily.i: TagFamily.cc.i
@@ -606,7 +606,7 @@ TagFamily.i: TagFamily.cc.i
 
 # target to preprocess a source file
 TagFamily.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagFamily.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagFamily.cc.i
 .PHONY : TagFamily.cc.i
 
 TagFamily.s: TagFamily.cc.s
@@ -615,7 +615,7 @@ TagFamily.s: TagFamily.cc.s
 
 # target to generate assembly for a file
 TagFamily.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagFamily.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/TagFamily.cc.s
 .PHONY : TagFamily.cc.s
 
 UnionFindSimple.o: UnionFindSimple.cc.o
@@ -624,7 +624,7 @@ UnionFindSimple.o: UnionFindSimple.cc.o
 
 # target to build an object file
 UnionFindSimple.cc.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/UnionFindSimple.cc.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/UnionFindSimple.cc.o
 .PHONY : UnionFindSimple.cc.o
 
 UnionFindSimple.i: UnionFindSimple.cc.i
@@ -633,7 +633,7 @@ UnionFindSimple.i: UnionFindSimple.cc.i
 
 # target to preprocess a source file
 UnionFindSimple.cc.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/UnionFindSimple.cc.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/UnionFindSimple.cc.i
 .PHONY : UnionFindSimple.cc.i
 
 UnionFindSimple.s: UnionFindSimple.cc.s
@@ -642,7 +642,7 @@ UnionFindSimple.s: UnionFindSimple.cc.s
 
 # target to generate assembly for a file
 UnionFindSimple.cc.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/UnionFindSimple.cc.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/UnionFindSimple.cc.s
 .PHONY : UnionFindSimple.cc.s
 
 apriltagsserverI.o: apriltagsserverI.cpp.o
@@ -651,7 +651,7 @@ apriltagsserverI.o: apriltagsserverI.cpp.o
 
 # target to build an object file
 apriltagsserverI.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/apriltagsserverI.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/apriltagsserverI.cpp.o
 .PHONY : apriltagsserverI.cpp.o
 
 apriltagsserverI.i: apriltagsserverI.cpp.i
@@ -660,7 +660,7 @@ apriltagsserverI.i: apriltagsserverI.cpp.i
 
 # target to preprocess a source file
 apriltagsserverI.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/apriltagsserverI.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/apriltagsserverI.cpp.i
 .PHONY : apriltagsserverI.cpp.i
 
 apriltagsserverI.s: apriltagsserverI.cpp.s
@@ -669,7 +669,7 @@ apriltagsserverI.s: apriltagsserverI.cpp.s
 
 # target to generate assembly for a file
 apriltagsserverI.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/apriltagsserverI.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/apriltagsserverI.cpp.s
 .PHONY : apriltagsserverI.cpp.s
 
 commonbehaviorI.o: commonbehaviorI.cpp.o
@@ -678,7 +678,7 @@ commonbehaviorI.o: commonbehaviorI.cpp.o
 
 # target to build an object file
 commonbehaviorI.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/commonbehaviorI.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/commonbehaviorI.cpp.o
 .PHONY : commonbehaviorI.cpp.o
 
 commonbehaviorI.i: commonbehaviorI.cpp.i
@@ -687,7 +687,7 @@ commonbehaviorI.i: commonbehaviorI.cpp.i
 
 # target to preprocess a source file
 commonbehaviorI.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/commonbehaviorI.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/commonbehaviorI.cpp.i
 .PHONY : commonbehaviorI.cpp.i
 
 commonbehaviorI.s: commonbehaviorI.cpp.s
@@ -696,7 +696,7 @@ commonbehaviorI.s: commonbehaviorI.cpp.s
 
 # target to generate assembly for a file
 commonbehaviorI.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/commonbehaviorI.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/commonbehaviorI.cpp.s
 .PHONY : commonbehaviorI.cpp.s
 
 genericmonitor.o: genericmonitor.cpp.o
@@ -705,7 +705,7 @@ genericmonitor.o: genericmonitor.cpp.o
 
 # target to build an object file
 genericmonitor.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericmonitor.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericmonitor.cpp.o
 .PHONY : genericmonitor.cpp.o
 
 genericmonitor.i: genericmonitor.cpp.i
@@ -714,7 +714,7 @@ genericmonitor.i: genericmonitor.cpp.i
 
 # target to preprocess a source file
 genericmonitor.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericmonitor.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericmonitor.cpp.i
 .PHONY : genericmonitor.cpp.i
 
 genericmonitor.s: genericmonitor.cpp.s
@@ -723,7 +723,7 @@ genericmonitor.s: genericmonitor.cpp.s
 
 # target to generate assembly for a file
 genericmonitor.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericmonitor.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericmonitor.cpp.s
 .PHONY : genericmonitor.cpp.s
 
 genericworker.o: genericworker.cpp.o
@@ -732,7 +732,7 @@ genericworker.o: genericworker.cpp.o
 
 # target to build an object file
 genericworker.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericworker.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericworker.cpp.o
 .PHONY : genericworker.cpp.o
 
 genericworker.i: genericworker.cpp.i
@@ -741,7 +741,7 @@ genericworker.i: genericworker.cpp.i
 
 # target to preprocess a source file
 genericworker.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericworker.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericworker.cpp.i
 .PHONY : genericworker.cpp.i
 
 genericworker.s: genericworker.cpp.s
@@ -750,89 +750,89 @@ genericworker.s: genericworker.cpp.s
 
 # target to generate assembly for a file
 genericworker.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericworker.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/genericworker.cpp.s
 .PHONY : genericworker.cpp.s
 
-home/crivac/robocomp/classes/qlog/qlog.o: home/crivac/robocomp/classes/qlog/qlog.cpp.o
+home/robocomp/robocomp/classes/qlog/qlog.o: home/robocomp/robocomp/classes/qlog/qlog.cpp.o
 
-.PHONY : home/crivac/robocomp/classes/qlog/qlog.o
-
-# target to build an object file
-home/crivac/robocomp/classes/qlog/qlog.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/qlog/qlog.cpp.o
-.PHONY : home/crivac/robocomp/classes/qlog/qlog.cpp.o
-
-home/crivac/robocomp/classes/qlog/qlog.i: home/crivac/robocomp/classes/qlog/qlog.cpp.i
-
-.PHONY : home/crivac/robocomp/classes/qlog/qlog.i
-
-# target to preprocess a source file
-home/crivac/robocomp/classes/qlog/qlog.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/qlog/qlog.cpp.i
-.PHONY : home/crivac/robocomp/classes/qlog/qlog.cpp.i
-
-home/crivac/robocomp/classes/qlog/qlog.s: home/crivac/robocomp/classes/qlog/qlog.cpp.s
-
-.PHONY : home/crivac/robocomp/classes/qlog/qlog.s
-
-# target to generate assembly for a file
-home/crivac/robocomp/classes/qlog/qlog.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/qlog/qlog.cpp.s
-.PHONY : home/crivac/robocomp/classes/qlog/qlog.cpp.s
-
-home/crivac/robocomp/classes/rapplication/rapplication.o: home/crivac/robocomp/classes/rapplication/rapplication.cpp.o
-
-.PHONY : home/crivac/robocomp/classes/rapplication/rapplication.o
+.PHONY : home/robocomp/robocomp/classes/qlog/qlog.o
 
 # target to build an object file
-home/crivac/robocomp/classes/rapplication/rapplication.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/rapplication/rapplication.cpp.o
-.PHONY : home/crivac/robocomp/classes/rapplication/rapplication.cpp.o
+home/robocomp/robocomp/classes/qlog/qlog.cpp.o:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/qlog/qlog.cpp.o
+.PHONY : home/robocomp/robocomp/classes/qlog/qlog.cpp.o
 
-home/crivac/robocomp/classes/rapplication/rapplication.i: home/crivac/robocomp/classes/rapplication/rapplication.cpp.i
+home/robocomp/robocomp/classes/qlog/qlog.i: home/robocomp/robocomp/classes/qlog/qlog.cpp.i
 
-.PHONY : home/crivac/robocomp/classes/rapplication/rapplication.i
+.PHONY : home/robocomp/robocomp/classes/qlog/qlog.i
 
 # target to preprocess a source file
-home/crivac/robocomp/classes/rapplication/rapplication.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/rapplication/rapplication.cpp.i
-.PHONY : home/crivac/robocomp/classes/rapplication/rapplication.cpp.i
+home/robocomp/robocomp/classes/qlog/qlog.cpp.i:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/qlog/qlog.cpp.i
+.PHONY : home/robocomp/robocomp/classes/qlog/qlog.cpp.i
 
-home/crivac/robocomp/classes/rapplication/rapplication.s: home/crivac/robocomp/classes/rapplication/rapplication.cpp.s
+home/robocomp/robocomp/classes/qlog/qlog.s: home/robocomp/robocomp/classes/qlog/qlog.cpp.s
 
-.PHONY : home/crivac/robocomp/classes/rapplication/rapplication.s
+.PHONY : home/robocomp/robocomp/classes/qlog/qlog.s
 
 # target to generate assembly for a file
-home/crivac/robocomp/classes/rapplication/rapplication.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/rapplication/rapplication.cpp.s
-.PHONY : home/crivac/robocomp/classes/rapplication/rapplication.cpp.s
+home/robocomp/robocomp/classes/qlog/qlog.cpp.s:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/qlog/qlog.cpp.s
+.PHONY : home/robocomp/robocomp/classes/qlog/qlog.cpp.s
 
-home/crivac/robocomp/classes/sigwatch/sigwatch.o: home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.o
+home/robocomp/robocomp/classes/rapplication/rapplication.o: home/robocomp/robocomp/classes/rapplication/rapplication.cpp.o
 
-.PHONY : home/crivac/robocomp/classes/sigwatch/sigwatch.o
+.PHONY : home/robocomp/robocomp/classes/rapplication/rapplication.o
 
 # target to build an object file
-home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.o
-.PHONY : home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.o
+home/robocomp/robocomp/classes/rapplication/rapplication.cpp.o:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/rapplication/rapplication.cpp.o
+.PHONY : home/robocomp/robocomp/classes/rapplication/rapplication.cpp.o
 
-home/crivac/robocomp/classes/sigwatch/sigwatch.i: home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.i
+home/robocomp/robocomp/classes/rapplication/rapplication.i: home/robocomp/robocomp/classes/rapplication/rapplication.cpp.i
 
-.PHONY : home/crivac/robocomp/classes/sigwatch/sigwatch.i
+.PHONY : home/robocomp/robocomp/classes/rapplication/rapplication.i
 
 # target to preprocess a source file
-home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.i
-.PHONY : home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.i
+home/robocomp/robocomp/classes/rapplication/rapplication.cpp.i:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/rapplication/rapplication.cpp.i
+.PHONY : home/robocomp/robocomp/classes/rapplication/rapplication.cpp.i
 
-home/crivac/robocomp/classes/sigwatch/sigwatch.s: home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.s
+home/robocomp/robocomp/classes/rapplication/rapplication.s: home/robocomp/robocomp/classes/rapplication/rapplication.cpp.s
 
-.PHONY : home/crivac/robocomp/classes/sigwatch/sigwatch.s
+.PHONY : home/robocomp/robocomp/classes/rapplication/rapplication.s
 
 # target to generate assembly for a file
-home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.s
-.PHONY : home/crivac/robocomp/classes/sigwatch/sigwatch.cpp.s
+home/robocomp/robocomp/classes/rapplication/rapplication.cpp.s:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/rapplication/rapplication.cpp.s
+.PHONY : home/robocomp/robocomp/classes/rapplication/rapplication.cpp.s
+
+home/robocomp/robocomp/classes/sigwatch/sigwatch.o: home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.o
+
+.PHONY : home/robocomp/robocomp/classes/sigwatch/sigwatch.o
+
+# target to build an object file
+home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.o:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.o
+.PHONY : home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.o
+
+home/robocomp/robocomp/classes/sigwatch/sigwatch.i: home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.i
+
+.PHONY : home/robocomp/robocomp/classes/sigwatch/sigwatch.i
+
+# target to preprocess a source file
+home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.i:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.i
+.PHONY : home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.i
+
+home/robocomp/robocomp/classes/sigwatch/sigwatch.s: home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.s
+
+.PHONY : home/robocomp/robocomp/classes/sigwatch/sigwatch.s
+
+# target to generate assembly for a file
+home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.s:
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.s
+.PHONY : home/robocomp/robocomp/classes/sigwatch/sigwatch.cpp.s
 
 main.o: main.cpp.o
 
@@ -840,7 +840,7 @@ main.o: main.cpp.o
 
 # target to build an object file
 main.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/main.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -849,7 +849,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/main.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -858,7 +858,7 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/main.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/main.cpp.s
 .PHONY : main.cpp.s
 
 specificmonitor.o: specificmonitor.cpp.o
@@ -867,7 +867,7 @@ specificmonitor.o: specificmonitor.cpp.o
 
 # target to build an object file
 specificmonitor.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificmonitor.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificmonitor.cpp.o
 .PHONY : specificmonitor.cpp.o
 
 specificmonitor.i: specificmonitor.cpp.i
@@ -876,7 +876,7 @@ specificmonitor.i: specificmonitor.cpp.i
 
 # target to preprocess a source file
 specificmonitor.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificmonitor.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificmonitor.cpp.i
 .PHONY : specificmonitor.cpp.i
 
 specificmonitor.s: specificmonitor.cpp.s
@@ -885,7 +885,7 @@ specificmonitor.s: specificmonitor.cpp.s
 
 # target to generate assembly for a file
 specificmonitor.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificmonitor.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificmonitor.cpp.s
 .PHONY : specificmonitor.cpp.s
 
 specificworker.o: specificworker.cpp.o
@@ -894,7 +894,7 @@ specificworker.o: specificworker.cpp.o
 
 # target to build an object file
 specificworker.cpp.o:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificworker.cpp.o
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificworker.cpp.o
 .PHONY : specificworker.cpp.o
 
 specificworker.i: specificworker.cpp.i
@@ -903,7 +903,7 @@ specificworker.i: specificworker.cpp.i
 
 # target to preprocess a source file
 specificworker.cpp.i:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificworker.cpp.i
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificworker.cpp.i
 .PHONY : specificworker.cpp.i
 
 specificworker.s: specificworker.cpp.s
@@ -912,7 +912,7 @@ specificworker.s: specificworker.cpp.s
 
 # target to generate assembly for a file
 specificworker.cpp.s:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificworker.cpp.s
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(MAKE) -f src/CMakeFiles/AprilTagsServer.dir/build.make src/CMakeFiles/AprilTagsServer.dir/specificworker.cpp.s
 .PHONY : specificworker.cpp.s
 
 # Help Target
@@ -992,15 +992,15 @@ help:
 	@echo "... genericworker.o"
 	@echo "... genericworker.i"
 	@echo "... genericworker.s"
-	@echo "... home/crivac/robocomp/classes/qlog/qlog.o"
-	@echo "... home/crivac/robocomp/classes/qlog/qlog.i"
-	@echo "... home/crivac/robocomp/classes/qlog/qlog.s"
-	@echo "... home/crivac/robocomp/classes/rapplication/rapplication.o"
-	@echo "... home/crivac/robocomp/classes/rapplication/rapplication.i"
-	@echo "... home/crivac/robocomp/classes/rapplication/rapplication.s"
-	@echo "... home/crivac/robocomp/classes/sigwatch/sigwatch.o"
-	@echo "... home/crivac/robocomp/classes/sigwatch/sigwatch.i"
-	@echo "... home/crivac/robocomp/classes/sigwatch/sigwatch.s"
+	@echo "... home/robocomp/robocomp/classes/qlog/qlog.o"
+	@echo "... home/robocomp/robocomp/classes/qlog/qlog.i"
+	@echo "... home/robocomp/robocomp/classes/qlog/qlog.s"
+	@echo "... home/robocomp/robocomp/classes/rapplication/rapplication.o"
+	@echo "... home/robocomp/robocomp/classes/rapplication/rapplication.i"
+	@echo "... home/robocomp/robocomp/classes/rapplication/rapplication.s"
+	@echo "... home/robocomp/robocomp/classes/sigwatch/sigwatch.o"
+	@echo "... home/robocomp/robocomp/classes/sigwatch/sigwatch.i"
+	@echo "... home/robocomp/robocomp/classes/sigwatch/sigwatch.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
@@ -1021,6 +1021,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/crivac/robocomp/components/human-detection/components/apriltagsServer && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/robocomp/robocomp/components/human-detection/components/apriltagsServer.old && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 
