@@ -34,7 +34,7 @@ class SpecificWorker(GenericWorker):
     def __init__(self, proxy_map):
         super(SpecificWorker, self).__init__(proxy_map)
         self.timer.timeout.connect(self.compute)
-        self.Period = 50
+        self.Period = 100
         self.timer.start(self.Period)
 
     def setParams(self, params):
@@ -48,6 +48,8 @@ class SpecificWorker(GenericWorker):
         if retL:
             rows, cols, depth = self.frameL.shape
             cv2.imshow("frameL", self.frameL)
+            if cv2.waitKey(1) & 0xFF == ord('q'):  # wait for ESC key to exit
+                exit()
             if self.apriltagsserver_proxy is not None:
                 print(self.apriltagsserver_proxy.getAprilTags(self.getImage(), 30, 458, 458))
             else:
@@ -55,8 +57,6 @@ class SpecificWorker(GenericWorker):
             # if self.peopleserver_proxy is not None:
             #     people = self.peopleserver_proxy.processImage(self.getImage2(), 0.3)
             #     print people
-            # if cv2.waitKey(1) & 0xFF == ord('q'):  # wait for ESC key to exit
-            # 	break
         else:
             print "No frame could be read"
 
@@ -67,7 +67,7 @@ class SpecificWorker(GenericWorker):
         im = Image()
         im.timeStamp = time.time()
         im.data = self.frameL.data
-        im.frmt.width, im.frmt.height, _ = self.frameL.shape
+        im.frmt.height, im.frmt.width, _ = self.frameL.shape
         return im
 
     def getImage2(self):

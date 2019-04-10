@@ -64,17 +64,17 @@ class SpecificWorker(GenericWorker):
 			pif_fixed_scale = None
 			profile_decoder = False
 			instance_threshold = 0.05
-			device = torch.device(type="cpu")
+			device = torch.device(type="cuda")
 			disable_cuda = False
 			scale = 0.5
 			key_point_threshold = 0.05
 
-		args = Args()
-		model, _ = nets.factory_from_args(args)
-		model = model.to(args.device)
-		self.processor = decoder.factory_from_args(args, model)
+		self.args = Args()
+		model, _ = nets.factory_from_args(self.args)
+		model = model.to(self.args.device)
+		#model.cuda()
+		self.processor = decoder.factory_from_args(self.args, model)
 		self.src = np.zeros((480, 640, 3), np.uint8)
-
 
 	def setParams(self, params):
 		return True
@@ -91,13 +91,15 @@ class SpecificWorker(GenericWorker):
 	#
 
 	def processImage(self, img, scale):
-		print("llega imagen", scale)
+		print("llega imagen ", img.width, scale)
+		scale = 0.5
 		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth)
 		image = cv2.resize(self.src, None, fx=scale, fy=scale)
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 		processed_image_cpu = transforms.image_transform(image.copy())
 		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
-		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
+		unsqueezed = torch.unsqueeze(processed_image, 0).to(self.args.device)
+		fields = self.processor.fields(unsqueezed)[0]
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
 		#print("keyPoints", keypoint_sets)
 
