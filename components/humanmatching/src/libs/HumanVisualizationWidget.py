@@ -48,10 +48,12 @@ class HumanCircle(QGraphicsEllipseItem):
 class HumanVisualizationWidget(QGraphicsView):
 	def __init__(self, parent=None):
 		super(HumanVisualizationWidget, self).__init__(parent)
-		self._scene = QGraphicsScene()
+		self._scene = QGraphicsScene(self)
 		self.setScene(self._scene)
 		# circle = QGraphicsEllipseItem( 10, 10, 10 ,10)
 		# self._scene.addItem(circle)
+		self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+		self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
 		self._boxes = []
 		self._humans = {}
 
@@ -124,18 +126,24 @@ class HumanVisualizationWidget(QGraphicsView):
 		self.update()
 
 	def clear(self):
-		for item in self._scene.items():
-			self._scene.removeItem(item)
+		for human in self._humans.values():
+			self._scene.removeItem(human)
+		self._humans = {}
+		# self._scene.setSceneRect(QRectF(0,0,400,400))
 
 	def resizeEvent(self, event):
 		# skip initial entry
+		self.own_resize()
+		super(HumanVisualizationWidget, self).resizeEvent(event)
+
+	def own_resize(self):
 		self.fitInView(self._scene.itemsBoundingRect(), Qt.KeepAspectRatio)
 		self._scene.setSceneRect(self._scene.itemsBoundingRect())
-		super(HumanVisualizationWidget, self).resizeEvent(event)
 
 	def add_human_by_pos(self, id, pos):
 		x, y = pos
 		human = QGraphicsEllipseItem(0, 0, 200, 200)
+		self._scene.addItem(human)
 		human.setBrush(QBrush(Qt.black, style=Qt.SolidPattern))
 		human_text = QGraphicsTextItem(str(pos))
 		font = QFont("Helvetica [Cronyx]", 40, QFont.Bold)
@@ -144,7 +152,7 @@ class HumanVisualizationWidget(QGraphicsView):
 		human.setPos(pos[0], pos[1])
 		self._humans[id] = human
 		human.setZValue(30)
-		self._scene.addItem(human)
+
 
 	def move_human(self, id, pos):
 		x, y = pos
@@ -161,6 +169,8 @@ if __name__ == '__main__':
 	signal.signal(signal.SIGINT, signal.SIG_DFL)
 	h_v = HumanVisualizationWidget()
 	h_v.show()
+	h_v.load_json_world(os.path.join(CURRENT_FILE_PATH, "..", "resources", "prueba.json"))
+	h_v.clear()
 	h_v.load_json_world(os.path.join(CURRENT_FILE_PATH, "..", "resources", "prueba.json"))
 	# h_v.add_human_by_pos(0, (30,30))
 	# h_v.move_human(0, (1000, -1000))

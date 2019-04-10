@@ -31,6 +31,15 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 
+
+
+struct FakePoses
+{
+	RoboCompHumanPose::humansDetected data;
+	QString text;
+};
+Q_DECLARE_METATYPE(FakePoses)
+
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
@@ -38,17 +47,27 @@ public:
 	SpecificWorker(MapPrx& mprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
+	FakePoses ui_to_human_struct();
+	void publish_humans(RoboCompHumanPose::humansDetected publish_humans);
+	void keyPressEvent(QKeyEvent *event);
+	void keyReleaseEvent(QKeyEvent *event);
 
 
 public slots:
 	void compute();
 	void initialize(int period);
-    void publish_person();
+	void publish_clicked();
+	void publish_next();
     void load_file();
     void save_file();
+	void save_file(QString filename, QString text);
+    void add_frame();
     
 private:
 	InnerModel *innerModel;
+	QTimer *publish_timer;
+	int current_frame_index;
+	bool controlKeyPressed;
 
 };
 

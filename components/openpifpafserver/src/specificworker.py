@@ -24,7 +24,6 @@ import torch
 import cv2
 import numpy as np
 
-
 COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
 
 class SpecificWorker(GenericWorker):
@@ -45,10 +44,6 @@ class SpecificWorker(GenericWorker):
 	def initialize(self):
 		
 		# add args.device
-		torch.device('cpu')
-		if torch.cuda.is_available():
-			torch.device('cuda')
-		# load model
 		class Args:
 			source = 0
 			checkpoint = None
@@ -69,17 +64,17 @@ class SpecificWorker(GenericWorker):
 			pif_fixed_scale = None
 			profile_decoder = False
 			instance_threshold = 0.05
-			device = torch.device('cuda')
+			device = torch.device(type="cuda")
 			disable_cuda = False
 			scale = 0.5
 			key_point_threshold = 0.05
 
-		args = Args()
-		model, _ = nets.factory_from_args(args)
-		model = model.to(args.device)
-		self.processor = decoder.factory_from_args(args, model)
+		self.args = Args()
+		model, _ = nets.factory_from_args(self.args)
+		model = model.to(self.args.device)
+		#model.cuda()
+		self.processor = decoder.factory_from_args(self.args, model)
 		self.src = np.zeros((480, 640, 3), np.uint8)
-
 
 	def setParams(self, params):
 		return True
@@ -96,28 +91,30 @@ class SpecificWorker(GenericWorker):
 	#
 
 	def processImage(self, img, scale):
-		print("llega imagen", scale)
-		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth )
+		print("llega imagen ", img.width, scale)
+		scale = 0.5
+		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth)
 		image = cv2.resize(self.src, None, fx=scale, fy=scale)
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 		processed_image_cpu = transforms.image_transform(image.copy())
 		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
-		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
+		unsqueezed = torch.unsqueeze(processed_image, 0).to(self.args.device)
+		fields = self.processor.fields(unsqueezed)[0]
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
-		print("keyPoints", keypoint_sets)
+		#print("keyPoints", keypoint_sets)
 
 		# # save in ice structure
-		keypoint = KeyPoint()
-		person = Person()
 		people = []
-		for id, p in enumerate(keypoint_sets):
-			joints =  {}
+		for p in keypoint_sets:
+			joints = {}
+			person = Person()
 			for pos, joint in enumerate(p):
+				keypoint = KeyPoint()
 				keypoint.x = joint[0]
 				keypoint.y = joint[1]
 				keypoint.score = joint[2]
 				joints[COCO_IDS[pos]] = keypoint
-			person.id = id
+			person.id = 0
 			person.joints = joints
 			people.append(person)
 		return people
