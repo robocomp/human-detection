@@ -29,7 +29,9 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
     connect(save_pb, SIGNAL(pressed()), this, SLOT(save_file()));
     connect(load_pb, SIGNAL(pressed()), this, SLOT(load_file()));
     connect(add_pb, SIGNAL(pressed()), this, SLOT(add_frame()));
+	connect(clear_pb, SIGNAL(pressed()), this, SLOT(clear_list()));
     connect(publish_timer, SIGNAL(timeout()), this, SLOT(publish_next()));
+	connect(frames_list, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(frame_clicked(QListWidgetItem *)));
     controlKeyPressed = false;
 }
 
@@ -95,19 +97,22 @@ void SpecificWorker::publish_humans(RoboCompHumanPose::humansDetected humans_det
 
 void SpecificWorker::publish_clicked()
 {
-	auto selected_items = frames_list->selectedItems();
-	qDebug()<<"Items selected:"<<frames_list->selectedItems().size();
-	if(selected_items.isEmpty()) {
+	if(!controlKeyPressed) {
 		FakePoses pose = this->ui_to_human_struct();
 		this->publish_humans(pose.data);
 	}
 	else
 	{
-		current_frame_index = 0;
-		publish_pb->setEnabled(false);
-		qDebug()<<"\tStarting publish timer with"<<timer_sb->value();
-		publish_next();
-		publish_timer->start(float(timer_sb->value())*1000);
+		if(frames_list->count() > 0)
+		{
+			current_frame_index = 0;
+			publish_pb->setEnabled(false);
+			qDebug() << "\tStarting publish timer with" << timer_sb->value();
+			publish_next();
+			publish_timer->start(float(timer_sb->value()) * 1000);
+		} else {
+			QMessageBox::warning(this, "No data to publish in list", "No data to publish in list.\nPlease add some frames to be published.");
+		}
 	}
 }
 
@@ -165,6 +170,7 @@ void SpecificWorker::keyPressEvent(QKeyEvent *event)
 	if(event->key() == Qt::Key_Control){
 		save_pb->setText("Save all");
 		load_pb->setText("Load all");
+		publish_pb->setText("Publish all");
 		controlKeyPressed = true;
 	}
 }
@@ -175,6 +181,7 @@ void SpecificWorker::keyReleaseEvent(QKeyEvent *event)
 	if(event->key() == Qt::Key_Control){
 		save_pb->setText("Save");
 		load_pb->setText("Load");
+		publish_pb->setText("Publish");
 		controlKeyPressed = false;
 	}
 }
@@ -217,11 +224,12 @@ void SpecificWorker::load_file()
 				QString text = in.readAll();
 				person_te->clear();
 				person_te->setText(text);
-				name_te->setText(QFileInfo(file).baseName());
+				name_le->setText(QFileInfo(file).baseName());
 				this->add_frame();
 			}
 		}
 	}
+	frames_list->sortItems();
 }
 
 void SpecificWorker::save_file(QString filename, QString text)
@@ -262,9 +270,9 @@ void SpecificWorker::save_file()
 				qDebug()<<"Humans detected:"<<poses.data.humanList.size();
 				//for item, save struct to file
 				auto file_path = QDir::cleanPath(dir + QDir::separator() + name+".txt");
-				qDebug()<<"Writting to :"<<file_path;
+				qDebug()<<"Writting to: "<<file_path;
 
-				this->save_file(file_path, person_te->toPlainText());
+				this->save_file(file_path, poses.text);
 			}
 		}
 
@@ -272,8 +280,12 @@ void SpecificWorker::save_file()
 }
 
 
+void SpecificWorker::clear_list() {
+	frames_list->clear();
+}
+
 void SpecificWorker::add_frame() {
-    QString name = name_te->text();
+    QString name = name_le->text();
     if(!name.isEmpty())
     {
         FakePoses poses = this->ui_to_human_struct();
@@ -289,9 +301,15 @@ void SpecificWorker::add_frame() {
                 this,
                 tr("Name of frame"),
                 tr("You have to set a name for the frame.") );
-        name_te->setFocus();
+        name_le->setFocus();
     }
+}
 
-
+void SpecificWorker::frame_clicked(QListWidgetItem *item) {
+	auto vari = item->data(Qt::UserRole);
+	FakePoses poses = vari.value<FakePoses>();
+	name_le->setText(item->text());
+	cameraID_sb->setValue(poses.data.idCamera);
+	person_te->setText(poses.text);
 }
 

@@ -60,7 +60,7 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QLineEdit" name="name_te">
+        <widget class="QLineEdit" name="name_le">
          <property name="placeholderText">
           <string>Name for the poses frame</string>
          </property>
@@ -152,6 +152,13 @@ p, li { white-space: pre-wrap; }
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QPushButton" name="clear_pb">
+         <property name="text">
+          <string>Clear</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
     </layout>
@@ -200,7 +207,20 @@ p, li { white-space: pre-wrap; }
       </widget>
      </item>
      <item>
-      <widget class="QDoubleSpinBox" name="timer_sb"/>
+      <widget class="QDoubleSpinBox" name="timer_sb">
+       <property name="suffix">
+        <string>sec</string>
+       </property>
+       <property name="decimals">
+        <number>2</number>
+       </property>
+       <property name="maximum">
+        <double>30.000000000000000</double>
+       </property>
+       <property name="value">
+        <double>1.000000000000000</double>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

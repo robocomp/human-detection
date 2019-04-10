@@ -62,7 +62,9 @@ public slots:
     void save_file();
 	void save_file(QString filename, QString text);
     void add_frame();
-    
+	void clear_list();
+	void frame_clicked(QListWidgetItem *item);
+
 private:
 	InnerModel *innerModel;
 	QTimer *publish_timer;
