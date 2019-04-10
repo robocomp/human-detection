@@ -16,6 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
+import datetime
 import random
 from Queue import Queue, Empty
 
@@ -36,7 +37,113 @@ from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout
 # import librobocomp_innermodel
 
 ABS_THR = 500
-REL_THR = 500
+REL_THR = 250
+
+PERSON_ALIVE_TIME = 20000
+
+CURRENT_FILE_PATH = os.path.dirname(__file__)
+
+class Position:
+	def __init__(self):
+		self._x = -1
+		self._y = -1
+		self._z = -1
+
+	@property
+	def x(self):
+		return  self._x
+
+	@property
+	def y(self):
+		return self._y
+
+	@property
+	def z(self):
+		return self._z
+
+	@x.setter
+	def x(self, value):
+		if isinstance(value,[float, int]):
+			self._x = value
+		else:
+			raise TypeError
+
+	@y.setter
+	def y(self, value):
+		if isinstance(value, [float, int]):
+			self._y = value
+		else:
+			raise TypeError
+
+	@z.setter
+	def z(self, value):
+		if isinstance(value, [float, int]):
+			self._z = value
+		else:
+			raise TypeError
+
+class Person:
+	def __init__(self):
+		self._person_id = -1
+		self._pos = Position()
+		self._previous_pos = Position()
+		self._rot = 0
+		self._color = "black"
+		self._cameras = []
+		self._velocity = []
+		self._last_time_detected = -1
+
+	@property
+	def person_id(self):
+		return self._person_id
+
+	@property
+	def pos(self):
+		return self._pos
+
+	@property
+	def rot(self):
+		return self._rot
+
+	@property
+	def color(self):
+		return self._color
+
+	@property
+	def cameras(self):
+		return self._cameras
+
+	@person_id.setter
+	def person_id(self, p_id):
+		self._person_id  = p_id
+
+	@pos.setter
+	def pos(self, value):
+		self._previous_pos = self._pos
+		if isinstance(value, list) and not isinstance(value, basestring):
+			if len(value) > 0:
+				self._pos.x = value[0]
+			if len(value) > 1:
+				self._pos.y = value[1]
+			if len(value) > 2:
+				self._pos.z = value[2]
+			if len(value) > 3:
+				raise IndexError
+		elif isinstance(value, Position):
+			self._pos = value
+		else:
+			raise TypeError
+
+	def is_active(self):
+		now = datetime.datetime.now()
+		time_diff = self._last_time_detected - now
+		if time_diff > PERSON_ALIVE_TIME:
+			return False
+		else:
+			return True
+
+
+
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
@@ -57,11 +164,13 @@ class SpecificWorker(GenericWorker):
 		self._first_view = HumanVisualizationWidget()
 		self._first_view.setMinimumSize(QSize(400, 400))
 		self._first_view.setWindowTitle("Current view")
+		self._first_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
 		self._maps_layout.addWidget(self._first_view)
 
 		self._second_view = HumanVisualizationWidget()
 		self._second_view.setMinimumSize(QSize(400, 400))
 		self._second_view.setWindowTitle("Next view")
+		self._second_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
 		# self._arriving_view.show()
 		self._maps_layout.addWidget(self._second_view)
 		self._update_views = False
@@ -128,17 +237,21 @@ class SpecificWorker(GenericWorker):
 		self.widget_graph.graph_widget.show()
 
 		result = nx.find_cliques(self._matching_graph)
+		max_nodes = -1
 		for r in result:
-			# print("Nodes in result: ", r)
-			for node_id in r:
-				node = self._matching_graph.nodes[node_id]
-				if node_id in self._matching_graph.nodes:
-					print("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)"%(node_id, node["person1"].id, node["person2"].id, node["person1"].pos.x, node["person1"].pos.z, node["person2"].pos.x, node["person2"].pos.z))
-					r = lambda: random.randint(0, 255)
-					next_color = '#%02X%02X%02X' % (r(), r(), r())
+			if len(r) > max_nodes:
+				max_nodes = len(r)
+				max_clique = r
+		print("Nodes in result: ", r)
+		for node_id in max_clique:
+			node = self._matching_graph.nodes[node_id]
+			if node_id in self._matching_graph.nodes:
+				print("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)"%(node_id, node["person1"].id, node["person2"].id, node["person1"].pos.x, node["person1"].pos.z, node["person2"].pos.x, node["person2"].pos.z))
+				r = lambda: random.randint(0, 255)
+				next_color = '#%02X%02X%02X' % (r(), r(), r())
 
-					self._first_view.set_human_color(node["person1"].id, QColor(next_color))
-					self._second_view.set_human_color(node["person2"].id, QColor(next_color))
+				self._first_view.set_human_color(node["person1"].id, QColor(next_color))
+				self._second_view.set_human_color(node["person2"].id, QColor(next_color))
 
 		return result
 
@@ -161,6 +274,15 @@ class SpecificWorker(GenericWorker):
 		b = numpy.array((p2.pos.x, p2.pos.z))
 		dist_a_b = numpy.sqrt(numpy.sum((a - b) ** 2))
 		return dist_a_b
+
+	# def _ice2Persons(self, humansFromCam):
+	# 	camera_id = input.idCamera
+	# 	detection_list = input.humanList
+	#
+	# 	for detected in detection_list:
+	# 		new_person = Person()
+	# 		new_person.
+
 
 
 	def obtainHumanPose(self, humansFromCam):
