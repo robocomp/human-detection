@@ -56,8 +56,39 @@ class HumanVisualizationWidget(QGraphicsView):
 		self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
 		self._boxes = []
 		self._humans = {}
+	#
+	# def load_inner_model(self, file):
+	# 	import xml.etree.cElementTree as ET
+	# 	tree = ET.ElementTree(file=file)
+	# 	root = tree.getroot()
+	# 	transforms = tree.findall(".//transform[plane]")
+	# 	walls =
+	# 	for trans in transforms:
+	# 		current_wall = [0] * 7
+	# 		# "wall5": [x, y, width, height, posx, posy, 0]
+	# 		if 'tx' in trans.attrib:
+	# 			print trans.attrib['tx']
+	# 			current_wall[5] = trans.attrib['tx']
+	# 		if 'ty' in trans.attrib:
+	# 			print trans.attrib['ty']
+	# 			current_wall[6] = trans.attrib['ty']
+	# 		# current_wall =
+	# 		planes = trans.findall('plane')
+	# 		for plane in planes:
+	# 			if 'nx' in plane.attrib:
+	# 				print plane.attrib['nx']
+	# 			if 'nz' in plane.attrib:
+	# 				print plane.attrib['nz']
+	# 			if 'size' in plane.attrib:
+	# 				print float(plane.attrib['size'].split(',')[0])
+	# 				print float(plane.attrib['size'].split(',')[1])
 
-	def load_json_world(self, file):
+
+
+
+
+
+	def load_custom_json_world(self, file):
 
 		if not os.path.isfile(file):
 			print("Error reading world file, check config params:", file)
@@ -79,7 +110,11 @@ class HumanVisualizationWidget(QGraphicsView):
 					rect = QRectF(-float(object[2]) / 2, -float(object[3]) / 2, float(object[2]), float(object[3]))
 					border = QPen(QColor(color))
 					fill = QBrush(QColor(color))
-					box = self._scene.addRect(rect, border, fill)
+					if type == "roundTables":
+						box = self._scene.addEllipse(rect, border, fill)
+					else:
+						box = self._scene.addRect(rect, border, fill)
+
 					box.setPos(float(object[4]), float(object[5]))
 					box.setRotation(float(object[6]))
 					self._boxes.append(box)
@@ -169,9 +204,9 @@ if __name__ == '__main__':
 	signal.signal(signal.SIGINT, signal.SIG_DFL)
 	h_v = HumanVisualizationWidget()
 	h_v.show()
-	h_v.load_json_world(os.path.join(CURRENT_FILE_PATH, "..", "resources", "prueba.json"))
-	h_v.clear()
-	h_v.load_json_world(os.path.join(CURRENT_FILE_PATH, "..", "resources", "prueba.json"))
+	h_v.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "..", "resources", "autonomy.json"))
+	# h_v.clear()
+	# h_v.load_json_world(os.path.join(CURRENT_FILE_PATH, "..", "resources", "prueba.json"))
 	# h_v.add_human_by_pos(0, (30,30))
 	# h_v.move_human(0, (1000, -1000))
 	app.exec_()
