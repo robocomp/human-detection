@@ -8,10 +8,6 @@
 #include <curl/curl.h>
 #include <chrono>
 
-//#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
-#define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
-//#define URL "http://pbustos:Zebulon00@192.168.1.104:20004/videostream.cgi"
-
 static std::queue<cv::Mat> micola;
 
 class IPCamReader
@@ -38,16 +34,17 @@ class IPCamReader
         bool empty() const { return micola.empty();};
         cv::Mat& front() { return micola.front();};
         void pop() { micola.pop();};
-        void run()
+        void run(const std::string &URL)
         {
-            t = std::thread(&IPCamReader::init, this);
+            t = std::thread(&IPCamReader::init, this, URL);
         }
-	    void init()
+	    void init(const std::string &URL)
         {
             
             curl_global_init(CURL_GLOBAL_ALL);
             curl_handle = curl_easy_init();
-            curl_easy_setopt(curl_handle, CURLOPT_URL, URL);
+            std::cout << __FUNCTION__ << ". Trying to connect to: " << URL << std::endl;
+            curl_easy_setopt(curl_handle, CURLOPT_URL, URL.c_str());
             curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
             curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &chunk);
             curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
@@ -72,7 +69,7 @@ class IPCamReader
 
         static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, MemoryStruct *mem)
         {
-            static auto begin = std::chrono::steady_clock::now();
+            //static auto begin = std::chrono::steady_clock::now();
             size_t realsize = size * nmemb;
             size_t current = mem->size;
             mem->memory  = (char *)realloc(mem->memory, mem->size + realsize + 1);
@@ -119,9 +116,9 @@ class IPCamReader
                     mem->begin = mem->end = 0;
                     mem->memory = tmp;
                     // timing
-                    auto end = std::chrono::steady_clock::now();
-                    std::cout << "Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
-                    begin = end;
+                    // auto end = std::chrono::steady_clock::now();
+                    // std::cout << "Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
+                    // begin = end;
                 }
             }
             return realsize;

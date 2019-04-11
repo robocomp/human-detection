@@ -31,7 +31,11 @@
 #include <innermodel/innermodel.h>
 #include <ipcamreader.h>
 
-typedef vector<tuple<std::string,std::string> > SKELETON_CONNECTIONS;
+#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
+//#define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
+
+using SKELETON_CONNECTIONS = std::vector<std::tuple<std::string, std::string>>;
+using HUMAN_JOINT_HEIGHTS = std::map<std::string, double>;
 
 class SpecificWorker : public GenericWorker
 {
@@ -48,7 +52,9 @@ public slots:
 	void initialize(int period);
 
 private:
+	shared_ptr<InnerModel> innermodel;
 	SKELETON_CONNECTIONS skeleton;
+	HUMAN_JOINT_HEIGHTS joint_heights;
 	float scale;
 	IPCamReader cam;
 	cv::VideoCapture camcv;
@@ -56,7 +62,9 @@ private:
 	cv::Ptr<cv::BackgroundSubtractorMOG2> pMOG2; //MOG2 Background subtractor
 	cv::Mat kernel, erode, dilate;
 	void drawBody(cv::Mat frame, const RoboCompPeopleServer::People &people);
-
+	QVec getFloorCoordinates(const RoboCompPeopleServer::Person &person);
+	std::tuple<bool, QVec> inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint);
+	QMat K, Ki;
 };
 
 #endif
