@@ -16,19 +16,20 @@
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
+import copy
 import datetime
 import random
 from Queue import Queue, Empty
 
 import numpy
-from PySide2.QtCore import QSize
+from PySide2.QtCore import QSize, Qt
 from PySide2.QtGui import QColor
 
 from genericworker import *
 import networkx as nx
 from libs.QNetworkxGraph.QNetworkxGraph import QNetworkxController
 from libs.HumanVisualizationWidget import HumanVisualizationWidget
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QSlider, QLabel, QCheckBox
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -150,6 +151,7 @@ class SpecificWorker(GenericWorker):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
 		self.Period = 500
+		self._noise_factor = 1000
 		self.timer.start(self.Period)
 		self._matching_graph = nx.Graph()
 		self._current_person_list = []
@@ -159,8 +161,23 @@ class SpecificWorker(GenericWorker):
 		self.widget_graph = QNetworkxController()
 		self._main_layout.addWidget(self.widget_graph.graph_widget)
 
+		self._noise_checkbox = QCheckBox("Noise factor")
+		self._noise_slider = QSlider(QtCore.Qt.Horizontal)
+		self._noise_slider.setMinimum(0)
+		self._noise_slider.setMaximum(1000)
+		self._noise_slider.setTickInterval(100)
+		self._noise_layout = QHBoxLayout()
+		self._noise_layout.addWidget(self._noise_checkbox)
+		self._noise_layout.addWidget(self._noise_slider)
+		self._noise_slider.sliderMoved.connect(self.set_noise_factor)
+
+
+
 		self._maps_layout = QHBoxLayout()
 		self._main_layout.addLayout(self._maps_layout)
+
+		self._main_layout.addLayout(self._noise_layout)
+
 		self._first_view = HumanVisualizationWidget()
 		self._first_view.setMinimumSize(QSize(400, 400))
 		self._first_view.setWindowTitle("Current view")
@@ -173,6 +190,7 @@ class SpecificWorker(GenericWorker):
 		self._second_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
 		# self._arriving_view.show()
 		self._maps_layout.addWidget(self._second_view)
+
 		self._update_views = False
 		self._detection_queue = Queue()
 
@@ -184,7 +202,6 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		print 'SpecificWorker.compute...'
 		try:
 			humansFromCam = self._detection_queue.get_nowait()
 			if len(self._next_person_list) == 0:
@@ -205,7 +222,8 @@ class SpecificWorker(GenericWorker):
 
 
 		except Empty as e:
-			print("No new detection")
+			# print("No new detection")
+			pass
 
 		return True
 
@@ -213,10 +231,16 @@ class SpecificWorker(GenericWorker):
 		self._matching_graph.clear()
 		self.widget_graph.clear()
 		camera_id = input.idCamera
-		persons_list = input.humanList
-		print("Person list input: ", persons_list)
-		for detected_person in persons_list:
-			for existing_person in self._current_person_list:
+		new_persons_list = input.humanList
+		current_person_list = self._current_person_list
+		if self._noise_checkbox.isChecked():
+			new_persons_list = self.add_noise(new_persons_list)
+			current_person_list = self.add_noise(current_person_list)
+			self._update_person_list_view(current_person_list, self._first_view)
+			self._update_person_list_view(new_persons_list, self._second_view)
+		print("Person list input: ", new_persons_list)
+		for detected_person in new_persons_list:
+			for existing_person in current_person_list:
 				print("Indexes:", detected_person.id," ", existing_person.id)
 				dist = self._calculate_person_distance(detected_person, existing_person)
 				print("Distance persons: ", dist)
@@ -283,6 +307,22 @@ class SpecificWorker(GenericWorker):
 	# 		new_person = Person()
 	# 		new_person.
 
+	def add_noise(self, persons_list):
+		new_humans_detected = copy.deepcopy(persons_list)
+		mu, sigma = 0, 0.1  # mean and standard deviation
+		s = numpy.random.normal(mu, sigma, len(new_humans_detected)*2)
+		s = s*self._noise_factor
+		print("Noises vector %s"%str(s))
+		for index, detected_person in enumerate(new_humans_detected):
+			print("Person %d, %d"%(detected_person.pos.x, detected_person.pos.z))
+			detected_person.pos.x += s[index*2]
+			detected_person.pos.z += s[index*2+1]
+			print("Person with noise %d, %d" % (detected_person.pos.x, detected_person.pos.z))
+		return new_humans_detected
+
+	def set_noise_factor(self, value):
+		self._noise_factor = value*10
+		print("New noise factor %d"%self._noise_factor)
 
 
 	def obtainHumanPose(self, humansFromCam):
