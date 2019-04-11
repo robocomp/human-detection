@@ -119,9 +119,9 @@ void SpecificWorker::publish_clicked()
 void SpecificWorker::publish_next()
 {
 
-	if(current_frame_index < frames_list->selectedItems().size())
+	if(current_frame_index < frames_list->count())
 	{
-		qDebug()<<"To publish next"<<current_frame_index<<frames_list->selectedItems().size();
+		qDebug()<<"To publish next"<<current_frame_index<<frames_list->count();
 		auto item = frames_list->item(current_frame_index);
 		auto vari = item->data(Qt::UserRole);
 		FakePoses poses = vari.value<FakePoses>();
