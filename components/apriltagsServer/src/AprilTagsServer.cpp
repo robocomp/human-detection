@@ -96,9 +96,12 @@ RoboCompAprilTagsServer::AprilTagsServer::_iceD_getAprilTags(::IceInternal::Inco
     _iceCheckMode(::Ice::OperationMode::Normal, current.mode);
     auto istr = inS.startReadParams();
     Image iceP_frame;
-    istr->readAll(iceP_frame);
+    double iceP_tagsize;
+    double iceP_mfx;
+    double iceP_mfy;
+    istr->readAll(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy);
     inS.endReadParams();
-    tagsList ret = this->getAprilTags(::std::move(iceP_frame), current);
+    tagsList ret = this->getAprilTags(::std::move(iceP_frame), iceP_tagsize, iceP_mfx, iceP_mfy, current);
     auto ostr = inS.startWriteParams();
     ostr->writeAll(ret);
     inS.endWriteParams();
@@ -149,13 +152,13 @@ RoboCompAprilTagsServer::AprilTagsServer::_iceDispatch(::IceInternal::Incoming& 
 
 /// \cond INTERNAL
 void
-RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<tagsList>>& outAsync, const Image& iceP_frame, const ::Ice::Context& context)
+RoboCompAprilTagsServer::AprilTagsServerPrx::_iceI_getAprilTags(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<tagsList>>& outAsync, const Image& iceP_frame, double iceP_tagsize, double iceP_mfx, double iceP_mfy, const ::Ice::Context& context)
 {
     _checkTwowayOnly(iceC_RoboCompAprilTagsServer_AprilTagsServer_getAprilTags_name);
     outAsync->invoke(iceC_RoboCompAprilTagsServer_AprilTagsServer_getAprilTags_name, ::Ice::OperationMode::Normal, ::Ice::FormatType::DefaultFormat, context,
         [&](::Ice::OutputStream* ostr)
         {
-            ostr->writeAll(iceP_frame);
+            ostr->writeAll(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy);
         },
         nullptr);
 }
@@ -209,7 +212,7 @@ void
 /// \endcond
 
 ::Ice::AsyncResultPtr
-IceProxy::RoboCompAprilTagsServer::AprilTagsServer::_iceI_begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, const ::Ice::Context& context, const ::IceInternal::CallbackBasePtr& del, const ::Ice::LocalObjectPtr& cookie, bool sync)
+IceProxy::RoboCompAprilTagsServer::AprilTagsServer::_iceI_begin_getAprilTags(const ::RoboCompAprilTagsServer::Image& iceP_frame, ::Ice::Double iceP_tagsize, ::Ice::Double iceP_mfx, ::Ice::Double iceP_mfy, const ::Ice::Context& context, const ::IceInternal::CallbackBasePtr& del, const ::Ice::LocalObjectPtr& cookie, bool sync)
 {
     _checkTwowayOnly(iceC_RoboCompAprilTagsServer_AprilTagsServer_getAprilTags_name, sync);
     ::IceInternal::OutgoingAsyncPtr result = new ::IceInternal::CallbackOutgoing(this, iceC_RoboCompAprilTagsServer_AprilTagsServer_getAprilTags_name, del, cookie, sync);
@@ -218,6 +221,9 @@ IceProxy::RoboCompAprilTagsServer::AprilTagsServer::_iceI_begin_getAprilTags(con
         result->prepare(iceC_RoboCompAprilTagsServer_AprilTagsServer_getAprilTags_name, ::Ice::Normal, context);
         ::Ice::OutputStream* ostr = result->startWriteParams(::Ice::DefaultFormat);
         ostr->write(iceP_frame);
+        ostr->write(iceP_tagsize);
+        ostr->write(iceP_mfx);
+        ostr->write(iceP_mfy);
         result->endWriteParams();
         result->invoke(iceC_RoboCompAprilTagsServer_AprilTagsServer_getAprilTags_name);
     }
@@ -319,9 +325,15 @@ RoboCompAprilTagsServer::AprilTagsServer::_iceD_getAprilTags(::IceInternal::Inco
     _iceCheckMode(::Ice::Normal, current.mode);
     ::Ice::InputStream* istr = inS.startReadParams();
     Image iceP_frame;
+    ::Ice::Double iceP_tagsize;
+    ::Ice::Double iceP_mfx;
+    ::Ice::Double iceP_mfy;
     istr->read(iceP_frame);
+    istr->read(iceP_tagsize);
+    istr->read(iceP_mfx);
+    istr->read(iceP_mfy);
     inS.endReadParams();
-    tagsList ret = this->getAprilTags(iceP_frame, current);
+    tagsList ret = this->getAprilTags(iceP_frame, iceP_tagsize, iceP_mfx, iceP_mfy, current);
     ::Ice::OutputStream* ostr = inS.startWriteParams();
     ostr->write(ret);
     inS.endWriteParams();

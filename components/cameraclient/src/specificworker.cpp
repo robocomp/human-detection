@@ -53,7 +53,7 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 		{"left_shoulder", 900},
 		{"right_shoulder", 900}});
 	
-		const float fx=280, fy=280, sx=1, sy=1, Ox=320, Oy=240;
+		const float fx=600, fy=600, sx=1, sy=1, Ox=320, Oy=240;
 		K = QMat::zeros(3,3);
 		K(0,0) = -fx/sx; K(0,1) = 0.f; 		K(0,2) = Ox;
 		K(1,0) = 0; 	 K(1,1) = -fy/sy; 	K(1,2) = Oy;
@@ -80,6 +80,13 @@ void SpecificWorker::initialize(int period)
 	std::cout << "Initialize worker" << std::endl;
 
 	innermodel = std::make_shared<InnerModel>("/home/pbustos/robocomp/files/innermodel/simplesimpleworld.xml");
+
+	// RTMat rt( 0.89458078146, -0.0678672716022, 0.0201254915446, -80.604724586, 77.9478624463, 2689.19467926);
+	// RTMat rti = rt.invert();
+	// rti.print("rti");
+	// QVec angles = rti.extractAnglesR_min();
+	// angles.print("angles");
+	// exit(-1);
 
 	pMOG2 = cv::createBackgroundSubtractorMOG2();
 	size_t erosion_size = 2;
@@ -179,11 +186,11 @@ std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::P
 	auto j = &p.joints.at(joint);	
 	if( j->score != 0 )
 	{
-		qDebug() << __FUNCTION__ << "entro";
+		//qDebug() << __FUNCTION__ << "entro";
 		QVec p1 = QVec::vec3(j->x, j->y, 1.0);
-		qDebug() << __FUNCTION__ << "hola";
+		//qDebug() << __FUNCTION__ << "hola";
 		QVec p2 = Ki * p1;
-		qDebug() << __FUNCTION__ << "despues ki";
+		//qDebug() << __FUNCTION__ << "despues ki";
 		QVec p3 = innermodel->transform("world", p2, "camera");
 		QVec cam = innermodel->transform("world", "camera");
 		QVec p4 = cam + p3;

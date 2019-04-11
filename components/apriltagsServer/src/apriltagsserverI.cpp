@@ -28,8 +28,8 @@ AprilTagsServerI::~AprilTagsServerI()
 {
 }
 
-tagsList AprilTagsServerI::getAprilTags(const Image  &frame, const Ice::Current&)
+tagsList AprilTagsServerI::getAprilTags(const Image  &frame, const double  tagsize, const double  mfx, const double  mfy, const Ice::Current&)
 {
-	return worker->AprilTagsServer_getAprilTags(frame);
+	return worker->AprilTagsServer_getAprilTags(frame, tagsize, mfx, mfy);
 }
 
