@@ -37,54 +37,42 @@ SpecificWorker::~SpecificWorker()
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 
-    timer.start(Period);
+//    timer.start(Period);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes25h7);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes25h9);
-//    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);
-    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
-
+//    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
+    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
+    image_gray.create(480,640,CV_8UC1);
+    image_color.create(480,640,CV_8UC3);
     return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initialize worker" << std::endl;
-    this->Period = period;
+    this->Period = 5;
     timer.start(Period);
 }
-
 
 void SpecificWorker::compute()
 {
     QMutexLocker locker(mutex);
-    //computeCODE
-// 	try
-// 	{
-// 		camera_proxy->getYImage(0,img, cState, bState);
-// 		memcpy(image_gray.data, &img[0], m_width*m_height*sizeof(uchar));
-// 		searchTags(image_gray);
-// 	}
-// 	catch(const Ice::Exception &e)
-// 	{
-// 		std::cout << "Error reading from Camera" << e << std::endl;
-// 	}
+    imshow("TagDetections", image_color);
+    cv::waitKey(1);
 }
-
 
 tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy)
 {
-//    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<endl;
-    image_gray.create(frame.frmt.height,frame.frmt.width,CV_8UC1);
-    image_color.create(frame.frmt.height,frame.frmt.width,CV_8UC3);
+    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<endl;
     RoboCompAprilTagsServer::tagsList tagsList1;
     try
     {
-        image_color.data = (uchar *)(&frame.data[0]);
+        memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
         cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
         vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
-//        std::cout << detections.size() << " tags detected:" << std::endl;
+        std::cout << detections.size() << " tags detected:" << std::endl;
         if (detections.size() > 0)
             for (auto &d : detections)
                 tagsList1.push_back(send_detection(d, tagsize, mfx, mfy, frame.frmt.width/2, frame.frmt.height/2));
