@@ -44,6 +44,22 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 		{"right_eye", "right_ear"},
 		{"left_ear", "left_shoulder"},
 		{"right_ear", "right_shoulder"}});
+
+		joint_heights = HUMAN_JOINT_HEIGHTS({
+		{"left_ankle", 100},
+		{"right_ankle", 100},
+		{"right_knee", 480},
+		{"left_hip", 480},
+		{"left_shoulder", 900},
+		{"right_shoulder", 900}});
+	
+		const float fx=280, fy=280, sx=1, sy=1, Ox=320, Oy=240;
+		K = QMat::zeros(3,3);
+		K(0,0) = -fx/sx; K(0,1) = 0.f; 		K(0,2) = Ox;
+		K(1,0) = 0; 	 K(1,1) = -fy/sy; 	K(1,2) = Oy;
+		K(2,0) = 0;		 K(2,1) = 0;		K(2,2) = 1;
+		Ki = K.invert();
+		Ki.print("Ki");
 }
 /**
 * \brief Default destructor
@@ -63,15 +79,18 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
+	innermodel = std::make_shared<InnerModel>("/home/pbustos/robocomp/files/innermodel/simplesimpleworld.xml");
+
 	pMOG2 = cv::createBackgroundSubtractorMOG2();
 	size_t erosion_size = 2;
 	kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE, 
 										cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                         cv::Point( erosion_size, erosion_size ) );
 	
-	cam.run();
+	cam.run(URL);
+	//camcv.open("/home/pbustos/Descargas/T1.mp4");
 	//camcv.open(0);
-
+	
 	this->Period = 50;
 	//timer.setSingleShot(true);
 	timer.start(Period);
@@ -80,50 +99,110 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
+	static auto begin = std::chrono::steady_clock::now();
+	static int last_people_detected = 0;
 	auto [ret, frame] = cam.read();	//access without copy
 	//cv::Mat frame; bool ret = true;
 	//camcv >> frame;  
 
 	if(ret == false) return;
 	pMOG2->apply(frame, fgMaskMOG2);
-	//cv::erode(fgMaskMOG2, erode, kernel);
-	//cv::dilate(erode, dilate, kernel);
-	cv::countNonZero(fgMaskMOG2);
-	// if count > TH 
-	RoboCompPeopleServer::TImage img;
-	img.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
-	img.width = frame.cols;
-	img.height = frame.rows;
-	img.depth = 3;
-	try
+	cv::erode(fgMaskMOG2, erode, kernel);
+	cv::dilate(erode, dilate, kernel);
+	auto count = cv::countNonZero(fgMaskMOG2);
+	if( count > 2000 or last_people_detected > 0)
 	{
-		scale = 0.5;
-		auto people = peopleserver_proxy->processImage(img, scale);
-		drawBody(frame, people);
-		//	go from feet upwards
-		//		compute floor position
-		// publish results
+		RoboCompPeopleServer::TImage img;
+		img.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
+		img.width = frame.cols;
+		img.height = frame.rows;
+		img.depth = 3;
+		try
+		{
+			scale = 0.7;
+			auto people = peopleserver_proxy->processImage(img, 0.7);
+			last_people_detected = people.size();
+			drawBody(frame, people);
+			for(auto &person : people)
+			{
+				QVec coor = getFloorCoordinates(person);
+				if(coor.isEmpty()) qDebug() << "no bone found";
+				else qDebug() << "Flor coor: " << coor.x() << coor.y() << coor.z();
+			}
+
+			//	go from feet upwards
+			//		compute floor position
+			// publish results
+		}
+		catch(const Ice::Exception& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+	
+		//cv::imshow("Camara sala de reuniones", frame);
+		//qDebug() << "compute" << frame.rows << frame.cols;
+		cvWaitKey(1);
+		auto end = std::chrono::steady_clock::now();
+		std::cout << "Count = " << count << " Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
+		begin = end;
 	}
-	catch(const Ice::Exception& e)
+}
+
+QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p)
+{
+	qDebug() << __FUNCTION__;
 	{
-		std::cerr << e.what() << '\n';
+		auto &&[good, coor] = inverseRay(p, "left_ankle");	
+	 	if(good) return coor;
 	}
-	
-	
-	//cv::imshow("Camara sala de reuniones", frame);
-	//qDebug() << "compute" << frame.rows << frame.cols;
-	cvWaitKey(1);
+	{
+		auto &&[good, coor] = inverseRay(p, "right_ankle");	
+		if(good) return coor;
+	}
+	{
+		auto &&[good, coor] = inverseRay(p, "left_knee");	
+		if(good) return coor;
+	}
+	{	
+		auto &&[good, coor] = inverseRay(p, "left_knee");	
+		if(good) return coor;
+	}
+	{
+		auto &&[good, coor] = inverseRay(p, "right_knee");	
+		if(good) return coor;
+	}
+	return QVec();
+}
+
+std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint)
+{
+	auto j = &p.joints.at(joint);	
+	if( j->score != 0 )
+	{
+		qDebug() << __FUNCTION__ << "entro";
+		QVec p1 = QVec::vec3(j->x, j->y, 1.0);
+		qDebug() << __FUNCTION__ << "hola";
+		QVec p2 = Ki * p1;
+		qDebug() << __FUNCTION__ << "despues ki";
+		QVec p3 = innermodel->transform("world", p2, "camera");
+		QVec cam = innermodel->transform("world", "camera");
+		QVec p4 = cam + p3;
+		double k = (-joint_heights.at(joint) - cam.y()) / p3.y();
+		return std::make_tuple(true, cam + (p3 * (T)k));
+	}
+	else
+		return std::make_tuple(false, QVec());
 }
 
 void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People &people)
 {
 	for(auto &p : people)
 	{
-		qDebug()<<"person id "<<p.id;
-		for (auto &connection: skeleton)
+		qDebug() << __FUNCTION__ <<"person id = "<<p.id;
+		for (auto &[first, second] : skeleton)
 		{
-			auto j1 = &p.joints.at(std::get<0>(connection));
-			auto j2 = &p.joints.at(std::get<1>(connection));
+			auto j1 = &p.joints.at(first);
+			auto j2 = &p.joints.at(second);
 			if (j1->score > 0)
 				cv::circle(frame,cv::Point(j1->x/scale, j1->y/scale),10,cv::Scalar(0,0,255));
 			if (j2->score > 0)
@@ -135,7 +214,6 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 	cv::imshow("Camara IP", frame);
 	cvWaitKey(1);
 }
-
 
 void SpecificWorker::CameraSimple_getImage(RoboCompCameraSimple::TImage &im)
 {

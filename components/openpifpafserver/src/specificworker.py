@@ -66,7 +66,7 @@ class SpecificWorker(GenericWorker):
 			instance_threshold = 0.05
 			device = torch.device(type="cuda")
 			disable_cuda = False
-			scale = 0.5
+			scale = 0.7
 			key_point_threshold = 0.05
 
 		self.args = Args()
@@ -92,7 +92,7 @@ class SpecificWorker(GenericWorker):
 
 	def processImage(self, img, scale):
 		print("llega imagen ", img.width, scale)
-		scale = 0.5
+		scale = 0.7
 		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth)
 		image = cv2.resize(self.src, None, fx=scale, fy=scale)
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

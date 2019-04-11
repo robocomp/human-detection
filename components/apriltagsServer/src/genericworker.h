@@ -52,7 +52,7 @@ public:
 
 
 
-	virtual tagsList AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy) = 0;
+	virtual tagsList AprilTagsServer_getAprilTags(const Image &frame) = 0;
 
 protected:
 	QTimer timer;
