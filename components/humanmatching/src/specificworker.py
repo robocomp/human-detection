@@ -29,7 +29,7 @@ from genericworker import *
 import networkx as nx
 from libs.QNetworkxGraph.QNetworkxGraph import QNetworkxController
 from libs.HumanVisualizationWidget import HumanVisualizationWidget
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QSlider, QLabel, QCheckBox
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QSlider, QLabel, QCheckBox, QLCDNumber, QSpinBox
 
 # If RoboComp was compiled with Python bindings you can use InnerModel in Python
 # sys.path.append('/opt/robocomp/lib')
@@ -161,7 +161,7 @@ class SpecificWorker(GenericWorker):
 		self.widget_graph = QNetworkxController()
 		self._main_layout.addWidget(self.widget_graph.graph_widget)
 
-		self._noise_checkbox = QCheckBox("Noise factor")
+		self._noise_checkbox = QCheckBox("Apply noise")
 		self._noise_slider = QSlider(QtCore.Qt.Horizontal)
 		self._noise_slider.setMinimum(0)
 		self._noise_slider.setMaximum(1000)
@@ -171,12 +171,46 @@ class SpecificWorker(GenericWorker):
 		self._noise_layout.addWidget(self._noise_slider)
 		self._noise_slider.sliderMoved.connect(self.set_noise_factor)
 
+		self._noise_factor_lcd_layout = QHBoxLayout()
+		self._lcds_layout = QHBoxLayout()
+
+		self._noise_factor_label = QLabel("Noise factor:")
+		self._noise_factor_lcd = QSpinBox()
+		self._noise_factor_lcd.setReadOnly(True)
+		self._noise_factor_lcd.setRange(0,10000)
+		self._noise_factor_lcd_layout.addWidget(self._noise_factor_label)
+		self._noise_factor_lcd_layout.addWidget(self._noise_factor_lcd)
+
+
+		self._min_max_noise_layout = QHBoxLayout()
+		self._min_max_label = QLabel("Min, max noise added:")
+		self._min_noise = QSpinBox()
+		self._min_noise.setReadOnly(True)
+		self._min_noise.setSuffix("mm")
+		self._min_noise.setRange(-5000, 5000)
+		self._max_noise = QSpinBox()
+		self._max_noise.setReadOnly(True)
+		self._max_noise.setSuffix("mm")
+		self._max_noise.setRange(-5000, 5000)
+		self._min_max_noise_layout.addWidget(self._min_max_label)
+		self._min_max_noise_layout.addWidget(self._min_noise)
+		self._min_max_noise_layout.addWidget(self._max_noise)
+
+
+		self._lcds_layout.addLayout(self._noise_factor_lcd_layout)
+		# self._lcds_layout.addWidget(self._min_max_label)
+		self._lcds_layout.addStretch()
+		self._lcds_layout.addLayout(self._min_max_noise_layout)
+
+
+		# self._noise_layout.addLayout(self._lcds_layout)
 
 
 		self._maps_layout = QHBoxLayout()
 		self._main_layout.addLayout(self._maps_layout)
 
 		self._main_layout.addLayout(self._noise_layout)
+		self._main_layout.addLayout(self._lcds_layout)
 
 		self._first_view = HumanVisualizationWidget()
 		self._first_view.setMinimumSize(QSize(400, 400))
@@ -262,11 +296,13 @@ class SpecificWorker(GenericWorker):
 
 		result = nx.find_cliques(self._matching_graph)
 		max_nodes = -1
+		max_clique = []
 		for r in result:
 			if len(r) > max_nodes:
 				max_nodes = len(r)
 				max_clique = r
-		print("Nodes in result: ", r)
+			print("Nodes in result: ", r)
+
 		for node_id in max_clique:
 			node = self._matching_graph.nodes[node_id]
 			if node_id in self._matching_graph.nodes:
@@ -312,6 +348,8 @@ class SpecificWorker(GenericWorker):
 		mu, sigma = 0, 0.1  # mean and standard deviation
 		s = numpy.random.normal(mu, sigma, len(new_humans_detected)*2)
 		s = s*self._noise_factor
+		self._min_noise.setValue(min(s, key=abs))
+		self._max_noise.setValue(max(s, key=abs))
 		print("Noises vector %s"%str(s))
 		for index, detected_person in enumerate(new_humans_detected):
 			print("Person %d, %d"%(detected_person.pos.x, detected_person.pos.z))
@@ -322,7 +360,7 @@ class SpecificWorker(GenericWorker):
 
 	def set_noise_factor(self, value):
 		self._noise_factor = value*10
-		print("New noise factor %d"%self._noise_factor)
+		self._noise_factor_lcd.setValue(self._noise_factor)
 
 
 	def obtainHumanPose(self, humansFromCam):
