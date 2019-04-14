@@ -68,6 +68,15 @@ class SpecificWorker(GenericWorker):
 			disable_cuda = False
 			scale = 0.7
 			key_point_threshold = 0.05
+			head_dropout = 0.0
+			head_quad = 0
+			default_kernel_size = 1
+			default_padding = 0
+			default_dilation = 1
+			head_kernel_size = 1
+			head_padding = 0
+			head_dilation = 0
+
 
 		self.args = Args()
 		model, _ = nets.factory_from_args(self.args)
