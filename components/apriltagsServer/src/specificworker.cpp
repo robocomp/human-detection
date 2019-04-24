@@ -70,6 +70,7 @@ tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const 
     try
     {
         memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
+        qDebug()<<"resolution"<<frame.frmt.width<<frame.frmt.height;
         cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
         vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
         std::cout << detections.size() << " tags detected:" << std::endl;

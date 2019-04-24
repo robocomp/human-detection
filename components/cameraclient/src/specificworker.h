@@ -31,8 +31,8 @@
 #include <innermodel/innermodel.h>
 #include <ipcamreader.h>
 
-#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
-//#define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
+//#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
+#define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
 
 using SKELETON_CONNECTIONS = std::vector<std::tuple<std::string, std::string>>;
 using HUMAN_JOINT_HEIGHTS = std::map<std::string, double>;

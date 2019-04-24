@@ -53,7 +53,7 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 		{"left_shoulder", 900},
 		{"right_shoulder", 900}});
 	
-		const float fx=600, fy=600, sx=1, sy=1, Ox=320, Oy=240;
+		const float fx=830, fy=830, sx=1, sy=1, Ox=320, Oy=240;
 		K = QMat::zeros(3,3);
 		K(0,0) = -fx/sx; K(0,1) = 0.f; 		K(0,2) = Ox;
 		K(1,0) = 0; 	 K(1,1) = -fy/sy; 	K(1,2) = Oy;
@@ -79,14 +79,14 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-	innermodel = std::make_shared<InnerModel>("/home/pbustos/robocomp/files/innermodel/simplesimpleworld.xml");
-
+	innermodel = std::make_shared<InnerModel>("world.xml");
 	// RTMat rt( 0.89458078146, -0.0678672716022, 0.0201254915446, -80.604724586, 77.9478624463, 2689.19467926);
-	// RTMat rti = rt.invert();
-	// rti.print("rti");
-	// QVec angles = rti.extractAnglesR_min();
-	// angles.print("angles");
-	// exit(-1);
+//	 RTMat rt( 0.882202804089, 0.00223149708472, 0.0275580454618,-55.7542724609, 187.768630981, 3600.34423828);
+//	 RTMat rti = rt.invert();
+//	 rti.print("rti");
+//	 QVec angles = rti.extractAnglesR_min2();
+//	 angles.print("angles");
+//	 exit(-1);
 
 	pMOG2 = cv::createBackgroundSubtractorMOG2();
 	size_t erosion_size = 2;
@@ -127,9 +127,18 @@ void SpecificWorker::compute()
 		try
 		{
 			scale = 0.7;
-			auto people = peopleserver_proxy->processImage(img, 0.7);
+			//auto people = peopleserver_proxy->processImage(img, 0.7);
+			RoboCompPeopleServer::People people;
+			RoboCompPeopleServer::Person person;
+			RoboCompPeopleServer::KeyPoint keypoint;
+			keypoint.x = 320;
+			keypoint.y = 240;
+			keypoint.score = 1;
+			person.joints["left_ankle"] = keypoint;
+			people.push_back(person);
+			
 			last_people_detected = people.size();
-			drawBody(frame, people);
+		//	drawBody(frame, people);
 			for(auto &person : people)
 			{
 				QVec coor = getFloorCoordinates(person);
@@ -153,6 +162,7 @@ void SpecificWorker::compute()
 		std::cout << "Count = " << count << " Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
 		begin = end;
 	}
+	
 }
 
 QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p)
@@ -191,8 +201,11 @@ std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::P
 		//qDebug() << __FUNCTION__ << "hola";
 		QVec p2 = Ki * p1;
 		//qDebug() << __FUNCTION__ << "despues ki";
+		p2.print("P2");
 		QVec p3 = innermodel->transform("world", p2, "camera");
+		p3.print("P3");
 		QVec cam = innermodel->transform("world", "camera");
+		cam.print("cam");
 		QVec p4 = cam + p3;
 		double k = (-joint_heights.at(joint) - cam.y()) / p3.y();
 		return std::make_tuple(true, cam + (p3 * (T)k));

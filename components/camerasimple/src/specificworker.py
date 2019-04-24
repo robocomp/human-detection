@@ -51,7 +51,7 @@ class SpecificWorker(GenericWorker):
             if cv2.waitKey(1) & 0xFF == ord('q'):  # wait for ESC key to exit
                 exit()
             if self.apriltagsserver_proxy is not None:
-                print(self.apriltagsserver_proxy.getAprilTags(self.getImage(), 30, 458, 458))
+                print(self.apriltagsserver_proxy.getAprilTags(self.getImage(), 159, 830, 830))
             else:
                 print "No apriltag server"
             # if self.peopleserver_proxy is not None:
