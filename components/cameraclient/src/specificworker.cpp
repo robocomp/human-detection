@@ -79,6 +79,21 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
+	//resize(QDesktopWidget().availableGeometry(this).size() * 0.6);
+	scene.setSceneRect(LEFT, BOTTOM, WIDTH, HEIGHT);
+	view.scale( 1, -1 );
+	view.setScene(&scene);
+	view.setParent(this);
+	QGridLayout* layout = new QGridLayout();
+    layout->addWidget(&view);
+	this->setLayout(layout);
+	view.fitInView(scene.sceneRect(), Qt::KeepAspectRatio );
+
+	//add person ellipse
+	personPose = scene.addEllipse(QRectF(-50,-50, 200, 200), QPen(QColor("LightGreen")), QBrush(QColor("LightGreen")));
+	personPose->setFlag(QGraphicsItem::ItemIsMovable);
+	personPose->setPos(0, 0);
+
 	innermodel = std::make_shared<InnerModel>("world.xml");
 	// RTMat rt( 0.89458078146, -0.0678672716022, 0.0201254915446, -80.604724586, 77.9478624463, 2689.19467926);
 //	 RTMat rt( 0.882202804089, 0.00223149708472, 0.0275580454618,-55.7542724609, 187.768630981, 3600.34423828);
@@ -94,9 +109,11 @@ void SpecificWorker::initialize(int period)
 										cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                         cv::Point( erosion_size, erosion_size ) );
 	
-	cam.run(URL);
+	cv::namedWindow("camera", 1);
+	cv::setMouseCallback("camera", mouse_callback, this);
+	//cam.run(URL);
 	//camcv.open("/home/pbustos/Descargas/T1.mp4");
-	//camcv.open(0);
+	camcv.open(0);
 	
 	this->Period = 50;
 	//timer.setSingleShot(true);
@@ -108,34 +125,33 @@ void SpecificWorker::compute()
 {
 	static auto begin = std::chrono::steady_clock::now();
 	static int last_people_detected = 0;
-	auto [ret, frame] = cam.read();	//access without copy
-	//cv::Mat frame; bool ret = true;
-	//camcv >> frame;  
+	//auto [ret, frame] = cam.read();	//access without copy
+	cv::Mat frame; bool ret = true;
+	camcv >> frame;  
 
 	if(ret == false) return;
 	pMOG2->apply(frame, fgMaskMOG2);
 	cv::erode(fgMaskMOG2, erode, kernel);
 	cv::dilate(erode, dilate, kernel);
 	auto count = cv::countNonZero(fgMaskMOG2);
-	if( count > 2000 or last_people_detected > 0)
+	//if( count > 2000 or last_people_detected > 0)
 	{
 		RoboCompPeopleServer::TImage img;
 		img.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
 		img.width = frame.cols;
 		img.height = frame.rows;
 		img.depth = 3;
+if(newPoint){
 		try
 		{
 			scale = 0.7;
 			//auto people = peopleserver_proxy->processImage(img, 0.7);
-			RoboCompPeopleServer::People people;
-			RoboCompPeopleServer::Person person;
-			RoboCompPeopleServer::KeyPoint keypoint;
-			keypoint.x = 320;
-			keypoint.y = 240;
-			keypoint.score = 1;
-			person.joints["left_ankle"] = keypoint;
-			people.push_back(person);
+//TESTING 
+RoboCompPeopleServer::People people;
+RoboCompPeopleServer::Person person;
+keypoint.score = 1;
+person.joints["left_ankle"] = keypoint;
+people.push_back(person);
 			
 			last_people_detected = people.size();
 		//	drawBody(frame, people);
@@ -144,6 +160,7 @@ void SpecificWorker::compute()
 				QVec coor = getFloorCoordinates(person);
 				if(coor.isEmpty()) qDebug() << "no bone found";
 				else qDebug() << "Flor coor: " << coor.x() << coor.y() << coor.z();
+				personPose->setPos(coor.x(), coor.y());
 			}
 
 			//	go from feet upwards
@@ -154,12 +171,14 @@ void SpecificWorker::compute()
 		{
 			std::cerr << e.what() << '\n';
 		}
-	
-		//cv::imshow("Camara sala de reuniones", frame);
+newPoint = false;		
+}	
+		cv::imshow("camera", frame);
+		
 		//qDebug() << "compute" << frame.rows << frame.cols;
 		cvWaitKey(1);
 		auto end = std::chrono::steady_clock::now();
-		std::cout << "Count = " << count << " Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
+//		std::cout << "Count = " << count << " Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
 		begin = end;
 	}
 	
@@ -206,9 +225,11 @@ std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::P
 		p3.print("P3");
 		QVec cam = innermodel->transform("world", "camera");
 		cam.print("cam");
-		QVec p4 = cam + p3;
-		double k = (-joint_heights.at(joint) - cam.y()) / p3.y();
-		return std::make_tuple(true, cam + (p3 * (T)k));
+		QVec p4 = cam - p3;
+		p4.print("vector restado");
+		//double k = (-joint_heights.at(joint) - cam.y()) / p3.y();
+		double k = (- cam.y()) / p4.y();
+		return std::make_tuple(true, cam + (p4 * (T)k));
 	}
 	else
 		return std::make_tuple(false, QVec());
@@ -242,3 +263,12 @@ void SpecificWorker::CameraSimple_getImage(RoboCompCameraSimple::TImage &im)
 }
 
 
+void SpecificWorker::mouseClick(int  event, int  x, int  y)
+{
+	std::cout<<"*********************\n*************************";
+	std::cout<<"MOUSE"<< x<< y;
+	std::cout<<"*********************\n*************************";
+	newPoint = true;
+	keypoint.x = x;
+	keypoint.y = y;
+}

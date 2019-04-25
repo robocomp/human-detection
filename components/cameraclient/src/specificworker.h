@@ -30,7 +30,10 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <ipcamreader.h>
-
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QGridLayout>
+#include <QGraphicsEllipseItem>
 //#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
 #define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
 
@@ -47,11 +50,19 @@ public:
 
 	void CameraSimple_getImage(RoboCompCameraSimple::TImage &im);
 
+	void mouseClick(int  event, int  x, int  y);
 public slots:
 	void compute();
 	void initialize(int period);
 
 private:
+	const float LEFT = -2000, BOTTOM = -2000, WIDTH = 4000, HEIGHT = 4000;
+	QGraphicsScene scene;
+	QGraphicsView view;
+	QGraphicsEllipseItem* personPose;
+	bool newPoint =false;
+
+	RoboCompPeopleServer::KeyPoint keypoint;
 	shared_ptr<InnerModel> innermodel;
 	SKELETON_CONNECTIONS skeleton;
 	HUMAN_JOINT_HEIGHTS joint_heights;
@@ -66,5 +77,17 @@ private:
 	std::tuple<bool, QVec> inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint);
 	QMat K, Ki;
 };
+
+//OpenCV Mouse callback
+static void mouse_callback(int event, int x, int y, int, void* userdata)
+{
+	if  ( event == cv::EVENT_LBUTTONDOWN )
+	{
+		// Check for null pointer in userdata and handle the error
+		SpecificWorker* worker = reinterpret_cast<SpecificWorker*>(userdata);
+		worker->mouseClick(event, x, y);
+	}
+}
+
 
 #endif

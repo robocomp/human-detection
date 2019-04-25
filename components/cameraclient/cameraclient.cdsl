@@ -10,5 +10,6 @@ Component cameraclient
         requires GetAprilTags, PeopleServer;
     };
     language Cpp11;
+    gui Qt(QWidget);
 };
 
