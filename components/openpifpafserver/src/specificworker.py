@@ -119,8 +119,8 @@ class SpecificWorker(GenericWorker):
 			person = Person()
 			for pos, joint in enumerate(p):
 				keypoint = KeyPoint()
-				keypoint.x = joint[0]
-				keypoint.y = joint[1]
+				keypoint.x = joint[0]/scale
+				keypoint.y = joint[1]/scale
 				keypoint.score = joint[2]
 				joints[COCO_IDS[pos]] = keypoint
 			person.id = 0
