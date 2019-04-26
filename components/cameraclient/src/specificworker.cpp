@@ -52,8 +52,8 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 		{"left_knee", 480},
 		{"left_hip", 900},
 		{"right_hip", 900},
-		{"left_shoulder", 150},
-		{"right_shoulder", 150}});
+		{"left_shoulder", 1500},
+		{"right_shoulder", 1500}});
 	
 
 		const float fx=830, fy=830, sx=1, sy=1, Ox=320, Oy=240;
@@ -149,16 +149,16 @@ void SpecificWorker::compute()
 		try
 		{
 			scale = 0.7;
-			auto people = peopleserver_proxy->processImage(img, 0.7);
+//			auto people = peopleserver_proxy->processImage(img, 0.7);
 //TESTING 
 /*RoboCompPeopleServer::People people;
 RoboCompPeopleServer::Person person;
 keypoint.score = 1;
-person.joints["left_ankle"] = keypoint;
-people.push_back(person);*/
-
+person.joints["left_knee"] = keypoint;
+people.push_back(person);
+*/
 			last_people_detected = people.size();
-			drawBody(frame, people);
+			//drawBody(frame, people);
 			for(auto &person : people)
 			{
 				QVec coor = getFloorCoordinates(person);
@@ -235,7 +235,7 @@ std::cout<< "joint "<< joint <<" "<<j->x <<" "<< j->y<<std::endl;
 //		cam.print("cam");
 		QVec p4 = p3 - cam;
 //		p4.print("vector restado");
-		double k = (joint_heights.at(joint) - cam.y()) / p4.y();
+		double k = (-joint_heights.at(joint) - cam.y()) / p4.y();
 		//double k = (- cam.y()) / p4.y();
 		return std::make_tuple(true, cam + (p4 * (T)k));
 	}
