@@ -1,0 +1,12 @@
+import "HumanTracker.idsl";
+
+Component humanGame
+{
+    Communications
+    {
+        requires HumanTracker;
+    };
+	language Cpp;
+	options InnerModelViewer;
+};
+
