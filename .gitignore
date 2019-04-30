@@ -23,3 +23,7 @@ components/apriltagsServer/src/cmake-build-debug/
 components/apriltagsServer/src/CMakeFiles/
 
 components/apriltagsComp/\.idea/
+
+components/humanmatching/
+
+components/humanPoseFake/
