@@ -75,6 +75,7 @@ SpecificWorker::~SpecificWorker()
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
+	config_params = params;
 	return true;
 }
 
@@ -96,16 +97,17 @@ void SpecificWorker::initialize(int period)
 	personPose->setFlag(QGraphicsItem::ItemIsMovable);
 	personPose->setPos(0, 0);
 
-	innermodel = std::make_shared<InnerModel>("world.xml");
+	innermodel = std::make_shared<InnerModel>(config_params["InnerModelPath"].value);
 	// RTMat rt( 0.89458078146, -0.0678672716022, 0.0201254915446, -80.604724586, 77.9478624463, 2689.19467926);
 //	 RTMat rt( 0.882202804089, 0.00223149708472, 0.0275580454618,-55.7542724609, 187.768630981, 3600.34423828);
-//	 RTMat rt( 0.885031878948, -0.0768697783351, 0.0122317848727,-39.8596115112, 171.07522583, 3588.68676758);
-//	 RTMat rti = rt.invert();
-//	 rti.print("rti");
-//	 QVec angles = rti.extractAnglesR_min();
-//	 angles.print("angles");
-//	 exit(-1);
+//	 RTMat rt( 0.887527406216, -0.040029399097, -0.0620594508946 , 445.338287354, -422.839385986, 2894.57250977);
 
+/*	 RTMat rti = rt.invert();
+	 rti.print("rti");
+	 QVec angles = rti.extractAnglesR_min();
+	 angles.print("angles");
+	 exit(-1);
+*/
 	pMOG2 = cv::createBackgroundSubtractorMOG2();
 	size_t erosion_size = 2;
 	kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE, 
@@ -115,8 +117,9 @@ void SpecificWorker::initialize(int period)
 	cv::namedWindow("camera", 1);
 	cv::setMouseCallback("camera", mouse_callback, this);
 	//cam.run(URL);
-	//camcv.open("/home/pbustos/Descargas/T1.mp4");
-	camcv.open(0);
+	camcv.open("videoB.webm");
+	frame_counter = 0;
+	//camcv.open(0);
 	
 	this->Period = 50;
 	//timer.setSingleShot(true);
@@ -128,10 +131,19 @@ void SpecificWorker::compute()
 {
 	static auto begin = std::chrono::steady_clock::now();
 	static int last_people_detected = 0;
-	//auto [ret, frame] = cam.read();	//access without copy
+	//live
 	cv::Mat frame; bool ret = true;
-	camcv >> frame;  
+	//camcv >> frame;  
 
+	//video
+	camcv.read(frame);
+	frame_counter += 1;
+	if (frame_counter >= camcv.get(CV_CAP_PROP_FRAME_COUNT))
+	{
+        frame_counter = 0;
+        qDebug()<< "RELOOP VIDEO" << camcv.set(CV_CAP_PROP_POS_MSEC, 0);
+		return;
+	}
 	if(ret == false) return;
 //	pMOG2->apply(frame, fgMaskMOG2);
 //	cv::erode(fgMaskMOG2, erode, kernel);
@@ -149,7 +161,7 @@ void SpecificWorker::compute()
 		try
 		{
 			scale = 0.7;
-//			auto people = peopleserver_proxy->processImage(img, 0.7);
+			auto people = peopleserver_proxy->processImage(img, 0.7);
 //TESTING 
 /*RoboCompPeopleServer::People people;
 RoboCompPeopleServer::Person person;
@@ -158,7 +170,7 @@ person.joints["left_knee"] = keypoint;
 people.push_back(person);
 */
 			last_people_detected = people.size();
-			//drawBody(frame, people);
+			drawBody(frame, people);
 			for(auto &person : people)
 			{
 				QVec coor = getFloorCoordinates(person);
@@ -177,8 +189,12 @@ people.push_back(person);
 		}
 newPoint = false;		
 }	
+try{
 		cv::imshow("camera", frame);
-		
+}catch(...)
+{
+	std::cout<<"frame lost"<<std::endl;
+}	
 		//qDebug() << "compute" << frame.rows << frame.cols;
 		cvWaitKey(1);
 		auto end = std::chrono::steady_clock::now();
@@ -227,11 +243,11 @@ std::cout<< "joint "<< joint <<" "<<j->x <<" "<< j->y<<std::endl;
 		QVec p2 = Ki * p1;
 		//qDebug() << __FUNCTION__ << "despues ki";
 //		p2.print("P2");
-		QMat r = innermodel->getRotationMatrixTo("camera", "world");
+		QMat r = innermodel->getRotationMatrixTo(QString::fromStdString(config_params["cameraName"].value), "world");
 		QVec p3i = r * p2;
-		QVec p3 = innermodel->transform("world", p2, "camera");
+		QVec p3 = innermodel->transform("world", p2, QString::fromStdString(config_params["cameraName"].value));
 //		p3i.print("P3");
-		QVec cam = innermodel->transform("world", "camera");
+		QVec cam = innermodel->transform("world", QString::fromStdString(config_params["cameraName"].value));
 //		cam.print("cam");
 		QVec p4 = p3 - cam;
 //		p4.print("vector restado");
