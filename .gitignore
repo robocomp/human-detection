@@ -27,3 +27,11 @@ components/apriltagsComp/\.idea/
 components/humanmatching/
 
 components/humanPoseFake/
+
+components/humanGame/\.idea/
+
+components/humanGame/cmake-build-debug/
+
+components/humanGame/src/CMakeFiles/humanGame\.dir/
+
+components/humanGame/src/CMakeFiles/

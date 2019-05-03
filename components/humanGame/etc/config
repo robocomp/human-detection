@@ -2,11 +2,11 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 # Proxies for required interfaces
-HumanTrackerProxy = humantracker:tcp -h localhost -p 0
+HumanTrackerProxy = humantracker:tcp -h localhost -p 11666
 
 
 
-InnerModelPath = innermodel.xml
+InnerModelPath = /home/robocomp/robocomp/components/human-detection/etc/innermodel/humanColor.xml
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
