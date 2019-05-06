@@ -45,13 +45,14 @@ Q_OBJECT
 
 map<string,QString> mapJointMesh; //Mapa que relaciona el nombre de las partes con los meshs
 map<string,RTMat> mapJointRotations; //Mapa que guarda las rotaciones calculadas
+
 using jointPos = std::vector<float> ;
 
 bool upperTrunkFound = false;
 bool lowerTrunkFound = false;
 
-vector<string> upperTrunk = {"ShoulderSpine","Head", "LeftShoulder", "RightShoulder","LeftElbow","RightElbow" , "LeftHand", "RightHand" };
-vector<string> lowerTrunk = {"ShoulderSpine","LeftHip","RightHip","LeftKnee","RightKnee","LeftFoot","RightFoot" };
+vector<string> upperTrunk = {"MidSpine","Head", "Neck", "LeftShoulder", "RightShoulder","LeftElbow","RightElbow" , "LeftHand", "RightHand" };
+vector<string> lowerTrunk = {"MidSpine", "BaseSpine" ,"LeftHip","RightHip","LeftKnee","RightKnee","LeftFoot","RightFoot" };
 
 
 struct Pose3D

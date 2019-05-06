@@ -35,3 +35,17 @@ components/humanGame/cmake-build-debug/
 components/humanGame/src/CMakeFiles/humanGame\.dir/
 
 components/humanGame/src/CMakeFiles/
+
+components/humanGame/CMakeFiles/
+
+components/humanGame/CMakeCache\.txt
+
+components/humanGame/cmake_install\.cmake
+
+components/humanGame/src/humanGame_autogen/
+
+components/humanGame/bin/humanGame
+
+components/humanGame/SavedInnerModel\.xml
+
+components/humanGame/Makefile
