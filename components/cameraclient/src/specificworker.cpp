@@ -116,35 +116,43 @@ void SpecificWorker::initialize(int period)
 	
 	cv::namedWindow("camera", 1);
 	cv::setMouseCallback("camera", mouse_callback, this);
-	//cam.run(URL);
-	camcv.open("videoB.webm");
+	cam.run(URL);
+	//camcv.open("videoB.webm");
 	frame_counter = 0;
 	//camcv.open(0);
 	
 	this->Period = 50;
 	//timer.setSingleShot(true);
 	timer.start(Period);
-	
+
+	videoWriter = cv::VideoWriter("outcpp.avi",CV_FOURCC('M','J','P','G'),10, cv::Size(640, 480));
+
 }
 
 void SpecificWorker::compute()
 {
 	static auto begin = std::chrono::steady_clock::now();
 	static int last_people_detected = 0;
+	//URL
+	auto [ret, frame] = cam.read(); //access without copy
+	
+
 	//live
-	cv::Mat frame; bool ret = true;
-	//camcv >> frame;  
+//	cv::Mat frame; bool ret = true;
+//	camcv >> frame;
 
 	//video
-	camcv.read(frame);
+	/*camcv.read(frame);
 	frame_counter += 1;
 	if (frame_counter >= camcv.get(CV_CAP_PROP_FRAME_COUNT))
 	{
         frame_counter = 0;
         qDebug()<< "RELOOP VIDEO" << camcv.set(CV_CAP_PROP_POS_MSEC, 0);
 		return;
-	}
+	}*/
 	if(ret == false) return;
+	videoWriter.write(frame);
+
 //	pMOG2->apply(frame, fgMaskMOG2);
 //	cv::erode(fgMaskMOG2, erode, kernel);
 //	cv::dilate(erode, dilate, kernel);
@@ -156,15 +164,16 @@ void SpecificWorker::compute()
 		img.width = frame.cols;
 		img.height = frame.rows;
 		img.depth = 3;
+std::cout<<"size "<<frame.cols << " "<<frame.rows<<std::endl;		
 //if(newPoint)
 {
 		try
 		{
 			scale = 0.7;
-			auto people = peopleserver_proxy->processImage(img, 0.7);
+//			auto people = peopleserver_proxy->processImage(img, 0.7);
 //TESTING 
-/*RoboCompPeopleServer::People people;
-RoboCompPeopleServer::Person person;
+RoboCompPeopleServer::People people;
+/*RoboCompPeopleServer::Person person;
 keypoint.score = 1;
 person.joints["left_knee"] = keypoint;
 people.push_back(person);
