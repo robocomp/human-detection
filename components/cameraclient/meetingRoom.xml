@@ -1,11 +1,36 @@
 <innerModel>
     <transform id="world">
+        <axes id="axis"/>
         <transform id="floor" >
-            <transform id="april" tx="-51.5" ty="74" ry="3.1415">
-                <plane id="ddG" ny="1"  px="-0" py="0" pz="0" size="5000,5000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
+            <plane id="floor_mesh" ny="1"  px="-1425" py="0" pz="3400" size="2850,6800,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
+            <transform id="leftWall" tx="-2850" ty="1000" tz="3400" >
+				<plane id="leftWall_mesh" ny="1" size="10,6800,2000"  texture="#888888" />
+			</transform>
+            <transform id="rightWall" tx="0" ty="1000" tz="3400" >
+				<plane id="rightWall_mesh" ny="1" size="10,6800,2000"  texture="#888888" />
+			</transform>
+            <transform id="backWall" tx="-1425" ty="1000" tz="-10" >
+				<plane id="backWall_mesh" nz="1" size="2850,2000,10"  texture="#888888" />
+			</transform>
+            <transform id="frontWall" tx="-1425" ty="1000" tz="6800" >
+				<plane id="frontWall_mesh" nz="1" size="2850,2000,10"  texture="#888888" />
+			</transform>
+            <transform id="pillar1" tx="-152.5" ty="1000" tz="6420" >
+				<plane id="pillar1_mesh" nz="1" size="305,2000,10"  texture="#888888" />
+            </transform>
+            <transform id="pillar2" tx="-305" ty="1000" tz="6610" >
+                <plane id="pillar2_mesh" ny="1" size="10,380,2000"  texture="#888888" />
+			</transform>
+            
+            <transform id="table" tx="-1590" tz="2832.5" ty="740" ry="0" >
+                <mesh id="table_mesh" file="/home/robocomp/robocomp/files/osgModels/basics/cube2.3ds" scale="1000,20,2005" collide="1" />
+            </transform>
+            
+            <transform id="april" tx="-515" ty="740" ry="3.1415">
+                <plane id="planeTag00" nz="-1" size="-350,350,10"   texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0.png" />
                 <transform id="camTraslation" tx="-611.189331" ty="1940.467163" tz="-6675.303223" rx="0.405807" ry="0.246143" rz="-0.161530"  >
                     <rgbd id="rgbd" focal="612" width="640" height="480" port="10096" noise="0.00" ifconfig="40000,50000" />
-                    <plane id="rgbd_mesh1" nz="1" pz="-200" size="200,50,10" repeat="1" texture="#550000" />
+                    <plane id="rgbd_mesh1" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
                 </transform>
                 </transform>
         </transform>
