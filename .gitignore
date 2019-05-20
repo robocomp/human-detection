@@ -25,3 +25,4 @@ components/apriltagsServer/src/CMakeFiles/
 components/apriltagsComp/\.idea/
 components/humanGame/\.idea/
 components/humanGame/cmake-build-debug/
+*.log
