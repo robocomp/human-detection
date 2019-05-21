@@ -22,7 +22,7 @@ import random
 from Queue import Queue, Empty
 
 import numpy
-from PySide2.QtCore import QSize, Qt
+from PySide2.QtCore import QSize, Qt, QState, QFinalState, QStateMachine, QTimer, SIGNAL, Signal
 from PySide2.QtGui import QColor
 
 from genericworker import *
@@ -40,7 +40,27 @@ import logging
 # import librobocomp_innermodel
 
 # logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig()
 logger = logging.getLogger(__name__)
+
+# create a file handler
+file_handler = logging.FileHandler('humanmatching.log')
+file_handler.setLevel(logging.DEBUG)
+
+terminal_handler = logging.StreamHandler(sys.stdout)
+terminal_handler.setLevel(logging.DEBUG)
+
+# create a logging format
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
+file_handler.setFormatter(formatter)
+terminal_handler.setFormatter(formatter)
+
+# add the file_handlers to the logger
+logger.addHandler(file_handler)
+logger.addHandler(terminal_handler)
 
 
 ABS_THR = 500
@@ -50,11 +70,17 @@ PERSON_ALIVE_TIME = 20000
 
 CURRENT_FILE_PATH = os.path.dirname(__file__)
 
+def random_hexrgb():
+	r = lambda: random.randint(0, 255)
+	rand_color = '#%02X%02X%02X' % (r(), r(), r())
+	return rand_color
+
 class Position:
 	def __init__(self):
 		self._x = -1
 		self._y = -1
 		self._z = -1
+
 
 	@property
 	def x(self):
@@ -93,7 +119,7 @@ class Person:
 	def __init__(self):
 		self._person_id = -1
 		self._pos = Position()
-		self._previous_pos = Position()
+		self._position_history = Queue(5)
 		self._rot = 0
 		self._color = "black"
 		self._cameras = []
@@ -126,7 +152,7 @@ class Person:
 
 	@pos.setter
 	def pos(self, value):
-		self._previous_pos = self._pos
+		self._position_history.put(self._pos)
 		if isinstance(value, list) and not isinstance(value, basestring):
 			if len(value) > 0:
 				self._pos.x = value[0]
@@ -153,6 +179,9 @@ class Person:
 
 
 class SpecificWorker(GenericWorker):
+
+	new_humans_signal = Signal()
+
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
@@ -162,77 +191,20 @@ class SpecificWorker(GenericWorker):
 		self._matching_graph = nx.Graph()
 		self._current_person_list = []
 		self._next_person_list = []
-		self._main_layout = QVBoxLayout()
-		self.setLayout(self._main_layout)
-		self.widget_graph = QNetworkxController()
-		self._main_layout.addWidget(self.widget_graph.graph_widget)
-
-		self._noise_checkbox = QCheckBox("Apply noise")
-		self._noise_slider = QSlider(QtCore.Qt.Horizontal)
-		self._noise_slider.setMinimum(0)
-		self._noise_slider.setMaximum(1000)
-		self._noise_slider.setTickInterval(100)
-		self._noise_layout = QHBoxLayout()
-		self._noise_layout.addWidget(self._noise_checkbox)
-		self._noise_layout.addWidget(self._noise_slider)
-		self._noise_slider.sliderMoved.connect(self.set_noise_factor)
-
-		self._noise_factor_lcd_layout = QHBoxLayout()
-		self._lcds_layout = QHBoxLayout()
-
-		self._noise_factor_label = QLabel("Noise factor:")
-		self._noise_factor_lcd = QSpinBox()
-		self._noise_factor_lcd.setReadOnly(True)
-		self._noise_factor_lcd.setRange(0,10000)
-		self._noise_factor_lcd_layout.addWidget(self._noise_factor_label)
-		self._noise_factor_lcd_layout.addWidget(self._noise_factor_lcd)
 
 
-		self._min_max_noise_layout = QHBoxLayout()
-		self._min_max_label = QLabel("Min, max noise added:")
-		self._min_noise = QSpinBox()
-		self._min_noise.setReadOnly(True)
-		self._min_noise.setSuffix("mm")
-		self._min_noise.setRange(-5000, 5000)
-		self._max_noise = QSpinBox()
-		self._max_noise.setReadOnly(True)
-		self._max_noise.setSuffix("mm")
-		self._max_noise.setRange(-5000, 5000)
-		self._min_max_noise_layout.addWidget(self._min_max_label)
-		self._min_max_noise_layout.addWidget(self._min_noise)
-		self._min_max_noise_layout.addWidget(self._max_noise)
-
-
-		self._lcds_layout.addLayout(self._noise_factor_lcd_layout)
-		# self._lcds_layout.addWidget(self._min_max_label)
-		self._lcds_layout.addStretch()
-		self._lcds_layout.addLayout(self._min_max_noise_layout)
-
-
-		# self._noise_layout.addLayout(self._lcds_layout)
-
-
-		self._maps_layout = QHBoxLayout()
-		self._main_layout.addLayout(self._maps_layout)
-
-		self._main_layout.addLayout(self._noise_layout)
-		self._main_layout.addLayout(self._lcds_layout)
-
-		self._first_view = HumanVisualizationWidget()
-		self._first_view.setMinimumSize(QSize(400, 400))
-		self._first_view.setWindowTitle("Current view")
-		self._first_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
-		self._maps_layout.addWidget(self._first_view)
-
-		self._second_view = HumanVisualizationWidget()
-		self._second_view.setMinimumSize(QSize(400, 400))
-		self._second_view.setWindowTitle("Next view")
-		self._second_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
-		# self._arriving_view.show()
-		self._maps_layout.addWidget(self._second_view)
+		self.widget_graph = QNetworkxController(self.ui._graph_view)
+		self.ui._noise_slider.sliderMoved.connect(self.set_noise_factor)
+		self.ui._first_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
+		self.ui._second_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
 
 		self._update_views = False
 		self._detection_queue = Queue()
+
+		self._state_machine = QStateMachine()
+		self._create_state_machine()
+		self._state_machine.start()
+		self._test_timer.start(1000/30)
 
 	def __del__(self):
 		logger.info('SpecificWorker destructor')
@@ -242,11 +214,73 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
+
+		return True
+
+	def _create_state_machine(self):
+		self._initial_state = QState()
+		self._detection_state = QState()
+		self._prediction_state = QState()
+		self._data_association_state = QState()
+		self._update_state = QState()
+		self._final_state = QFinalState()
+		self._test_timer = QTimer()
+
+		self._initial_state = QState()
+		self._initial_state.entered.connect(self._initial_state_method)
+		self._detection_state = QState()
+		self._detection_state.entered.connect(self._detection_state_method)
+		self._prediction_state = QState()
+		self._prediction_state.entered.connect(self._prediction_state_method)
+		self._data_association_state = QState()
+		self._data_association_state.entered.connect(self._data_association_state_method)
+		self._update_state = QState()
+		self._update_state.entered.connect(self._update_state_method)
+
+		self._state_machine.addState(self._initial_state )
+		self._state_machine.addState(self._detection_state )
+		self._state_machine.addState(self._prediction_state )
+		self._state_machine.addState(self._data_association_state )
+		self._state_machine.addState(self._update_state )
+		self._state_machine.setInitialState(self._initial_state)
+		self._initial_state.addTransition(self, SIGNAL('new_humans_signal()'), self._detection_state)
+		self._detection_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._prediction_state)
+		self._prediction_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._data_association_state)
+		self._data_association_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._update_state)
+		self._update_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._detection_state)
+
+	def _initial_state_method(self):
+		print("_initial_state_method entered")
+
+	def _detection_state_method(self):
+		logger.debug("_detection_state_method entered")
 		try:
 			humansFromCam = self._detection_queue.get_nowait()
+			# First time detection
 			if len(self._next_person_list) == 0:
 				logger.debug("obtainHumanPose: First humans detected")
-				self._next_person_list = humansFromCam.humanList
+				for cam_person in humansFromCam.humanList:
+					# 	 struct Pose3D
+					# 	{
+					# 		float x;
+					# 		float z;
+					# 		float ry;
+					# 		bool posGood;
+					# 		bool rotGood;
+					# 		int confidence = 0;
+					# 	};
+					#
+					# 	struct PersonType
+					# 	{
+					# 		int id;
+					# 		Pose3D pos;
+					# 	};
+
+					detected_person = Person()
+					detected_person.person_id = cam_person.id
+					detected_person.pos = Position(cam_person.pos.x,cam_person.pos.z)
+					detected_person.cameras.append(humansFromCam.idCamera)
+					self._current_person_list.append(detected_person)
 
 			# print self._current_person_list
 			else:
@@ -255,17 +289,35 @@ class SpecificWorker(GenericWorker):
 				self._current_person_list = self._next_person_list[:]
 				self._next_person_list = humansFromCam.humanList[:]
 				# self._update_current_person_list_view()
-				self._update_person_list_view(self._current_person_list, self._first_view)
-				self._update_person_list_view(self._next_person_list, self._second_view)
+				self._update_person_list_view(self._current_person_list, self.ui._first_view)
+				self._update_person_list_view(self._next_person_list, self.ui._second_view)
 
-				self.calculate_matching(humansFromCam)
+				max_clique = self.calculate_matching(humansFromCam)
+				for node_id in max_clique:
+					if node_id in self._matching_graph.nodes:
+						node = self._matching_graph.nodes[node_id]
+						logger.debug("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",
+									 node_id, node["person1"].id, node["person2"].id, node["person1"].pos.x,
+									 node["person1"].pos.z, node["person2"].pos.x, node["person2"].pos.z)
+
+						next_color = random_hexrgb()
+
+						self.ui._first_view.set_human_color(node["person1"].id, QColor(next_color))
+						self.ui._second_view.set_human_color(node["person2"].id, QColor(next_color))
 
 
 		except Empty as e:
 			logger.info("No new detection")
-			pass
 
-		return True
+	def _prediction_state_method(self):
+		print("_prediction_state_method entered")
+
+	def _data_association_state_method(self):
+		print("_data_association_state_method entered")
+
+	def _update_state_method(self):
+		print("_update_state_method entered")
+
 
 	def calculate_matching(self, input):
 		self._matching_graph.clear()
@@ -273,11 +325,11 @@ class SpecificWorker(GenericWorker):
 		camera_id = input.idCamera
 		new_persons_list = input.humanList
 		current_person_list = self._current_person_list
-		if self._noise_checkbox.isChecked():
+		if self.ui._noise_checkbox.isChecked():
 			new_persons_list = self.add_noise(new_persons_list)
 			current_person_list = self.add_noise(current_person_list)
-			self._update_person_list_view(current_person_list, self._first_view)
-			self._update_person_list_view(new_persons_list, self._second_view)
+			self._update_person_list_view(current_person_list, self.ui._first_view)
+			self._update_person_list_view(new_persons_list, self.ui._second_view)
 		logger.debug("Person list input: %s", str(new_persons_list))
 		for detected_person in new_persons_list:
 			for existing_person in current_person_list:
@@ -309,24 +361,14 @@ class SpecificWorker(GenericWorker):
 				max_clique = r
 			logger.debug("Nodes in result: %s", str(r))
 
-		for node_id in max_clique:
-			node = self._matching_graph.nodes[node_id]
-			if node_id in self._matching_graph.nodes:
-				logger.debug("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",node_id, node["person1"].id, node["person2"].id, node["person1"].pos.x, node["person1"].pos.z, node["person2"].pos.x, node["person2"].pos.z)
-				r = lambda: random.randint(0, 255)
-				next_color = '#%02X%02X%02X' % (r(), r(), r())
-
-				self._first_view.set_human_color(node["person1"].id, QColor(next_color))
-				self._second_view.set_human_color(node["person2"].id, QColor(next_color))
-
-		return result
+		return max_clique
 
 	# def _update_current_person_list_view(self):
-	# 	self._update_person_list_view(self._current_person_list, self._first_view)
+	# 	self._update_person_list_view(self._current_person_list, self.ui._first_view)
 	# 	pass
 	#
 	# def _update_new_person_list_view(self, list):
-	# 	self._update_person_list_view(list, self._second_view)
+	# 	self._update_person_list_view(list, self.ui._second_view)
 
 	def _update_person_list_view(self, person_list, view):
 		view.clear()
@@ -354,8 +396,8 @@ class SpecificWorker(GenericWorker):
 		mu, sigma = 0, 0.1  # mean and standard deviation
 		s = numpy.random.normal(mu, sigma, len(new_humans_detected)*2)
 		s = s*self._noise_factor
-		self._min_noise.setValue(min(s, key=abs))
-		self._max_noise.setValue(max(s, key=abs))
+		self.ui._min_noise.setValue(min(s, key=abs))
+		self.ui._max_noise.setValue(max(s, key=abs))
 		logger.debug("Noises vector %s",str(s))
 		for index, detected_person in enumerate(new_humans_detected):
 			logger.debug("Person %d, %d", detected_person.pos.x, detected_person.pos.z)
@@ -366,10 +408,11 @@ class SpecificWorker(GenericWorker):
 
 	def set_noise_factor(self, value):
 		self._noise_factor = value*10
-		self._noise_factor_lcd.setValue(self._noise_factor)
+		self.ui._noise_factor_lcd.setValue(self._noise_factor)
 
 
 	def obtainHumanPose(self, humansFromCam):
 		self._detection_queue.put(humansFromCam)
+		self.new_humans_signal.emit()
 
 
