@@ -1,0 +1,13 @@
+import "HumanPose.idsl";
+
+Component humanPose
+{
+	Communications
+	{
+		publishes HumanPose;
+	};
+	language Cpp;
+	gui Qt(QWidget);
+};
+
+
