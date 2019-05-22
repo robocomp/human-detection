@@ -125,18 +125,68 @@ void SpecificWorker::initialize(int period)
 	//timer.setSingleShot(true);
 	timer.start(Period);
 
-	videoWriter = cv::VideoWriter("outcpp.avi",CV_FOURCC('M','J','P','G'),10, cv::Size(640, 480));
+	videoWriter = cv::VideoWriter("outcpp.avi",0, 0, cv::Size(640, 480));
+	//createRemap(480, 640, -0.122435, -0.0633192, 0.362244);
+	createRemap(480, 640, 0.000001,0.000000000001,0);
+}
+void SpecificWorker::createRemap(int width, int height, float K1, float K2, float K3)
+{
+	map1.create(width, height, CV_32FC1);
+	map2.create(width, height, CV_32FC1);
+	for (int x=0;x<width;x++)
+	{
+		for (int y=0;y<height;y++)
+		{
+			float r = sqrt( pow(width/2 - x, 2) + pow(height/2 - y, 2) );
+			float factor = ( 1 + K1*pow(r,2) + K2*pow(r,4) + K3*pow(r,6) );
+
+			map1.at<float>(x,y) = y * factor;
+			map2.at<float>(x,y) = x * factor;
+		}
+	}
+
+	//other remap 
+	mtx = cv::Mat::zeros(3, 3, CV_32FC1);
+	mtx.at<float>(0,0) = 612;
+	mtx.at<float>(1,1) = 863;
+	mtx.at<float>(2,2) = 1;
+	mtx.at<float>(0,2) = 341;
+	mtx.at<float>(1,2) = 269;
+
+   	dist = cv::Mat::zeros(1,5, CV_32FC1); 
+	dist.at<float>(0,0) = -0.122435;
+	dist.at<float>(0,1) = -0.0633192;
+	dist.at<float>(0,2) = 0.0039073;
+	dist.at<float>(0,3) = 0.010313;
+	dist.at<float>(0,4) = 0.362244;
+	std::cout<<"Mat"<<dist<<std::endl;
+
+	newcameramtx = cv::getOptimalNewCameraMatrix(mtx,dist,cv::Size(width,height),1,cv::Size(width,height));
+
+	cv::initUndistortRectifyMap(mtx,dist,cv::Mat(),newcameramtx, cv::Size(height, width), CV_32FC1, map1b,map2b);
+
 
 }
-
 void SpecificWorker::compute()
 {
 	static auto begin = std::chrono::steady_clock::now();
 	static int last_people_detected = 0;
 	//URL
 	auto [ret, frame] = cam.read(); //access without copy
+	if(ret == false) return;
 	
-
+	//remap
+	cv::Mat undistor;
+	cv::undistort(frame, undistor, mtx, dist);
+	cv::imshow("undistor", undistor);
+	//other remap
+	cv::Mat dst;
+	cv::remap(frame, dst, map1, map2, cv::INTER_LINEAR);
+	cv::imshow("remap_original", dst);
+	//third remap
+	cv::Mat dst2;
+	cv::remap(frame, dst2, map1b, map2b, cv::INTER_LINEAR);
+	cv::imshow("remap_auto", dst2);
 	//live
 //	cv::Mat frame; bool ret = true;
 //	camcv >> frame;
@@ -150,7 +200,7 @@ void SpecificWorker::compute()
         qDebug()<< "RELOOP VIDEO" << camcv.set(CV_CAP_PROP_POS_MSEC, 0);
 		return;
 	}*/
-	if(ret == false) return;
+	
 	videoWriter.write(frame);
 
 //	pMOG2->apply(frame, fgMaskMOG2);
@@ -164,7 +214,7 @@ void SpecificWorker::compute()
 		img.width = frame.cols;
 		img.height = frame.rows;
 		img.depth = 3;
-std::cout<<"size "<<frame.cols << " "<<frame.rows<<std::endl;		
+
 //if(newPoint)
 {
 		try

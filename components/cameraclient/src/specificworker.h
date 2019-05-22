@@ -51,11 +51,20 @@ public:
 	void CameraSimple_getImage(RoboCompCameraSimple::TImage &im);
 
 	void mouseClick(int  event, int  x, int  y);
+	void createRemap(int width, int height, float K1, float K2, float K3);
+
 public slots:
 	void compute();
 	void initialize(int period);
 
 private:
+	cv::Mat map1;
+	cv::Mat map2;
+	cv::Mat map1b;
+	cv::Mat map2b;
+	cv::Mat mtx;
+	cv::Mat dist;
+	cv::Mat newcameramtx;
 	RoboCompCommonBehavior::ParameterList config_params;
 	const float LEFT = -2000, BOTTOM = -2000, WIDTH = 4000, HEIGHT = 4000;
 	QGraphicsScene scene;
