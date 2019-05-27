@@ -1,0 +1,69 @@
+<innerModel>
+	<transform id="world">
+
+		<!-- FLOOR -->
+		<transform id="floor" tx="2500" ty="-10">
+			<plane id="floor_plane" ny="1" size="10000,9500,10" texture="#eebb77" />
+		</transform>
+
+
+
+<!-- 		<transform id="room_3" -->
+
+		<!-- WAIT POSE -->
+ 		<transform id="waitPose" tx="3000" tz="1000" ry="3.1415926535">
+<!-- 			<plane id="waitPose_plane" ny="1" size="1z00,100,100" texture="#222222" /> -->
+		</transform>
+
+		<!-- POSE 2 -->
+ 		<transform id="Pose2" tx="2206" tz="-2518" ry="-0.76">
+<!-- 			<plane id="waitPose_plane" ny="1" size="1z00,100,100" texture="#222222" /> -->
+		</transform>
+
+
+		<!-- ROOMS DOOR LATERALS -->
+		<transform id="pared6" tx="4418.209473" tz="245" ty="950" >
+			<plane id="muro6" nx="221.809814" nz="40.510742" size="240,1900,9"  texture="#000088" />
+		</transform>
+		<transform id="pared22" tx="2160.31897" tz="29.063904" ty="950" ry="0.1" >
+			<plane id="muro22" nx="-204.67395" nz="-40.031494" size="208.552023055,1900,9"  texture="#000088" />
+		</transform>
+
+
+		<transform id="room_3">
+			<!-- PERSON
+			<transform id="person" tx="3000" tz="2150" ty="0" ry="3.1415926535" >
+				<transform id="person_m" tx="0" tz="0" ty="2000" ry="0" >
+					<plane id="person_mesh" nx="1" size="300,300,300"  texture="#884444" />
+				</transform>
+			</transform>-->
+
+			<!-- ROOM A -->
+			<transform id="pared0" tx="-91.899048" tz="2066.808899" ty="950" >
+				<plane id="muro0" nx="-3992.720092" nz="-111.82544" size="3994.28575118,1900,9"  texture="#880000" />
+			</transform>
+			<transform id="pared1" tx="3235.375366" tz="4200.796875" ty="950" >
+				<plane id="muro1" nx="-275.25586" nz="6766.374268" size="6771.97065285,1900,9"  texture="#880000" />
+			</transform>
+			<transform id="pared2" tx="6695.069336" tz="2831.4042355" ty="950" >
+				<plane id="muro2" nx="3014.040161" nz="153.013672" size="3017.92168155,1900,9"  texture="#880000" />
+			</transform>
+			<transform id="pared3" tx="6386.7331545" tz="1287.8814695" ty="950" >
+				<plane id="muro3" nx="73.005371" nz="-769.686035" size="773.140593081,1900,9"  texture="#880000" />
+			</transform>
+			<transform id="pared4" tx="6028.6247555" tz="854.135925" ty="950" >
+				<plane id="muro4" nx="794.485718" nz="53.470215" size="796.283002455,1900,9"  texture="#880000" />
+			</transform>
+			<transform id="pared5" tx="5226.416748" tz="411.503479" ty="950" >
+				<plane id="muro5" nx="90.779174" nz="-1657.885254" size="1660.36874635,1900,9"  texture="#880000" />
+			</transform>
+			<transform id="pared23" tx="1060.7264405" tz="101.164795" ty="950" >
+				<plane id="muro23" nx="60.472168" nz="-2159.153565" size="2190,1900,9"  texture="#880000" />
+			</transform>
+
+		</transform>
+
+
+
+	</transform>
+</innerModel>
