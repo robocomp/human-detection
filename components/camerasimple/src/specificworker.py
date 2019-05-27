@@ -37,6 +37,24 @@ class SpecificWorker(GenericWorker):
         self.Period = 100
         self.timer.start(self.Period)
 
+        # unidstor
+        mtx = np.zeros((3, 3), np.float32)
+        mtx[0, 0] = 612
+        mtx[1, 1] = 863
+        mtx[2, 2] = 1
+        mtx[0, 2] = 341
+        mtx[1, 2] = 269
+        self.mtx = mtx
+        dist = np.zeros((1, 5), np.float32)
+        dist[0, 0] = -0.122435
+        dist[0, 1] = -0.0633192
+        dist[0, 2] = 0.0039073
+        dist[0, 3] = 0.010313
+        dist[0, 4] = 0.362244
+        self.dist = dist
+
+
+
     def setParams(self, params):
         self.capL = cv2.VideoCapture(0)
         return True
@@ -68,6 +86,11 @@ class SpecificWorker(GenericWorker):
         im.timeStamp = time.time()
         im.data = self.frameL.data
         im.frmt.height, im.frmt.width, _ = self.frameL.shape
+
+        #unidstor
+        cv2.undistort(self.frameL.data, out, self.mtx, self.dist)
+        im.data = out.data
+
         return im
 
     def getImage2(self):
