@@ -27,6 +27,8 @@ from PySide2.QtGui import QColor
 
 from genericworker import *
 import networkx as nx
+
+from kalman import KalmanTracker
 from libs.QNetworkxGraph.QNetworkxGraph import QNetworkxController
 from libs.HumanVisualizationWidget import HumanVisualizationWidget
 from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QSlider, QLabel, QCheckBox, QLCDNumber, QSpinBox
@@ -42,6 +44,7 @@ import logging
 # logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig()
+# root = logging.getLogger()
 logger = logging.getLogger(__name__)
 
 # create a file handler
@@ -52,7 +55,7 @@ terminal_handler = logging.StreamHandler(sys.stdout)
 terminal_handler.setLevel(logging.DEBUG)
 
 # create a logging format
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
 
 
 file_handler.setFormatter(formatter)
@@ -76,10 +79,10 @@ def random_hexrgb():
 	return rand_color
 
 class Position:
-	def __init__(self):
-		self._x = -1
-		self._y = -1
-		self._z = -1
+	def __init__(self, x=-1, y=-1, z=-1):
+		self.x = x
+		self.y = y
+		self.z = z
 
 
 	@property
@@ -118,9 +121,10 @@ class Position:
 class Person:
 	def __init__(self):
 		self._person_id = -1
-		self._pos = Position()
-		self._position_history = Queue(5)
-		self._rot = 0
+		# self._pos = Position()
+		# self._position_history = Queue(5)
+		# self._rot = 0
+		self.tracker = KalmanTracker()
 		self._color = "black"
 		self._cameras = []
 		self._velocity = []
@@ -130,13 +134,13 @@ class Person:
 	def person_id(self):
 		return self._person_id
 
-	@property
-	def pos(self):
-		return self._pos
+	# @property
+	# def pos(self):
+	# 	return self._pos
 
-	@property
-	def rot(self):
-		return self._rot
+	# @property
+	# def rot(self):
+	# 	return self._rot
 
 	@property
 	def color(self):
@@ -150,22 +154,22 @@ class Person:
 	def person_id(self, p_id):
 		self._person_id  = p_id
 
-	@pos.setter
-	def pos(self, value):
-		self._position_history.put(self._pos)
-		if isinstance(value, list) and not isinstance(value, basestring):
-			if len(value) > 0:
-				self._pos.x = value[0]
-			if len(value) > 1:
-				self._pos.y = value[1]
-			if len(value) > 2:
-				self._pos.z = value[2]
-			if len(value) > 3:
-				raise IndexError
-		elif isinstance(value, Position):
-			self._pos = value
-		else:
-			raise TypeError
+	# @pos.setter
+	# def pos(self, value):
+	# 	self._position_history.put(self._pos)
+	# 	if isinstance(value, list) and not isinstance(value, basestring):
+	# 		if len(value) > 0:
+	# 			self._pos.x = value[0]
+	# 		if len(value) > 1:
+	# 			self._pos.y = value[1]
+	# 		if len(value) > 2:
+	# 			self._pos.z = value[2]
+	# 		if len(value) > 3:
+	# 			raise IndexError
+	# 	elif isinstance(value, Position):
+	# 		self._pos = value
+	# 	else:
+	# 		raise TypeError
 
 	def is_active(self):
 		now = datetime.datetime.now()
@@ -181,6 +185,7 @@ class Person:
 class SpecificWorker(GenericWorker):
 
 	new_humans_signal = Signal()
+	first_humans_updated_signal = Signal()
 
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
@@ -218,42 +223,75 @@ class SpecificWorker(GenericWorker):
 		return True
 
 	def _create_state_machine(self):
-		self._initial_state = QState()
-		self._detection_state = QState()
-		self._prediction_state = QState()
-		self._data_association_state = QState()
-		self._update_state = QState()
-		self._final_state = QFinalState()
+
 		self._test_timer = QTimer()
 
 		self._initial_state = QState()
 		self._initial_state.entered.connect(self._initial_state_method)
-		self._detection_state = QState()
-		self._detection_state.entered.connect(self._detection_state_method)
-		self._prediction_state = QState()
-		self._prediction_state.entered.connect(self._prediction_state_method)
-		self._data_association_state = QState()
-		self._data_association_state.entered.connect(self._data_association_state_method)
-		self._update_state = QState()
-		self._update_state.entered.connect(self._update_state_method)
 
-		self._state_machine.addState(self._initial_state )
-		self._state_machine.addState(self._detection_state )
-		self._state_machine.addState(self._prediction_state )
-		self._state_machine.addState(self._data_association_state )
-		self._state_machine.addState(self._update_state )
+		self._first_person_state = QState()
+		self._first_person_state.entered.connect(self._first_person_state_method)
+
+		self._tracking_state = QState()
+
+		self._prediction_state = QState(self._tracking_state)
+		self._prediction_state.entered.connect(self._prediction_state_method)
+		self._data_association_state = QState(self._tracking_state)
+		self._data_association_state.entered.connect(self._data_association_state_method)
+		self._data_update_state = QState(self._tracking_state)
+		self._data_update_state.entered.connect(self._data_update_state_method)
+
+		self._tracking_state.setInitialState(self._prediction_state)
+
+
+		self._final_state = QFinalState()
+
+		self._state_machine.addState(self._initial_state)
+		self._state_machine.addState(self._first_person_state)
+		self._state_machine.addState(self._tracking_state)
+		# self._state_machine.addState(self._prediction_state)
+		# self._state_machine.addState(self._data_association_state)
+		# self._state_machine.addState(self._data_update_state)
 		self._state_machine.setInitialState(self._initial_state)
-		self._initial_state.addTransition(self, SIGNAL('new_humans_signal()'), self._detection_state)
-		self._detection_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._prediction_state)
-		self._prediction_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._data_association_state)
-		self._data_association_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._update_state)
-		self._update_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._detection_state)
+
+
+		self._initial_state.addTransition(self, SIGNAL('new_humans_signal()'), self._first_person_state)
+		self._first_person_state.addTransition(self, SIGNAL('first_humans_updated_signal()'), self._tracking_state)
+		self._prediction_state.addTransition(self.timer, SIGNAL('timeout()'), self._prediction_state)
+		self._prediction_state.addTransition(self, SIGNAL('new_humans_signal()'), self._data_association_state)
+		self._prediction_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._data_update_state)
+
+		# self._data_association_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._data_update_state)
+		# self._data_update_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._detection_state)
+		logger.debug("State machine created")
 
 	def _initial_state_method(self):
-		print("_initial_state_method entered")
+		logger.debug("entered")
+
+	def _first_person_state_method(self):
+		logger.debug("entered")
+		try:
+			humansFromCam = self._detection_queue.get_nowait()
+			# First time detection
+			if len(self._next_person_list) == 0:
+				logger.debug("obtainHumanPose: First %d humans detected"%len(humansFromCam.humanList))
+				for cam_person in humansFromCam.humanList:
+					detected_person = Person()
+					detected_person.person_id = cam_person.id
+					detected_person.pos = Position(cam_person.pos.x,cam_person.pos.z)
+					detected_person.cameras.append(humansFromCam.idCamera)
+					self._current_person_list.append(detected_person)
+					self.first_humans_updated_signal.emit()
+			# print self._current_person_list
+			else:
+				logger.warning("We should not be here. self._next_person_list is not empty")
+				#TODO: emit signal to go back
+		except Empty as e:
+			logger.warn("Exception. No new detection but unexpected state.")
+			# TODO: emit signal to go back
 
 	def _detection_state_method(self):
-		logger.debug("_detection_state_method entered")
+		logger.debug("entered")
 		try:
 			humansFromCam = self._detection_queue.get_nowait()
 			# First time detection
@@ -310,13 +348,13 @@ class SpecificWorker(GenericWorker):
 			logger.info("No new detection")
 
 	def _prediction_state_method(self):
-		print("_prediction_state_method entered")
+		logger.debug("entered")
 
 	def _data_association_state_method(self):
-		print("_data_association_state_method entered")
+		logger.debug("entered")
 
-	def _update_state_method(self):
-		print("_update_state_method entered")
+	def _data_update_state_method(self):
+		logger.debug("entered")
 
 
 	def calculate_matching(self, input):
@@ -412,6 +450,7 @@ class SpecificWorker(GenericWorker):
 
 
 	def obtainHumanPose(self, humansFromCam):
+		logger.debug("here")
 		self._detection_queue.put(humansFromCam)
 		self.new_humans_signal.emit()
 

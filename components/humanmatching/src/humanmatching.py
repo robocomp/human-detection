@@ -64,26 +64,6 @@ from PySide2 import QtCore
 from PySide2 import QtWidgets
 
 from specificworker import *
-# logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-# create a file handler
-file_handler = logging.FileHandler('humanmatching.log')
-file_handler.setLevel(logging.DEBUG)
-
-terminal_handler = logging.StreamHandler(sys.stdout)
-terminal_handler.setLevel(logging.INFO)
-
-# create a logging format
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-
-file_handler.setFormatter(formatter)
-terminal_handler.setFormatter(formatter)
-
-# add the file_handlers to the logger
-logger.addHandler(file_handler)
-logger.addHandler(terminal_handler)
 
 
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
@@ -156,7 +136,7 @@ if __name__ == '__main__':
 			print "Error. Topic does not exist (creating)"
 			time.sleep(1)
 			try:
-				differentialrobot_topic = topicManager.create("DifferentialRobot")
+				humanpose_topic = topicManager.create("HumanPose")
 				subscribeDone = True
 			except:
 				print "Error. Topic could not be created. Exiting"
