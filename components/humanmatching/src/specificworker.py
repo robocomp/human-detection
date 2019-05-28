@@ -19,6 +19,7 @@
 import copy
 import datetime
 import random
+import time
 from Queue import Queue, Empty
 
 import numpy
@@ -43,7 +44,7 @@ import logging
 
 # logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig()
+# logging.basicConfig()
 # root = logging.getLogger()
 logger = logging.getLogger(__name__)
 
@@ -78,11 +79,10 @@ def random_hexrgb():
 	rand_color = '#%02X%02X%02X' % (r(), r(), r())
 	return rand_color
 
-class Position:
-	def __init__(self, x=-1, y=-1, z=-1):
+class Position2D:
+	def __init__(self, x=-1, y=-1):
 		self.x = x
 		self.y = y
-		self.z = z
 
 
 	@property
@@ -93,9 +93,6 @@ class Position:
 	def y(self):
 		return self._y
 
-	@property
-	def z(self):
-		return self._z
 
 	@x.setter
 	def x(self, value):
@@ -111,32 +108,30 @@ class Position:
 		else:
 			raise TypeError
 
-	@z.setter
-	def z(self, value):
-		if isinstance(value, [float, int]):
-			self._z = value
-		else:
-			raise TypeError
+	def __repr__(self):
+		return '(%f, %f)'%(self.x, self.y)
+
 
 class Person:
 	def __init__(self):
 		self._person_id = -1
-		# self._pos = Position()
+		self._pos = Position2D()
 		# self._position_history = Queue(5)
 		# self._rot = 0
 		self.tracker = KalmanTracker()
-		self._color = "black"
+		self._color = random_hexrgb()
 		self._cameras = []
 		self._velocity = []
 		self._last_time_detected = -1
+		self._last_time_predicted = -1
 
 	@property
 	def person_id(self):
 		return self._person_id
 
-	# @property
-	# def pos(self):
-	# 	return self._pos
+	@property
+	def pos(self):
+		return self._pos
 
 	# @property
 	# def rot(self):
@@ -172,12 +167,49 @@ class Person:
 	# 		raise TypeError
 
 	def is_active(self):
-		now = datetime.datetime.now()
-		time_diff = self._last_time_detected - now
+		current_time = datetime.datetime.now()
+		time_diff = self._last_time_detected - current_time
 		if time_diff > PERSON_ALIVE_TIME:
 			return False
 		else:
 			return True
+
+	def predict(self):
+		if self._last_time_predicted != -1:
+			current_time = datetime.datetime.now()
+			miliseconds_dt = (self._last_time_detected-current_time).total_seconds() * 1000
+			predicted, cov =self.tracker.predict_with_time_diff(miliseconds_dt)
+			self._pos = Position2D(float(predicted[0]), float(predicted[2]))
+			self._last_time_predicted = current_time
+
+	def update_position(self, position):
+		current_time = datetime.datetime.now()
+		self._last_time_detected = current_time
+		self._last_time_predicted = current_time
+		predicted, cov =self.tracker.update([position.x, position.y])
+		self._pos = Position2D(float(predicted[0]), float(predicted[2]))
+
+
+	# Reset the tracker to this position
+	def initialice_tracker(self, position):
+		current_time = datetime.datetime.now()
+		self._last_time_detected = current_time
+		self._last_time_predicted = current_time
+		self.tracker.init_to_position(position.x, position.y)
+		self._pos = position
+
+
+	def detection_delta_time(self):
+		current_time = datetime.datetime.now()
+		delta_time = (current_time-self._last_time_detected).total_seconds() * 1000
+		return delta_time
+
+	def __repr__(self):
+		return 'Person (%d) at %s'%(self.person_id, str(self.pos))
+
+
+
+
 
 
 
@@ -259,10 +291,10 @@ class SpecificWorker(GenericWorker):
 		self._first_person_state.addTransition(self, SIGNAL('first_humans_updated_signal()'), self._tracking_state)
 		self._prediction_state.addTransition(self.timer, SIGNAL('timeout()'), self._prediction_state)
 		self._prediction_state.addTransition(self, SIGNAL('new_humans_signal()'), self._data_association_state)
-		self._prediction_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._data_update_state)
+		self._data_association_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._data_update_state)
 
 		# self._data_association_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._data_update_state)
-		# self._data_update_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._detection_state)
+		self._data_update_state.addTransition(self._test_timer, SIGNAL('timeout()'), self._prediction_state)
 		logger.debug("State machine created")
 
 	def _initial_state_method(self):
@@ -275,13 +307,8 @@ class SpecificWorker(GenericWorker):
 			# First time detection
 			if len(self._next_person_list) == 0:
 				logger.debug("obtainHumanPose: First %d humans detected"%len(humansFromCam.humanList))
-				for cam_person in humansFromCam.humanList:
-					detected_person = Person()
-					detected_person.person_id = cam_person.id
-					detected_person.pos = Position(cam_person.pos.x,cam_person.pos.z)
-					detected_person.cameras.append(humansFromCam.idCamera)
-					self._current_person_list.append(detected_person)
-					self.first_humans_updated_signal.emit()
+				self._current_person_list = self._cam_humans_2_person_list(humansFromCam)
+				self.first_humans_updated_signal.emit()
 			# print self._current_person_list
 			else:
 				logger.warning("We should not be here. self._next_person_list is not empty")
@@ -290,93 +317,142 @@ class SpecificWorker(GenericWorker):
 			logger.warn("Exception. No new detection but unexpected state.")
 			# TODO: emit signal to go back
 
-	def _detection_state_method(self):
-		logger.debug("entered")
-		try:
-			humansFromCam = self._detection_queue.get_nowait()
-			# First time detection
-			if len(self._next_person_list) == 0:
-				logger.debug("obtainHumanPose: First humans detected")
-				for cam_person in humansFromCam.humanList:
-					# 	 struct Pose3D
-					# 	{
-					# 		float x;
-					# 		float z;
-					# 		float ry;
-					# 		bool posGood;
-					# 		bool rotGood;
-					# 		int confidence = 0;
-					# 	};
-					#
-					# 	struct PersonType
-					# 	{
-					# 		int id;
-					# 		Pose3D pos;
-					# 	};
-
-					detected_person = Person()
-					detected_person.person_id = cam_person.id
-					detected_person.pos = Position(cam_person.pos.x,cam_person.pos.z)
-					detected_person.cameras.append(humansFromCam.idCamera)
-					self._current_person_list.append(detected_person)
-
-			# print self._current_person_list
-			else:
-				logger.debug("obtainHumanPose: New humans detected")
-				# copy
-				self._current_person_list = self._next_person_list[:]
-				self._next_person_list = humansFromCam.humanList[:]
-				# self._update_current_person_list_view()
-				self._update_person_list_view(self._current_person_list, self.ui._first_view)
-				self._update_person_list_view(self._next_person_list, self.ui._second_view)
-
-				max_clique = self.calculate_matching(humansFromCam)
-				for node_id in max_clique:
-					if node_id in self._matching_graph.nodes:
-						node = self._matching_graph.nodes[node_id]
-						logger.debug("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",
-									 node_id, node["person1"].id, node["person2"].id, node["person1"].pos.x,
-									 node["person1"].pos.z, node["person2"].pos.x, node["person2"].pos.z)
-
-						next_color = random_hexrgb()
-
-						self.ui._first_view.set_human_color(node["person1"].id, QColor(next_color))
-						self.ui._second_view.set_human_color(node["person2"].id, QColor(next_color))
-
-
-		except Empty as e:
-			logger.info("No new detection")
+	# def _detection_state_method(self):
+	# 	logger.debug("entered")
+	# 	try:
+	# 		humansFromCam = self._detection_queue.get_nowait()
+	# 		# First time detection
+	# 		if len(self._next_person_list) == 0:
+	# 			logger.debug("obtainHumanPose: First humans detected")
+	# 			for cam_person in humansFromCam.humanList:
+	# 				# 	 struct Pose3D
+	# 				# 	{
+	# 				# 		float x;
+	# 				# 		float z;
+	# 				# 		float ry;
+	# 				# 		bool posGood;
+	# 				# 		bool rotGood;
+	# 				# 		int confidence = 0;
+	# 				# 	};
+	# 				#
+	# 				# 	struct PersonType
+	# 				# 	{
+	# 				# 		int id;
+	# 				# 		Pose3D pos;
+	# 				# 	};
+	#
+	# 				detected_person = Person()
+	# 				detected_person.person_id = cam_person.id
+	# 				detected_person.cameras.append(humansFromCam.idCamera)
+	# 				detected_person.initialice_tracker(Position2D(cam_person.pos.x, cam_person.pos.z))
+	# 				self._current_person_list.append(detected_person)
+	#
+	# 		# print self._current_person_list
+	# 		else:
+	# 			logger.debug("obtainHumanPose: New humans detected")
+	# 			# copy
+	# 			self._current_person_list = self._next_person_list[:]
+	# 			self._next_person_list = humansFromCam.humanList[:]
+	# 			# self._update_current_person_list_view()
+	# 			self._update_person_list_view(self._current_person_list, self.ui._first_view)
+	# 			self._update_person_list_view(self._next_person_list, self.ui._second_view)
+	#
+	# 			max_clique = self.calculate_matching(humansFromCam)
+	# 			for node_id in max_clique:
+	# 				if node_id in self._matching_graph.nodes:
+	# 					node = self._matching_graph.nodes[node_id]
+	# 					logger.debug("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",
+	# 								 node_id, node["person1"].id, node["person2"].id, node["person1"].pos.x,
+	# 								 node["person1"].pos.z, node["person2"].pos.x, node["person2"].pos.z)
+	#
+	# 					next_color = random_hexrgb()
+	#
+	# 					self.ui._first_view.set_human_color(node["person1"].id, QColor(next_color))
+	# 					self.ui._second_view.set_human_color(node["person2"].id, QColor(next_color))
+	#
+	#
+	# 	except Empty as e:
+	# 		logger.info("No new detection")
 
 	def _prediction_state_method(self):
-		logger.debug("entered")
+		logger.debug("entered. %d persons "%len(self._current_person_list))
+		for person in self._current_person_list:
+			person.predict()
+			logger.debug("Person %d predicted at (%s) " % (person.person_id, str(person.pos)))
+			self._update_person_list_view(self._current_person_list, self.ui._first_view)
+
 
 	def _data_association_state_method(self):
-		logger.debug("entered")
+		logger.debug("entered. New humans detected")
+		try:
+			humansFromCam = self._detection_queue.get_nowait()
+
+			# self._update_current_person_list_view()
+			# self._update_person_list_view(self._current_person_list, self.ui._first_view)
+			# self._update_person_list_view(self._next_person_list, self.ui._second_view)
+
+			# Translate the incoming ice structure to a person list
+			new_persons_list = self._cam_humans_2_person_list(humansFromCam)
+			self._update_person_list_view(new_persons_list, self.ui._second_view)
+
+			max_clique = self.calculate_clique_matching(self._current_person_list, new_persons_list)
+			for node_id in max_clique:
+				if node_id in self._matching_graph.nodes:
+					node = self._matching_graph.nodes[node_id]
+					old_person = node["person1"]
+					new_person = node["person2"]
+					logger.debug("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",
+								 node_id, old_person.person_id, new_person.person_id, old_person.pos.x,
+								 old_person.pos.y, new_person.pos.x, new_person.pos.y)
+					old_person.update_position(new_person.pos)
+					#
+					# next_color = random_hexrgb()
+					#
+					# self.ui._first_view.set_human_color(old_person.person_id, QColor(next_color))
+					# self.ui._second_view.set_human_color(new_person.person_id, QColor(next_color))
+			# if len(max_clique)>0:
+			#
+			# 	#TODO: Do this on a different state
+			# 	#self.people_to_update.emit()
+		except Empty as e:
+				logger.warn("Exception. No new detection but unexpected state.")
+
+	def _cam_humans_2_person_list(self, humansFromCam):
+		new_person_list = []
+		for cam_person in humansFromCam.humanList:
+			detected_person = Person()
+			#TODO: is the camera id the one we assume for the person? How we update this?
+			detected_person.person_id = cam_person.id
+			detected_person.cameras.append(humansFromCam.idCamera)
+			detected_person.initialice_tracker(Position2D(cam_person.pos.x, cam_person.pos.z))
+			new_person_list.append(detected_person)
+		return new_person_list
+
 
 	def _data_update_state_method(self):
 		logger.debug("entered")
 
-
-	def calculate_matching(self, input):
+	def calculate_clique_matching(self, input1, input2):
 		self._matching_graph.clear()
+		# TODO: Move graphic to its own methods
 		self.widget_graph.clear()
-		camera_id = input.idCamera
-		new_persons_list = input.humanList
-		current_person_list = self._current_person_list
-		if self.ui._noise_checkbox.isChecked():
-			new_persons_list = self.add_noise(new_persons_list)
-			current_person_list = self.add_noise(current_person_list)
-			self._update_person_list_view(current_person_list, self.ui._first_view)
-			self._update_person_list_view(new_persons_list, self.ui._second_view)
+		# camera_id = input.idCamera
+		current_person_list = input1
+		new_persons_list = input2
+		# if self.ui._noise_checkbox.isChecked():
+		# 	new_persons_list = self.add_noise(new_persons_list)
+		# 	current_person_list = self.add_noise(current_person_list)
+		# 	self._update_person_list_view(current_person_list, self.ui._first_view)
+		# 	self._update_person_list_view(new_persons_list, self.ui._second_view)
 		logger.debug("Person list input: %s", str(new_persons_list))
 		for detected_person in new_persons_list:
 			for existing_person in current_person_list:
-				logger.debug("Indexes: %d %d", detected_person.id, existing_person.id)
+				logger.debug("Indexes: %d %d", detected_person.person_id, existing_person.person_id)
 				dist = self._calculate_person_distance(detected_person, existing_person)
 				logger.debug("Distance persons: %d", dist)
 				if dist < ABS_THR:
 					logger.debug("adding node")
-					self._matching_graph.add_node(str(detected_person.id)+"_"+str(existing_person.id), person1=existing_person, person2=detected_person)
+					self._matching_graph.add_node(str(detected_person.person_id)+"_"+str(existing_person.person_id), person1=existing_person, person2=detected_person)
 		logger.debug("Nodes added to graph: %d", self._matching_graph.number_of_nodes())
 		for node1_id, node1 in self._matching_graph.nodes.data():
 			for node2_id, node2 in self._matching_graph.nodes.data():
@@ -401,6 +477,52 @@ class SpecificWorker(GenericWorker):
 
 		return max_clique
 
+	#TODO: Deprecated, remove when new is working
+	# def calculate_matching(self, input):
+	#
+	# 	self._matching_graph.clear()
+	# 	self.widget_graph.clear()
+	# 	camera_id = input.idCamera
+	# 	new_persons_list = input.humanList
+	# 	current_person_list = self._current_person_list
+	# 	if self.ui._noise_checkbox.isChecked():
+	# 		new_persons_list = self.add_noise(new_persons_list)
+	# 		current_person_list = self.add_noise(current_person_list)
+	# 		self._update_person_list_view(current_person_list, self.ui._first_view)
+	# 		self._update_person_list_view(new_persons_list, self.ui._second_view)
+	# 	logger.debug("Person list input: %s", str(new_persons_list))
+	# 	for detected_person in new_persons_list:
+	# 		for existing_person in current_person_list:
+	# 			logger.debug("Indexes: %d %d", detected_person.id, existing_person.id)
+	# 			dist = self._calculate_person_distance(detected_person, existing_person)
+	# 			logger.debug("Distance persons: %d", dist)
+	# 			if dist < ABS_THR:
+	# 				logger.debug("adding node")
+	# 				self._matching_graph.add_node(str(detected_person.id)+"_"+str(existing_person.id), person1=existing_person, person2=detected_person)
+	# 	logger.debug("Nodes added to graph: %d", self._matching_graph.number_of_nodes())
+	# 	for node1_id, node1 in self._matching_graph.nodes.data():
+	# 		for node2_id, node2 in self._matching_graph.nodes.data():
+	# 			if node1 != node2:
+	# 				d0 = self._calculate_person_distance(node1["person1"], node2["person1"])
+	# 				d1 = self._calculate_person_distance(node1["person2"], node2["person2"])
+	# 				if numpy.fabs(d0 - d1) < REL_THR:
+	# 					logger.debug("Adding edges %s %s", str(node1_id), str(node2_id))
+	# 					self._matching_graph.add_edge(node1_id, node2_id)
+	#
+	# 	self.widget_graph.set_graph(self._matching_graph)
+	# 	self.widget_graph.graph_widget.show()
+	#
+	# 	result = nx.find_cliques(self._matching_graph)
+	# 	max_nodes = -1
+	# 	max_clique = []
+	# 	for r in result:
+	# 		if len(r) > max_nodes:
+	# 			max_nodes = len(r)
+	# 			max_clique = r
+	# 		logger.debug("Nodes in result: %s", str(r))
+	#
+	# 	return max_clique
+
 	# def _update_current_person_list_view(self):
 	# 	self._update_person_list_view(self._current_person_list, self.ui._first_view)
 	# 	pass
@@ -410,14 +532,20 @@ class SpecificWorker(GenericWorker):
 
 	def _update_person_list_view(self, person_list, view):
 		view.clear()
-		logger.debug("Updating %d persons on view %s", len(person_list), str(view))
+		# logger.debug("Updating %d persons on view %s", len(person_list), str(view))
 		for person in person_list:
-			view.add_human_by_pos(person.id, (person.pos.x, person.pos.z))
+			view.add_human_by_pos(person.person_id, (person.pos.x, person.pos.y))
+			color = QColor(person._color)
+			darker_factor = 100+int(person.detection_delta_time()/200)
+			color = color.darker(darker_factor)
+			logger.debug("setting color %s darker factor %d"%(color.name(), darker_factor))
+			view.set_human_color(person.person_id, color)
+
 
 
 	def _calculate_person_distance(self, p1, p2):
-		a = numpy.array((p1.pos.x, p1.pos.z))
-		b = numpy.array((p2.pos.x, p2.pos.z))
+		a = numpy.array((p1.pos.x, p1.pos.y))
+		b = numpy.array((p2.pos.x, p2.pos.y))
 		dist_a_b = numpy.sqrt(numpy.sum((a - b) ** 2))
 		return dist_a_b
 
@@ -450,7 +578,6 @@ class SpecificWorker(GenericWorker):
 
 
 	def obtainHumanPose(self, humansFromCam):
-		logger.debug("here")
 		self._detection_queue.put(humansFromCam)
 		self.new_humans_signal.emit()
 
