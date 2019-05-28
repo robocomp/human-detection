@@ -11,6 +11,10 @@ class KalmanTracker(KalmanFilter):
     def __init__(self, x=0, y=0):
         super(KalmanTracker, self).__init__(dim_x=4, dim_z=2)
         # Measurement Function
+        self.init_to_position(x,y)
+
+
+    def init_to_position(self, x, y):
         self.H = np.array([[1, 0, 0, 0],
                            [0, 0, 1, 0]])
 
@@ -28,8 +32,6 @@ class KalmanTracker(KalmanFilter):
 
 
     def predict_with_time_diff(self,dt):
-
-        self.x = self.x_post
         self.F = np.array([[1, dt, 0, 0],
                            [0, 1, 0, 0],
                            [0, 0, 1, dt],
