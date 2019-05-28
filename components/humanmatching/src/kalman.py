@@ -3,7 +3,7 @@ from filterpy.common import Q_discrete_white_noise
 from filterpy.kalman import KalmanFilter
 from filterpy.stats import plot_covariance_ellipse, plot_covariance
 from scipy.linalg import block_diag
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 
@@ -48,32 +48,33 @@ class KalmanTracker(KalmanFilter):
         return self.x, self.P
 
 
-def plotResults(measurements, predictions, covariances):
-
-        for pos_vel, cov_matrix in zip(predictions, covariances):
-            cov = np.array([[cov_matrix[0, 0], cov_matrix[2, 0]],[cov_matrix[0, 2], cov_matrix[2, 2]]])
-            [x_pos, x_vel, y_pos, y_vel] = pos_vel[:,0]
-            mean = (x_pos, y_pos)
-            # Plotting elipses
-            plot_covariance(mean, cov=cov, fc='r', alpha=0.20)
-
-            # plotting velocity
-            plt.quiver(x_pos,y_pos, x_vel,y_vel, color='b', scale_units='xy', scale=1,alpha=0.50,width=0.005)
-
-        #Plotting meditions
-        x = []
-        y = []
-        for measure in measurements:
-            if not measure: continue
-            x.append(measure[0])
-            y.append(measure[1])
-
-        plt.plot(x, y, 'og', lw=1, ls='--')
-
-
-
-        # plt.axis('equal')
-        plt.show()
+# def plotResults(measurements, predictions, covariances):
+#
+#         for pos_vel, cov_matrix in zip(predictions, covariances):
+#
+#             cov = np.array([[cov_matrix[0, 0], cov_matrix[2, 0]],[cov_matrix[0, 2], cov_matrix[2, 2]]])
+#             [x_pos, x_vel, y_pos, y_vel] = pos_vel[:,0]
+#             mean = (x_pos, y_pos)
+#             # Plotting elipses
+#             plot_covariance_ellipse(mean, cov=cov, fc='r', alpha=0.20)
+#
+#             # plotting velocity
+#             plt.quiver(x_pos,y_pos, x_vel,y_vel, color='b', scale_units='xy', scale=1,alpha=0.50,width=0.005)
+#
+#         #Plotting meditions
+#         x = []
+#         y = []
+#         for measure in measurements:
+#             if not measure: continue
+#             x.append(measure[0])
+#             y.append(measure[1])
+#
+#         plt.plot(x, y, 'og', lw=1, ls='--')
+#
+#
+#
+#         plt.axis('equal')
+#         plt.show()
 
 
 if __name__ == '__main__':
