@@ -51,7 +51,6 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-	void CameraSimple_getImage(RoboCompCameraSimple::TImage &im);
 	void checkPersonImage(cv::Mat frame, std::string camera);
 	void mouseClick(int  event, int  x, int  y);
 	void createRemap(int width, int height, float K1, float K2, float K3);
@@ -59,7 +58,7 @@ public:
 	void readFrameVideo(int camera, cv::Mat &frame);
 	void initVideoLive();
 	void initVideoReader();
-	
+
 public slots:
 	void compute();
 	void initialize(int period);

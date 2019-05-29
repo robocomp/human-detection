@@ -28,8 +28,8 @@ QObject()
 #endif
 
 {
-	getapriltags_proxy = std::get<0>(tprx);
-	peopleserver_proxy = std::get<1>(tprx);
+	peopleserver_proxy = std::get<0>(tprx);
+	humanpose_pubproxy = std::get<1>(tprx);
 
 	mutex = new QMutex(QMutex::Recursive);
 

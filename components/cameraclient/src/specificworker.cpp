@@ -197,6 +197,8 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 		scale = 0.7;
 		auto people = peopleserver_proxy->processImage(img, 0.7);
 		drawBody(frame, people, camera);
+		RoboCompHumanPose::personList pList;
+		int id =0;
 		for(auto &person : people)
 		{
 			QVec coor = getFloorCoordinates(person, camera);
@@ -206,7 +208,31 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 			{ 
 				std::cout << "Flor coor: " << coor.x() <<" "<< coor.y() <<" "<< coor.z() <<std::endl;
 				personPose->setPos(coor.x(), coor.z());
+				//HumanPose
+				RoboCompHumanPose::PersonType pType;
+				pType.id= id;
+				id++;
+				pType.pos.x = coor.x();
+				pType.pos.z = coor.z();
+				pList.push_back(pType);
 			}
+		}
+		//publish_results
+		try{
+			if(pList.size() > 0)
+			{
+				RoboCompHumanPose::humansDetected humanD;
+				humanD.humanList = pList;
+				if(camera == "cameraT")
+					humanD.idCamera = 0;
+				else
+					humanD.idCamera = 1;
+				humanpose_pubproxy->obtainHumanPose(humanD);
+			}
+		}
+		catch(const Ice::Exception& e)
+		{
+			std::cerr << e.what() << '\n';
 		}
 	}
 	catch(const Ice::Exception& e)
@@ -278,8 +304,8 @@ void SpecificWorker::compute()
 	}
 
 	//use frame
-	checkPersonImage(frame1, "camera1");
-	checkPersonImage(frame2, "camera2");
+	checkPersonImage(frame1, "cameraT");
+	checkPersonImage(frame2, "cameraP");
 	
 //	pMOG2->apply(frame, fgMaskMOG2);
 //	cv::erode(fgMaskMOG2, erode, kernel);
@@ -322,14 +348,6 @@ QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p, 
 std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint, const std::string &camera)
 {
 	auto j = &p.joints.at(joint);	
-	std::string cameraName;
-	if (camera == "camera1")
-	{
-		cameraName = "cameraT";
-	}else
-	{
-		cameraName = "cameraP";
-	}
 	if( j->score != 0 )
 	{
 		//qDebug() << __FUNCTION__ << "entro";
@@ -339,11 +357,11 @@ std::cout<< "joint "<< joint <<" "<<j->x <<" "<< j->y<<std::endl;
 		QVec p2 = Ki * p1;
 		//qDebug() << __FUNCTION__ << "despues ki";
 //		p2.print("P2");
-		QMat r = innermodel->getRotationMatrixTo(QString::fromStdString(cameraName), "world");
+		QMat r = innermodel->getRotationMatrixTo(QString::fromStdString(camera), "world");
 		QVec p3i = r * p2;
-		QVec p3 = innermodel->transform("world", p2, QString::fromStdString(cameraName));
+		QVec p3 = innermodel->transform("world", p2, QString::fromStdString(camera));
 //		p3i.print("P3");
-		QVec cam = innermodel->transform("world", QString::fromStdString(cameraName));
+		QVec cam = innermodel->transform("world", QString::fromStdString(camera));
 //		cam.print("cam");
 		QVec p4 = p3 - cam;
 //		p4.print("vector restado");
@@ -375,13 +393,6 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 	cv::imshow(camera, frame);
 	cvWaitKey(1);
 }
-
-void SpecificWorker::CameraSimple_getImage(RoboCompCameraSimple::TImage &im)
-{
-//implementCODE
-
-}
-
 
 void SpecificWorker::mouseClick(int  event, int  x, int  y)
 {

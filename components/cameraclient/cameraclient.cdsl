@@ -1,13 +1,12 @@
-import "CameraSimple.idsl";
-import "GetAprilTags.idsl";
+import "HumanPose.idsl";
 import "PeopleServer.idsl";
 
 Component cameraclient
 {
     Communications
     {
-        implements CameraSimple;
-        requires GetAprilTags, PeopleServer;
+        requires PeopleServer;
+        publishes HumanPose;
     };
     language Cpp11;
     gui Qt(QWidget);

@@ -81,7 +81,6 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <camerasimpleI.h>
 
 
 
@@ -134,27 +133,11 @@ int ::cameraclient::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
-	GetAprilTagsPrxPtr getapriltags_proxy;
+	HumanPosePrxPtr humanpose_pubproxy;
 	PeopleServerPrxPtr peopleserver_proxy;
 
 	string proxy, tmp;
 	initialize();
-
-
-	try
-	{
-		if (not GenericMonitor::configGetString(communicator(), prefix, "GetAprilTagsProxy", proxy, ""))
-		{
-			cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy GetAprilTagsProxy\n";
-		}
-		getapriltags_proxy = Ice::uncheckedCast<GetAprilTagsPrx>( communicator()->stringToProxy( proxy ) );
-	}
-	catch(const Ice::Exception& ex)
-	{
-		cout << "[" << PROGRAM_NAME << "]: Exception creating proxy GetAprilTags: " << ex;
-		return EXIT_FAILURE;
-	}
-	rInfo("GetAprilTagsProxy initialized Ok!");
 
 
 	try
@@ -172,8 +155,42 @@ int ::cameraclient::run(int argc, char* argv[])
 	}
 	rInfo("PeopleServerProxy initialized Ok!");
 
+	IceStorm::TopicManagerPrxPtr topicManager;
+	try
+	{
+		topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		return EXIT_FAILURE;
+	}
+	std::shared_ptr<IceStorm::TopicPrx> humanpose_topic;
 
-	tprx = std::make_tuple(getapriltags_proxy,peopleserver_proxy);
+	while (!humanpose_topic)
+	{
+		try
+		{
+			humanpose_topic = topicManager->retrieve("HumanPose");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR retrieving HumanPose topic. \n";
+			try
+			{
+				humanpose_topic = topicManager->create("HumanPose");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the HumanPose topic. It's possible that other component have created\n";
+			}
+		}
+	}
+
+	auto humanpose_pub = humanpose_topic->getPublisher()->ice_oneway();
+	humanpose_pubproxy = Ice::uncheckedCast<HumanPosePrx>(humanpose_pub);
+
+	tprx = std::make_tuple(peopleserver_proxy,humanpose_pubproxy);
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
@@ -210,24 +227,6 @@ int ::cameraclient::run(int argc, char* argv[])
 
 		}
 
-
-
-		try
-		{
-			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "CameraSimple.Endpoints", tmp, ""))
-			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CameraSimple";
-			}
-			Ice::ObjectAdapterPtr adapterCameraSimple = communicator()->createObjectAdapterWithEndpoints("CameraSimple", tmp);
-			auto camerasimple = std::make_shared<CameraSimpleI>(worker);
-			adapterCameraSimple->add(camerasimple, Ice::stringToIdentity("camerasimple"));
-			adapterCameraSimple->activate();
-			cout << "[" << PROGRAM_NAME << "]: CameraSimple adapter created in port " << tmp << endl;
-			}
-			catch (const IceStorm::TopicExists&){
-				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for CameraSimple\n";
-			}
 
 
 

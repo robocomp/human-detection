@@ -2,9 +2,10 @@ CommonBehavior.Endpoints=tcp -p 10011
 
 
 # Endpoints for implemented interfaces
-CameraSimple.Endpoints=tcp -p 12299
-GetAprilTagsProxy = getapriltags:tcp -h localhost -p 12223
 PeopleServerProxy = peopleserver:tcp -h localhost -p 11222
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 InnerModelPath = world.xml
 

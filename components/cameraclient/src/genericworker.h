@@ -32,19 +32,17 @@
 
 #include <CommonBehavior.h>
 
-#include <CameraSimple.h>
-#include <GetAprilTags.h>
+#include <HumanPose.h>
 #include <PeopleServer.h>
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
-using namespace RoboCompCameraSimple;
-using namespace RoboCompGetAprilTags;
+using namespace RoboCompHumanPose;
 using namespace RoboCompPeopleServer;
 
-using TuplePrx = std::tuple<RoboCompGetAprilTags::GetAprilTagsPrxPtr,RoboCompPeopleServer::PeopleServerPrxPtr>;
+using TuplePrx = std::tuple<RoboCompPeopleServer::PeopleServerPrxPtr,RoboCompHumanPose::HumanPosePrxPtr>;
 
 
 class GenericWorker :
@@ -65,10 +63,9 @@ public:
 	QMutex *mutex;
 
 
-	GetAprilTagsPrxPtr getapriltags_proxy;
 	PeopleServerPrxPtr peopleserver_proxy;
+	HumanPosePrxPtr humanpose_pubproxy;
 
-	virtual void CameraSimple_getImage(RoboCompCameraSimple::TImage &im) = 0;
 
 protected:
 	QTimer timer;
