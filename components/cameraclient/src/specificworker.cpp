@@ -69,7 +69,8 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	camcv.release();
+	camcv1.release();
+	camcv2.release();
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
@@ -98,11 +99,9 @@ void SpecificWorker::initialize(int period)
 	personPose->setPos(0, 0);
 
 	innermodel = std::make_shared<InnerModel>(config_params["InnerModelPath"].value);
-	// RTMat rt( 0.89458078146, -0.0678672716022, 0.0201254915446, -80.604724586, 77.9478624463, 2689.19467926);
-//	 RTMat rt( 0.882202804089, 0.00223149708472, 0.0275580454618,-55.7542724609, 187.768630981, 3600.34423828);
-//	 RTMat rt( 0.887527406216, -0.040029399097, -0.0620594508946 , 445.338287354, -422.839385986, 2894.57250977);
-
-/*	 RTMat rti = rt.invert();
+/*	//RTMat rt( 0.825561463833, -0.0538341365755, 0.25232693553, 262.576263428, 83.0633926392, 3213.46557617); //tripode
+	RTMat rt( 0.880809009075, 0.0176280960441, -0.391859769821, -386.366424561, -195.634735107, 3453.25854492); //perchero
+	 RTMat rti = rt.invert();
 	 rti.print("rti");
 	 QVec angles = rti.extractAnglesR_min();
 	 angles.print("angles");
@@ -114,21 +113,38 @@ void SpecificWorker::initialize(int period)
 										cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                         cv::Point( erosion_size, erosion_size ) );
 	
-	cv::namedWindow("camera", 1);
-	cv::setMouseCallback("camera", mouse_callback, this);
-	cam.run(URL);
-	//camcv.open("videoB.webm");
-	frame_counter = 0;
-	//camcv.open(0);
+//	cv::setMouseCallback("camera", mouse_callback, this);
+	//cam.run(URL);
 	
+	
+
 	this->Period = 50;
-	//timer.setSingleShot(true);
 	timer.start(Period);
 
-	videoWriter = cv::VideoWriter("outcpp.avi",0, 0, cv::Size(640, 480));
+	//initVideoLive();
+	initVideoReader();
 	//createRemap(480, 640, -0.122435, -0.0633192, 0.362244);
-	createRemap(480, 640, 0.000001,0.000000000001,0);
+//	createRemap(480, 640, 0.000001,0.000000000001,0);
 }
+
+void SpecificWorker::initVideoLive()
+{
+	camcv1.open(0);
+	camcv1.set(CV_CAP_PROP_FRAME_WIDTH,IWIDTH);
+	camcv1.set(CV_CAP_PROP_FRAME_HEIGHT,IHEIGHT);
+	camcv2.open(1);
+	camcv2.set(CV_CAP_PROP_FRAME_WIDTH,IWIDTH);
+	camcv2.set(CV_CAP_PROP_FRAME_HEIGHT,IHEIGHT);
+	videoWriter1 = cv::VideoWriter("cameraT.avi",CV_FOURCC('M','J','P','G'), 4, cv::Size(IWIDTH, IHEIGHT));
+	videoWriter2 = cv::VideoWriter("cameraP.avi",CV_FOURCC('M','J','P','G'), 4, cv::Size(IWIDTH, IHEIGHT));
+}
+void SpecificWorker::initVideoReader()
+{
+	camcv1.open("v1_cameraT.avi");
+	camcv2.open("v1_cameraP.avi");
+	frame_counter = 0;
+}
+
 void SpecificWorker::createRemap(int width, int height, float K1, float K2, float K3)
 {
 	map1.create(width, height, CV_32FC1);
@@ -167,12 +183,70 @@ void SpecificWorker::createRemap(int width, int height, float K1, float K2, floa
 
 
 }
+
+void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
+{
+	//convert image
+	RoboCompPeopleServer::TImage img;
+	img.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
+	img.width = frame.cols;
+	img.height = frame.rows;
+	img.depth = 3;
+	try
+	{
+		scale = 0.7;
+		auto people = peopleserver_proxy->processImage(img, 0.7);
+		drawBody(frame, people, camera);
+		for(auto &person : people)
+		{
+			QVec coor = getFloorCoordinates(person, camera);
+			if(coor.isEmpty()) 
+				qDebug() << "no bone found";
+			else
+			{ 
+				std::cout << "Flor coor: " << coor.x() <<" "<< coor.y() <<" "<< coor.z() <<std::endl;
+				personPose->setPos(coor.x(), coor.z());
+			}
+		}
+	}
+	catch(const Ice::Exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
+}
+
+void SpecificWorker::readFrameLive(int camera, cv::Mat &frame)
+{
+	if (camera == 1)
+	{
+		camcv1 >> frame;
+		videoWriter1.write(frame);
+	}
+	else
+	{
+		camcv2 >> frame;
+		videoWriter2.write(frame);
+	}
+}
+
+void SpecificWorker::readFrameVideo(int camera, cv::Mat &frame)
+{
+	if (camera == 1)
+	{
+		camcv1.read(frame);
+	}
+	else
+	{
+		camcv2.read(frame);
+	}
+}
+
 void SpecificWorker::compute()
 {
 	static auto begin = std::chrono::steady_clock::now();
-	static int last_people_detected = 0;
 	//URL
-	auto [ret, frame] = cam.read(); //access without copy
+	/*auto [ret, frame] = cam.read(); //access without copy
 	if(ret == false) return;
 	
 	//remap
@@ -186,113 +260,76 @@ void SpecificWorker::compute()
 	//third remap
 	cv::Mat dst2;
 	cv::remap(frame, dst2, map1b, map2b, cv::INTER_LINEAR);
-	cv::imshow("remap_auto", dst2);
+	cv::imshow("remap_auto", dst2);*/
+	cv::Mat frame1, frame2; 
 	//live
-//	cv::Mat frame; bool ret = true;
-//	camcv >> frame;
 
+//	readFrameLive(1, frame1);
+//	readFrameLive(2, frame2);
 	//video
-	/*camcv.read(frame);
+	readFrameVideo(1,frame1);
+	readFrameVideo(2,frame2);
 	frame_counter += 1;
-	if (frame_counter >= camcv.get(CV_CAP_PROP_FRAME_COUNT))
+	if (frame_counter >= camcv1.get(CV_CAP_PROP_FRAME_COUNT))
 	{
         frame_counter = 0;
-        qDebug()<< "RELOOP VIDEO" << camcv.set(CV_CAP_PROP_POS_MSEC, 0);
+        qDebug()<< "RELOOP VIDEO" << camcv1.set(CV_CAP_PROP_POS_MSEC, 0),camcv2.set(CV_CAP_PROP_POS_MSEC, 0);
 		return;
-	}*/
-	
-	videoWriter.write(frame);
+	}
 
+	//use frame
+	checkPersonImage(frame1, "camera1");
+	checkPersonImage(frame2, "camera2");
+	
 //	pMOG2->apply(frame, fgMaskMOG2);
 //	cv::erode(fgMaskMOG2, erode, kernel);
 //	cv::dilate(erode, dilate, kernel);
 //	auto count = cv::countNonZero(fgMaskMOG2);
-	//if( count > 2000 or last_people_detected > 0)
-	{
-		RoboCompPeopleServer::TImage img;
-		img.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
-		img.width = frame.cols;
-		img.height = frame.rows;
-		img.depth = 3;
 
-//if(newPoint)
-{
-		try
-		{
-			scale = 0.7;
-//			auto people = peopleserver_proxy->processImage(img, 0.7);
-//TESTING 
-RoboCompPeopleServer::People people;
-/*RoboCompPeopleServer::Person person;
-keypoint.score = 1;
-person.joints["left_knee"] = keypoint;
-people.push_back(person);
-*/
-			last_people_detected = people.size();
-			drawBody(frame, people);
-			for(auto &person : people)
-			{
-				QVec coor = getFloorCoordinates(person);
-				if(coor.isEmpty()) 
-					qDebug() << "no bone found";
-				else
-				{ 
-					std::cout << "Flor coor: " << coor.x() <<" "<< coor.y() <<" "<< coor.z() <<std::endl;
-					personPose->setPos(coor.x(), coor.z());
-				}
-			}
-		}
-		catch(const Ice::Exception& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-newPoint = false;		
-}	
-try{
-		cv::imshow("camera", frame);
-}catch(...)
-{
-	std::cout<<"frame lost"<<std::endl;
-}	
-		//qDebug() << "compute" << frame.rows << frame.cols;
-		cvWaitKey(1);
-		auto end = std::chrono::steady_clock::now();
-//		std::cout << "Count = " << count << " Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
-		begin = end;
-	}
 	
+	auto end = std::chrono::steady_clock::now();
+	std::cout << "Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
+	begin = end;
 }
 
-QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p)
+QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p, const std::string &camera)
 {
 	qDebug() << __FUNCTION__;
 	{
-		auto &&[good, coor] = inverseRay(p, "left_ankle");	
+		auto &&[good, coor] = inverseRay(p, "left_ankle", camera);	
 	 	if(good) return coor;
 	}
 	{
-		auto &&[good, coor] = inverseRay(p, "right_ankle");	
+		auto &&[good, coor] = inverseRay(p, "right_ankle", camera);	
 		if(good) return coor;
 	}
 	{
-		auto &&[good, coor] = inverseRay(p, "left_knee");	
+		auto &&[good, coor] = inverseRay(p, "left_knee", camera);	
 		if(good) return coor;
 	}
 	{	
-		auto &&[good, coor] = inverseRay(p, "right_knee");	
+		auto &&[good, coor] = inverseRay(p, "right_knee", camera);	
 		if(good) return coor;
 	}
 	{
-		auto &&[good, coor] = inverseRay(p, "left_hip");	
+		auto &&[good, coor] = inverseRay(p, "left_hip", camera);	
 		if(good) return coor;
 		
 	}
 	return QVec();
 }
 
-std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint)
+std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint, const std::string &camera)
 {
 	auto j = &p.joints.at(joint);	
+	std::string cameraName;
+	if (camera == "camera1")
+	{
+		cameraName = "cameraT";
+	}else
+	{
+		cameraName = "cameraP";
+	}
 	if( j->score != 0 )
 	{
 		//qDebug() << __FUNCTION__ << "entro";
@@ -302,11 +339,11 @@ std::cout<< "joint "<< joint <<" "<<j->x <<" "<< j->y<<std::endl;
 		QVec p2 = Ki * p1;
 		//qDebug() << __FUNCTION__ << "despues ki";
 //		p2.print("P2");
-		QMat r = innermodel->getRotationMatrixTo(QString::fromStdString(config_params["cameraName"].value), "world");
+		QMat r = innermodel->getRotationMatrixTo(QString::fromStdString(cameraName), "world");
 		QVec p3i = r * p2;
-		QVec p3 = innermodel->transform("world", p2, QString::fromStdString(config_params["cameraName"].value));
+		QVec p3 = innermodel->transform("world", p2, QString::fromStdString(cameraName));
 //		p3i.print("P3");
-		QVec cam = innermodel->transform("world", QString::fromStdString(config_params["cameraName"].value));
+		QVec cam = innermodel->transform("world", QString::fromStdString(cameraName));
 //		cam.print("cam");
 		QVec p4 = p3 - cam;
 //		p4.print("vector restado");
@@ -318,7 +355,7 @@ std::cout<< "joint "<< joint <<" "<<j->x <<" "<< j->y<<std::endl;
 		return std::make_tuple(false, QVec());
 }
 
-void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People &people)
+void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People &people, std::string camera)
 {
 	for(auto &p : people)
 	{
@@ -335,7 +372,7 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 				cv::line(frame, cv::Point(j1->x, j1->y), cv::Point(j2->x, j2->y), cv::Scalar(0,255,0), 2);
 		}
 	}
-	cv::imshow("camera", frame);
+	cv::imshow(camera, frame);
 	cvWaitKey(1);
 }
 
@@ -348,10 +385,23 @@ void SpecificWorker::CameraSimple_getImage(RoboCompCameraSimple::TImage &im)
 
 void SpecificWorker::mouseClick(int  event, int  x, int  y)
 {
+	//set (x,y) reference from image center
+//	x = x - IWIDTH/2;
+//	y = y - IHEIGHT/2;
 	std::cout<<"*************************"<<std::endl;
 	std::cout<<"MOUSE "<< x <<" "<< y<<std::endl;
 	std::cout<<"*************************"<<std::endl;
-	newPoint = true;
+/*	newPoint = true;
 	keypoint.x = x;
 	keypoint.y = y;
+*/
+	
+
+	float cx = 651;
+	float cy = 512;
+	float f = 1404;
+	float z = 853;
+	float xw = z/f * (x-cx);
+	float yw = z/f * (y-cy);
+	std::cout<<"Image point: "<<x<<" "<<y<<" corrected center(x-cx) "<<(x-cx)<<" (y-cy) "<<y-cy<<" 3D "<<xw<<" "<<yw<<endl;
 }

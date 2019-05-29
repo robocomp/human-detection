@@ -1,14 +1,16 @@
 <innerModel>
     <transform id="world">
         <transform id="floor" >
+            <axes id="axes1"/>
+            <plane id="floor_mesh" ny="1"  px="-0" py="0" pz="0" size="5000,5000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
             <transform id="april" ry="3.1415" rx="1.57075">
-                <plane id="ddG" ny="1"  px="-0" py="0" pz="0" size="5000,5000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
-                <transform id="cameraT" tx="-407.549225" ty="-2006.966675" tz="-2135.803955" rx="-0.887966" ry="-0.022883" rz="0.070206"  >
-                    <rgbd id="rgbdT" focal="830" width="640" height="480" port="10096" noise="0.00" ifconfig="40000,50000" />
+                <plane id="planeTag00" nz="-1" size="-350,350,10"   texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0.png" /> 
+                <transform id="cameraT" tx="-967.929749" ty="-2247.515137" tz="-2100.950928" rx="-0.803795" ry="0.220600" rz="-0.134672"  >
+                    <rgbd id="rgbdT" focal="700" width="640" height="480" port="10096" noise="0.00" ifconfig="40000,50000" />
                     <plane id="rgbd_mesh1" nz="1" pz="-200" size="200,50,10" repeat="1" texture="#550000" />
                 </transform>
-                <transform id="cameraE" tx="3033.72" ty="-1148.516602" tz="-2175.561279" rx="-0.631702" ry="-0.928148" rz="0.984927"  >
-                    <rgbd id="rgbdE" focal="830" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
+                <transform id="cameraP" tx="1364.884399" ty="-2183.025146" tz="-2341.802246" rx="-0.838940" ry="-0.309852" rz="0.244486"  >
+                    <rgbd id="rgbdE" focal="700" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
                     <plane id="rgbd_mesh2" nz="1" pz="-200" size="200,50,10" repeat="1" texture="#550000" />
                 </transform>
             </transform>

@@ -4,7 +4,7 @@ CommonBehavior.Endpoints=tcp -p 10011
 # Endpoints for implemented interfaces
 CameraSimple.Endpoints=tcp -p 12299
 GetAprilTagsProxy = getapriltags:tcp -h localhost -p 12223
-PeopleServerProxy = peopleserver:tcp -h 158.49.247.169 -p 11222
+PeopleServerProxy = peopleserver:tcp -h localhost -p 11222
 
 InnerModelPath = world.xml
 
