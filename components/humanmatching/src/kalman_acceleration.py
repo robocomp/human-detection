@@ -25,12 +25,11 @@ class KalmanTracker(KalmanFilter):
         self.x = np.array([[x, 0, 0, y, 0, 0]]).T
 
         # Covariance Matrix
-        self.P = self.P
+        self.P = self.P *2.5
 
 
     def predict_with_time_diff(self,dt):
 
-        # self.x = self.x_post
         self.F = np.array([[1, dt, .5*dt*dt, 0, 0, 0],
                            [0, 1, dt, 0, 0, 0],
                            [0, 0, 1, 0 , 0, 0],
@@ -55,14 +54,14 @@ def plotResults(measurements, predictions, covariances):
 
         for pos_vel, cov_matrix in zip(predictions, covariances):
 
-
-            cov = np.array([[cov_matrix[0, 0], cov_matrix[3, 0]],[cov_matrix[0, 3], cov_matrix[3, 3]]])
-
+            cov = np.array([[cov_matrix[1, 1], cov_matrix[4, 1]],[cov_matrix[1, 4], cov_matrix[4, 4]]]) #cov de vx con vy
+            # cov = np.array([[cov_matrix[0, 0], cov_matrix[3, 0]],[cov_matrix[0, 3], cov_matrix[3, 3]]]) #cov de x con y
 
             [x_pos, x_vel, x_ac, y_pos, y_vel,y_ac] = pos_vel[:,0]
             mean = (x_pos, y_pos)
             # Plotting elipses
             plot_covariance(mean, cov=cov, fc='r', alpha=0.20)
+
 
             # plotting velocity
             plt.quiver(x_pos,y_pos, x_vel,y_vel, color='b', scale_units='xy', scale=1,alpha=0.50,width=0.005)
@@ -77,9 +76,7 @@ def plotResults(measurements, predictions, covariances):
             x.append(measure[0])
             y.append(measure[1])
 
-        plt.plot(x, y, 'og', lw=1, ls='--')
-
-
+        plt.plot(x, y, '.g', lw=1, ls='--')
 
         plt.axis('equal')
         plt.show()
@@ -92,8 +89,17 @@ if __name__ == '__main__':
     # lineal example
     # zs = ([0,0],[1,1],[2,2],[3,3],[4,4],[5,5],None,None,None,None,[10,10],None,None,[13,13],[14,14],[15,15]) #Andando en diagonal
     # Curve Example
-    # zs = ([0,0],[1,1],[2,2],[3,3],[4,4],[5,4], [6,4], [7,4], None, None, [10,4], [11,3], [12,2], None, None)
-    zs = ([0,0],[1,1],[2,2],[3,3],[4,4],[5,4], [6,4], [7,4], [8,4], [9,4], [10,4],[11,4], None, None, None, None)
+    # zs = ([0,0],[1,1],[2,2],[3,3],[4,4],[5,4], [6,4], [7,4], None, None, None, [11,4], [12,4], [13,4], [15,4], None, None)
+    # zs = ([0,0],[1000,1000],[2000,2000],[3000,3000],[4000,4000],[5000,4000], [6000,4000], [7000,4000], None,None, [10000,4000],[11000,4000], [12000,4000], [13,4], None, None, [15000,4000], None)
+
+    zs = [] #Curva sinusoidal
+    x = np.arange(0, 10, 0.5)
+    for xn in x:
+        zs.append([xn,np.sin(xn)])
+
+    zs.append(None)
+    zs.append(None)
+    zs.append(None)
 
     last_time = 0 #tiempo en el que se tomo la ultima medida
 
@@ -106,7 +112,6 @@ if __name__ == '__main__':
         print (".........Medicion......... ", z)
         dt = 1
         last_time = index
-        # dt = index - last_time
         predX, predP = a.predict_with_time_diff(dt)
         [x_pos, x_vel, x_ac, y_pos, y_vel, y_ac] = predX[:, 0]
         predictions.append(predX)
@@ -126,7 +131,7 @@ if __name__ == '__main__':
         upX,upP = a.update(z)
         [x_pos, x_vel, x_ac, y_pos, y_vel, y_ac] = upX[:, 0]
 
-        # last_time = index
+
         print "----Update----"
         print "Posicion", x_pos, y_pos
         print "Velocidad", x_vel, y_vel
