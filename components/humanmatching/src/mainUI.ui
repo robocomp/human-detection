@@ -20,10 +20,28 @@
    <item>
     <layout class="QHBoxLayout" name="_maps_layout">
      <item>
-      <widget class="HumanVisualizationWidget" name="_first_view"/>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="title">
+        <string>Current state</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="HumanVisualizationWidget" name="_first_view"/>
+        </item>
+       </layout>
+      </widget>
      </item>
      <item>
-      <widget class="HumanVisualizationWidget" name="_second_view"/>
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="title">
+        <string>Received info</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <widget class="HumanVisualizationWidget" name="_second_view"/>
+        </item>
+       </layout>
+      </widget>
      </item>
     </layout>
    </item>
@@ -31,6 +49,9 @@
     <layout class="QHBoxLayout" name="_noise_layout">
      <item>
       <widget class="QCheckBox" name="_noise_checkbox">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>Apply Noise</string>
        </property>
@@ -38,6 +59,9 @@
      </item>
      <item>
       <widget class="QSlider" name="_noise_slider">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="maximum">
         <number>100</number>
        </property>
@@ -57,6 +81,9 @@
       <layout class="QHBoxLayout" name="_noise_factor_lcd_layout">
        <item>
         <widget class="QLabel" name="_noise_factor_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Noise Factor:</string>
          </property>
@@ -64,6 +91,9 @@
        </item>
        <item>
         <widget class="QSpinBox" name="_noise_factor_lcd">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="readOnly">
           <bool>true</bool>
          </property>
@@ -91,6 +121,9 @@
       <layout class="QHBoxLayout" name="_min_max_noise_layout">
        <item>
         <widget class="QLabel" name="_min_max_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Min, max noise added:</string>
          </property>
@@ -98,6 +131,9 @@
        </item>
        <item>
         <widget class="QSpinBox" name="_min_noise">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="suffix">
           <string>mm</string>
          </property>
@@ -111,6 +147,9 @@
        </item>
        <item>
         <widget class="QSpinBox" name="_max_noise">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="suffix">
           <string>mm</string>
          </property>
@@ -132,7 +171,7 @@
   <customwidget>
    <class>HumanVisualizationWidget</class>
    <extends>QGraphicsView</extends>
-   <header>libs.HumanVisualizationWidget</header>
+   <header>classes.human_visualization_widget</header>
   </customwidget>
   <customwidget>
    <class>QNetworkxWidget</class>
