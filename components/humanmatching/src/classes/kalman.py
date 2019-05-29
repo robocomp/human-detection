@@ -3,6 +3,8 @@ from filterpy.common import Q_discrete_white_noise
 from filterpy.kalman import KalmanFilter
 from filterpy.stats import plot_covariance_ellipse, plot_covariance
 from scipy.linalg import block_diag
+import faulthandler
+faulthandler.enable()
 import matplotlib.pyplot as plt
 
 
