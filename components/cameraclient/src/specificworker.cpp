@@ -118,7 +118,7 @@ void SpecificWorker::initialize(int period)
 	
 	
 
-	this->Period = 50;
+	this->Period = 300;
 	timer.start(Period);
 
 	//initVideoLive();
@@ -140,8 +140,8 @@ void SpecificWorker::initVideoLive()
 }
 void SpecificWorker::initVideoReader()
 {
-	camcv1.open("v1_cameraT.avi");
-	camcv2.open("v1_cameraP.avi");
+	camcv1.open("v2_cameraT.avi");
+	camcv2.open("v2_cameraP.avi");
 	frame_counter = 0;
 }
 
@@ -195,6 +195,7 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 	try
 	{
 		scale = 0.7;
+//RoboCompPeopleServer::People people;		
 		auto people = peopleserver_proxy->processImage(img, 0.7);
 		drawBody(frame, people, camera);
 		RoboCompHumanPose::personList pList;
@@ -224,9 +225,14 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 				RoboCompHumanPose::humansDetected humanD;
 				humanD.humanList = pList;
 				if(camera == "cameraT")
+				{
 					humanD.idCamera = 0;
-				else
+					humanD.timeStamp = timeStamp1;
+				}
+				else{
 					humanD.idCamera = 1;
+					humanD.timeStamp = timeStamp2;
+				}
 				humanpose_pubproxy->obtainHumanPose(humanD);
 			}
 		}
@@ -244,27 +250,39 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 
 void SpecificWorker::readFrameLive(int camera, cv::Mat &frame)
 {
+	auto t0 = std::chrono::high_resolution_clock::now();
 	if (camera == 1)
 	{
 		camcv1 >> frame;
+		timeStamp1 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
 		videoWriter1.write(frame);
 	}
 	else
 	{
 		camcv2 >> frame;
+		timeStamp2 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
 		videoWriter2.write(frame);
 	}
 }
 
 void SpecificWorker::readFrameVideo(int camera, cv::Mat &frame)
 {
-	if (camera == 1)
+	auto t0 = std::chrono::high_resolution_clock::now();
+	try
 	{
-		camcv1.read(frame);
-	}
-	else
+		if (camera == 1)
+		{
+			camcv1.read(frame);
+			timeStamp1 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
+		}
+		else
+		{
+			camcv2.read(frame);
+			timeStamp2 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
+		}
+	}catch(...)
 	{
-		camcv2.read(frame);
+		qDebug()<<"Error reading frame from video";
 	}
 }
 
@@ -299,7 +317,7 @@ void SpecificWorker::compute()
 	if (frame_counter >= camcv1.get(CV_CAP_PROP_FRAME_COUNT))
 	{
         frame_counter = 0;
-        qDebug()<< "RELOOP VIDEO" << camcv1.set(CV_CAP_PROP_POS_MSEC, 0),camcv2.set(CV_CAP_PROP_POS_MSEC, 0);
+        qDebug()<< "RELOOP VIDEO" << camcv1.set(CV_CAP_PROP_POS_FRAMES, 0),camcv2.set(CV_CAP_PROP_POS_FRAMES, 0);
 		return;
 	}
 

@@ -78,6 +78,7 @@ private:
 	HUMAN_JOINT_HEIGHTS joint_heights;
 	float scale;
 	IPCamReader cam;
+	long timeStamp1, timeStamp2;
 	int frame_counter;
 	cv::VideoCapture camcv1;
 	cv::VideoCapture camcv2;
