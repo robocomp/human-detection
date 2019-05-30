@@ -77,7 +77,6 @@ class SpecificWorker(GenericWorker):
 		self._current_person_list = []
 		self._next_person_list = []
 
-
 		self.widget_graph = QNetworkxController(self.ui._graph_view)
 		self.ui._noise_slider.sliderMoved.connect(self.set_noise_factor)
 		self.ui._first_view.load_custom_json_world(os.path.join(CURRENT_FILE_PATH, "resources", "autonomy.json"))
@@ -103,6 +102,7 @@ class SpecificWorker(GenericWorker):
 
 		return True
 
+###----------- STATE MACHINE METHODS START ------------------------
 
 	def initial_state_entered(self):
 		logger.debug("entered")
@@ -227,6 +227,13 @@ class SpecificWorker(GenericWorker):
 		except Empty as e:
 				logger.warn("Exception. No new detection but unexpected state.")
 
+
+	def data_update_state_entered(self):
+		logger.debug("entered")
+		self._state_machine.data_update_to_prediction.emit()
+
+###----------- STATE MACHINE METHODS END ------------------------
+
 	def _cam_humans_2_person_list(self, humansFromCam):
 		new_person_list = []
 		for cam_person in humansFromCam.humanList:
@@ -237,13 +244,6 @@ class SpecificWorker(GenericWorker):
 			detected_person.initialice_tracker(Position2D(cam_person.pos.x, cam_person.pos.z))
 			new_person_list.append(detected_person)
 		return new_person_list
-
-
-	def data_update_state_entered(self):
-		logger.debug("entered")
-		self._state_machine.data_update_to_prediction.emit()
-
-
 
 	def _update_person_list_view(self, person_list, view):
 		view.clear()
@@ -256,29 +256,23 @@ class SpecificWorker(GenericWorker):
 			# logger.debug("setting color %s darker factor %d"%(color.name(), darker_factor))
 			view.set_human_color(person.person_id, color)
 
-	#TODO: Deprecated. Not used anymore.
-	#TODO: Remove fom UI or implement noise as input option
-	def add_noise(self, persons_list):
-		new_humans_detected = copy.deepcopy(persons_list)
-		mu, sigma = 0, 0.1  # mean and standard deviation
-		s = numpy.random.normal(mu, sigma, len(new_humans_detected)*2)
-		s = s*self._noise_factor
-		self.ui._min_noise.setValue(min(s, key=abs))
-		self.ui._max_noise.setValue(max(s, key=abs))
-		logger.debug("Noises vector %s",str(s))
-		for index, detected_person in enumerate(new_humans_detected):
-			logger.debug("Person %d, %d", detected_person.pos.x, detected_person.pos.z)
-			detected_person.pos.x += s[index*2]
-			detected_person.pos.z += s[index*2+1]
-			logger.debug("Person with noise %d, %d", detected_person.pos.x, detected_person.pos.z)
-		return new_humans_detected
+	def update_noise_values(self, noise_vector):
+		"""Function to create a gausian noise vector"""
+
+		self.ui._min_noise.setValue(min(noise_vector, key=abs))
+		self.ui._max_noise.setValue(max(noise_vector, key=abs))
+		logger.debug("Noises vector %s", str(noise_vector))
 
 	def set_noise_factor(self, value):
+		"""Qt Slot to update the noise factor value and visualization on slider change"""
+
 		self._noise_factor = value*10
 		self.ui._noise_factor_lcd.setValue(self._noise_factor)
 
 
 	def obtainHumanPose(self, humansFromCam):
+		"""Component entry point for the detected human poses"""
+
 		self._detection_queue.put(humansFromCam)
 		self.new_humans_signal.emit()
 

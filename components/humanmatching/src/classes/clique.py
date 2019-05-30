@@ -16,6 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
+import copy
 import logging
 
 logger = logging.getLogger(__name__)
@@ -51,11 +52,16 @@ def calculate_person_distance( p1, p2):
 	dist_a_b = numpy.sqrt(numpy.sum((a - b) ** 2))
 	return dist_a_b
 
-def calculate_clique_matching(input1, input2):
+def calculate_clique_matching(input1, input2, noise_vector):
 	matching_graph = nx.Graph()
 	# camera_id = input.idCamera
 	current_person_list = input1
 	new_persons_list = input2
+	if len(noise_vector) > 0:
+		if len(noise_vector)== len(input2)*2:
+			new_persons_list = add_noise_to_person_list(new_persons_list, noise_vector)
+		else:
+			logger.warning("Noise vector must have 2 times the size of person list")
 	# if self.ui._noise_checkbox.isChecked():
 	# 	new_persons_list = self.add_noise(new_persons_list)
 	# 	current_person_list = self.add_noise(current_person_list)
@@ -90,3 +96,24 @@ def calculate_clique_matching(input1, input2):
 		logger.debug("Nodes in result: %s", str(r))
 
 	return max_clique, matching_graph
+
+#Noise vector need to have 2 times the size of person_list (2 coordinates)
+def add_noise_to_person_list(person_list, noise_vector):
+	"""Add noise to the x and y coordinates of the """
+
+	person_list_copy = copy.deepcopy(person_list)
+	for index, detected_person in enumerate(person_list):
+		logger.debug("Person %d, %d", detected_person.pos.x, detected_person.pos.z)
+		detected_person.pos.x += noise_vector[index * 2]
+		detected_person.pos.z += noise_vector[index * 2 + 1]
+		logger.debug("Person with noise %d, %d", detected_person.pos.x, detected_person.pos.z)
+	return person_list_copy
+
+
+def create_noise_vector(self, vector_size, mu=0, sigma = 0.1, scale_factor=1):
+		"""Function to create a gausian noise vector"""
+
+		noise_vector = numpy.random.normal(mu, sigma, vector_size)
+		noise_vector = noise_vector * scale_factor
+
+		return noise_vector
