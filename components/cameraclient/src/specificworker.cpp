@@ -24,6 +24,25 @@
 */
 SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 {
+	joints_id = JOINTS_ID({
+		"nose", 
+		"left_eye", 
+		"right_eye", 
+		"left_ear", 
+		"right_ear", 
+		"left_shoulder", 
+		"right_shoulder", 
+		"left_elbow", 
+		"right_elbow", 
+		"left_wrist", 
+		"right_wrist", 
+		"left_hip", 
+		"right_hip", 
+		"left_knee", 
+		"right_knee", 
+		"left_ankle", 
+		"right_ankle" });
+
 	skeleton = SKELETON_CONNECTIONS({
 		{"left_ankle","left_knee"},
 		{"left_knee","left_hip"},
@@ -45,7 +64,7 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 		{"left_ear", "left_shoulder"},
 		{"right_ear", "right_shoulder"}});
 
-		joint_heights = HUMAN_JOINT_HEIGHTS({
+	joint_heights = HUMAN_JOINT_HEIGHTS({
 		{"left_ankle", 100},
 		{"right_ankle", 100},
 		{"right_knee", 480},
@@ -118,13 +137,18 @@ void SpecificWorker::initialize(int period)
 	
 	
 
-	this->Period = 300;
+	this->Period = 50;
 	timer.start(Period);
 
 	//initVideoLive();
 	initVideoReader();
 	//createRemap(480, 640, -0.122435, -0.0633192, 0.362244);
 //	createRemap(480, 640, 0.000001,0.000000000001,0);
+
+	//descriptor
+	
+    
+
 }
 
 void SpecificWorker::initVideoLive()
@@ -140,8 +164,8 @@ void SpecificWorker::initVideoLive()
 }
 void SpecificWorker::initVideoReader()
 {
-	camcv1.open("v2_cameraT.avi");
-	camcv2.open("v2_cameraP.avi");
+	camcv1.open("v1_cameraT.avi");
+	camcv2.open("v1_cameraP.avi");
 	frame_counter = 0;
 }
 
@@ -202,6 +226,7 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 		int id =0;
 		for(auto &person : people)
 		{
+//computeORBDescriptor(frame, person.joints);			
 			QVec coor = getFloorCoordinates(person, camera);
 			if(coor.isEmpty()) 
 				qDebug() << "no bone found";
@@ -323,6 +348,7 @@ void SpecificWorker::compute()
 
 	//use frame
 	checkPersonImage(frame1, "cameraT");
+//TODO => just one camera
 	checkPersonImage(frame2, "cameraP");
 	
 //	pMOG2->apply(frame, fgMaskMOG2);
@@ -347,7 +373,7 @@ QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p, 
 		auto &&[good, coor] = inverseRay(p, "right_ankle", camera);	
 		if(good) return coor;
 	}
-	{
+/*	{
 		auto &&[good, coor] = inverseRay(p, "left_knee", camera);	
 		if(good) return coor;
 	}
@@ -359,7 +385,7 @@ QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p, 
 		auto &&[good, coor] = inverseRay(p, "left_hip", camera);	
 		if(good) return coor;
 		
-	}
+	}*/
 	return QVec();
 }
 
@@ -433,4 +459,29 @@ void SpecificWorker::mouseClick(int  event, int  x, int  y)
 	float xw = z/f * (x-cx);
 	float yw = z/f * (y-cy);
 	std::cout<<"Image point: "<<x<<" "<<y<<" corrected center(x-cx) "<<(x-cx)<<" (y-cy) "<<y-cy<<" 3D "<<xw<<" "<<yw<<endl;
+}
+
+void SpecificWorker::computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints)
+{
+	//convert frame to gray
+	cv::Mat frameGray;
+	cv::cvtColor(frame, frameGray, CV_BGR2GRAY);
+	std::vector<cv::KeyPoint> keypoints;
+	//create keypoints
+	for(auto &joint: joints_id)
+	{
+		//compute keypoint angle
+
+
+		cv::KeyPoint p = cv::KeyPoint(joints[joint].x, joints[joint].y, DESCRIPTOR_SIZE,-1);
+		keypoints.push_back(p);
+	}
+	cv::drawKeypoints(frameGray, keypoints, frameGray, cv::Scalar(0,255,0));
+	//compute orb
+	cv::Ptr<cv::DescriptorExtractor> extractor = cv::ORB::create();
+	cv::Mat descriptors;
+	extractor->compute(frameGray, keypoints, descriptors);
+	
+
+	cv::imshow("orb", frameGray);
 }

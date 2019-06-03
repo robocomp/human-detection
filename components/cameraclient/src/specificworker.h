@@ -34,14 +34,16 @@
 #include <QGraphicsView>
 #include <QGridLayout>
 #include <QGraphicsEllipseItem>
+#include "opencv2/features2d.hpp"
 //#define URL "http://192.168.0.100:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
 #define URL "http://10.253.247.24:88/cgi-bin/CGIStream.cgi?cmd=GetMJStream&usr=guest&pwd=smpt00"
 #define IWIDTH 640//1280
 #define IHEIGHT 480//960
+#define DESCRIPTOR_SIZE 10
 
 using SKELETON_CONNECTIONS = std::vector<std::tuple<std::string, std::string>>;
 using HUMAN_JOINT_HEIGHTS = std::map<std::string, double>;
-
+using JOINTS_ID = std::vector<std::string>;
 
 class SpecificWorker : public GenericWorker
 {
@@ -76,6 +78,7 @@ private:
 	shared_ptr<InnerModel> innermodel;
 	SKELETON_CONNECTIONS skeleton;
 	HUMAN_JOINT_HEIGHTS joint_heights;
+	JOINTS_ID joints_id;
 	float scale;
 	IPCamReader cam;
 	long timeStamp1, timeStamp2;
@@ -91,6 +94,9 @@ private:
 	QVec getFloorCoordinates(const RoboCompPeopleServer::Person &person, const std::string &camera);
 	std::tuple<bool, QVec> inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint, const std::string &camera);
 	QMat K, Ki;
+	//descriptor
+	cv::Ptr<cv::ORB> orb;
+	void computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints);
 };
 
 //OpenCV Mouse callback
