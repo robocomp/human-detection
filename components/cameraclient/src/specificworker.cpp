@@ -137,7 +137,7 @@ void SpecificWorker::initialize(int period)
 	
 	
 
-	this->Period = 50;
+	this->Period = 300;
 	timer.start(Period);
 
 	//initVideoLive();
@@ -164,8 +164,8 @@ void SpecificWorker::initVideoLive()
 }
 void SpecificWorker::initVideoReader()
 {
-	camcv1.open("v1_cameraT.avi");
-	camcv2.open("v1_cameraP.avi");
+	camcv1.open("v3_cameraT.avi");
+	camcv2.open("v3_cameraP.avi");
 	frame_counter = 0;
 }
 
@@ -226,7 +226,8 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 		int id =0;
 		for(auto &person : people)
 		{
-//computeORBDescriptor(frame, person.joints);			
+			RoboCompHumanPose::JointsDescriptor jDes;
+computeORBDescriptor(frame, person.joints, jDes);			
 			QVec coor = getFloorCoordinates(person, camera);
 			if(coor.isEmpty()) 
 				qDebug() << "no bone found";
@@ -240,6 +241,7 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 				id++;
 				pType.pos.x = coor.x();
 				pType.pos.z = coor.z();
+				pType.jointsDescriptor = jDes;
 				pList.push_back(pType);
 			}
 		}
@@ -349,7 +351,7 @@ void SpecificWorker::compute()
 	//use frame
 	checkPersonImage(frame1, "cameraT");
 //TODO => just one camera
-	checkPersonImage(frame2, "cameraP");
+//	checkPersonImage(frame2, "cameraP");
 	
 //	pMOG2->apply(frame, fgMaskMOG2);
 //	cv::erode(fgMaskMOG2, erode, kernel);
@@ -461,27 +463,37 @@ void SpecificWorker::mouseClick(int  event, int  x, int  y)
 	std::cout<<"Image point: "<<x<<" "<<y<<" corrected center(x-cx) "<<(x-cx)<<" (y-cy) "<<y-cy<<" 3D "<<xw<<" "<<yw<<endl;
 }
 
-void SpecificWorker::computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints)
+void SpecificWorker::computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints, RoboCompHumanPose::JointsDescriptor &jDes)
 {
 	//convert frame to gray
 	cv::Mat frameGray;
 	cv::cvtColor(frame, frameGray, CV_BGR2GRAY);
-	std::vector<cv::KeyPoint> keypoints;
-	//create keypoints
+std::vector<cv::KeyPoint> drawKeypoints;
+	//get descriptos
+	cv::Mat descriptors;
+	cv::Ptr<cv::DescriptorExtractor> extractor = cv::ORB::create();
+	jDes = std::vector<std::vector<int>>(joints_id.size(), std::vector<int>());
+	unsigned int pos=0;
 	for(auto &joint: joints_id)
 	{
-		//compute keypoint angle
+		if (joints[joint].score > 0)
+		{
+			//compute keypoint angle
 
 
-		cv::KeyPoint p = cv::KeyPoint(joints[joint].x, joints[joint].y, DESCRIPTOR_SIZE,-1);
-		keypoints.push_back(p);
+			cv::KeyPoint p = cv::KeyPoint(joints[joint].x, joints[joint].y, DESCRIPTOR_SIZE,-1);
+			std::vector<cv::KeyPoint> keypoints;
+drawKeypoints.push_back(p);			
+			keypoints.push_back(p);
+			extractor->compute(frameGray, keypoints, descriptors);
+			//copy descriptor to ice structure
+			if (descriptors.rows > 0)
+				jDes[pos] = descriptors.row(0);	
+		}
+		pos++;
 	}
-	cv::drawKeypoints(frameGray, keypoints, frameGray, cv::Scalar(0,255,0));
-	//compute orb
-	cv::Ptr<cv::DescriptorExtractor> extractor = cv::ORB::create();
-	cv::Mat descriptors;
-	extractor->compute(frameGray, keypoints, descriptors);
-	
 
-	cv::imshow("orb", frameGray);
+cv::drawKeypoints(frameGray, drawKeypoints, frameGray, cv::Scalar(0,255,0));
+std::cout<<"jDes"<<jDes.size()<<std::endl;	
+cv::imshow("orb", frameGray);
 }

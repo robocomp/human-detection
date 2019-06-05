@@ -96,7 +96,7 @@ private:
 	QMat K, Ki;
 	//descriptor
 	cv::Ptr<cv::ORB> orb;
-	void computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints);
+	void computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints, RoboCompHumanPose::JointsDescriptor &jDes);
 };
 
 //OpenCV Mouse callback
