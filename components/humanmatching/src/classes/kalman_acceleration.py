@@ -1,10 +1,11 @@
 import numpy as np
-from filterpy.common import Q_discrete_white_noise
+from filterpy.common import Q_discrete_white_noise, pprint
 from filterpy.kalman import KalmanFilter
-from filterpy.stats import plot_covariance_ellipse,plot_covariance
+from filterpy.stats import plot_covariance_ellipse, plot_covariance, plot_gaussian_pdf
 from scipy.linalg import block_diag
 import matplotlib.pyplot as plt
-
+import scipy.linalg as linalg
+import math
 
 
 class KalmanTracker(KalmanFilter):
@@ -18,68 +19,68 @@ class KalmanTracker(KalmanFilter):
         self.R = np.eye(2) * 0.1  # 0.1 meters error
 
         # Process Noise Matrix
-        q = Q_discrete_white_noise(dim=2, dt=1, var=0.01)
-        self.Q = block_diag(q, q, q)
+        # q = Q_discrete_white_noise(dim=2, dt=1, var=0.01)
+        # self.Q = block_diag(q, q, q)
+
 
         # Initial Position X, vel X, ac X, Y, vel Y, ac Y
         self.x = np.array([[x, 0, 0, y, 0, 0]]).T
 
         # Covariance Matrix
-        self.P = self.P *2.5
+        self.P = self.P * 2.5
 
-
-    def predict_with_time_diff(self,dt):
-
-        self.F = np.array([[1, dt, .5*dt*dt, 0, 0, 0],
-                           [0, 1, dt, 0, 0, 0],
-                           [0, 0, 1, 0 , 0, 0],
-                           [0, 0, 0,  1, dt, .5*dt*dt],
-                           [0, 0, 0,  0, 1, dt],
-                           [0, 0, 0,  0, 0, 1]])
+    def predict_with_time_diff(self, dt):
+        self.F = np.array([[1., dt, .5 * dt * dt, 0., 0., 0.],
+                           [0., 1., dt, 0., 0., 0.],
+                           [0., 0., 1., 0., 0., 0.],
+                           [0., 0., 0., 1., dt, .5 * dt * dt],
+                           [0., 0., 0., 0., 1., dt],
+                           [0., 0., 0., 0., 0., 1.]])
 
         # # Process Noise Matrix
-        # q = Q_discrete_white_noise(dim=2, dt=dt, var=0.01)
-        # self.Q = block_diag(q, q)
+        q = Q_discrete_white_noise(dim=3, dt=dt, var=0.01)
+        self.Q = block_diag(q, q)
 
         self.predict()
 
         return self.x, self.P
 
-    def update(self,z):
+    def update(self, z):
         super(KalmanTracker, self).update(z)
         return self.x, self.P
 
 
 def plotResults(measurements, predictions, covariances):
+    for pos_vel, cov_matrix in zip(predictions, covariances):
+        # cov = np.array([[cov_matrix[1, 1], cov_matrix[4, 1]], [cov_matrix[1, 4], cov_matrix[4, 4]]])  # cov de vx con vy
+        cov = np.array([[cov_matrix[0, 0], cov_matrix[3, 0]],[cov_matrix[0, 3], cov_matrix[3, 3]]]) #cov de x con y
 
-        for pos_vel, cov_matrix in zip(predictions, covariances):
+        # cov1 = np.array([[cov_matrix[0, 0], cov_matrix[0, 1]],[cov_matrix[1, 0], cov_matrix[1, 1]]]) #cov de x con vx
+        # cov2 = np.array([[cov_matrix[3, 3], cov_matrix[4, 3]],[cov_matrix[3, 4], cov_matrix[4, 4]]]) #cov de y con vy
 
-            cov = np.array([[cov_matrix[1, 1], cov_matrix[4, 1]],[cov_matrix[1, 4], cov_matrix[4, 4]]]) #cov de vx con vy
-            # cov = np.array([[cov_matrix[0, 0], cov_matrix[3, 0]],[cov_matrix[0, 3], cov_matrix[3, 3]]]) #cov de x con y
+        [x_pos, x_vel, x_ac, y_pos, y_vel, y_ac] = pos_vel[:, 0]
 
-            [x_pos, x_vel, x_ac, y_pos, y_vel,y_ac] = pos_vel[:,0]
-            mean = (x_pos, y_pos)
-            # Plotting elipses
-            plot_covariance(mean, cov=cov, fc='r', alpha=0.20)
+        mean = (x_pos, y_pos)
 
+        # Plotting elipses
+        plot_covariance(mean, cov=cov, fc='r', alpha=0.15, show_semiaxis=True)
 
-            # plotting velocity
-            plt.quiver(x_pos,y_pos, x_vel,y_vel, color='b', scale_units='xy', scale=1,alpha=0.50,width=0.005)
-            #plotting acceleration
-            plt.quiver(x_pos,y_pos, x_ac,y_ac, color='y', scale_units='xy', scale=1,alpha=0.50,width=0.005)
+        # plotting velocity
+        plt.quiver(x_pos, y_pos, x_vel, y_vel, color='b', scale_units='xy', scale=1, alpha=1, width=0.0035)
+        # plotting acceleration
+        plt.quiver(x_pos, y_pos, x_ac, y_ac, color='y', scale_units='xy', scale=1, alpha=1, width=0.0035)
 
-        #Plotting meditions
-        x = []
-        y = []
-        for measure in measurements:
-            if not measure: continue
-            x.append(measure[0])
-            y.append(measure[1])
+    x = []
+    y = []
+    for measure in measurements:
+        if not measure: continue
+        x.append(measure[0])
+        y.append(measure[1])
 
-        plt.plot(x, y, '.g', lw=1, ls='--')
+    plt.plot(x, y, '.g', lw=1, ls='--')
 
-        plt.axis('equal')
-        plt.show()
+    # plt.axis('equal')
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -89,38 +90,58 @@ if __name__ == '__main__':
     # lineal example
     # zs = ([0,0],[1,1],[2,2],[3,3],[4,4],[5,5],None,None,None,None,[10,10],None,None,[13,13],[14,14],[15,15]) #Andando en diagonal
     # Curve Example
-    # zs = ([0,0],[1,1],[2,2],[3,3],[4,4],[5,4], [6,4], [7,4], None, None, None, [11,4], [12,4], [13,4], [15,4], None, None)
-    # zs = ([0,0],[1000,1000],[2000,2000],[3000,3000],[4000,4000],[5000,4000], [6000,4000], [7000,4000], None,None, [10000,4000],[11000,4000], [12000,4000], [13,4], None, None, [15000,4000], None)
+    # zs = ([0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 4], [6, 4], [7, 4], None, None, None, [13,3],[14,2],[15,1],[16,0], None, None)
 
-    zs = [] #Curva sinusoidal
-    x = np.arange(0, 10, 0.5)
+    # zs = [] #Curva sinusoidal
+    # x = np.arange(0, 10, 0.5)
+    # for xn in x:
+    #     zs.append([xn,np.sin(xn)])
+    #
+    # zs.append(None)
+    # zs.append(None)
+    # zs.append(None)
+
+    zs = []
+    x = np.arange(0, 10, 1)
     for xn in x:
-        zs.append([xn,np.sin(xn)])
+        zs.append([xn, xn])
 
     zs.append(None)
     zs.append(None)
     zs.append(None)
 
-    last_time = 0 #tiempo en el que se tomo la ultima medida
+    x = np.arange(16, 30, 1)
+    for xn in x:
+        zs.append([xn, 15])
+
+    zs.append(None)
+    zs.append(None)
+    zs.append(None)
+    zs.append(None)
+    zs.append(None)
+    zs.append(None)
+
+
+    last_time = 0  # tiempo en el que se tomo la ultima medida
 
     predictions = []
     covariances = []
     for index, z in enumerate(zs):
 
-        if index == 0: continue #la primera medicion la usamos para inizializar el tracker
+        if index == 0: continue  # la primera medicion la usamos para inizializar el tracker
 
         print (".........Medicion......... ", z)
         dt = 1
         last_time = index
         predX, predP = a.predict_with_time_diff(dt)
         [x_pos, x_vel, x_ac, y_pos, y_vel, y_ac] = predX[:, 0]
+
         predictions.append(predX)
         covariances.append(predP)
 
-
         print "----Predict----"
         print "Posicion", x_pos, y_pos
-        print "Velocidad", x_vel,y_vel
+        print "Velocidad", x_vel, y_vel
         print "Aceleracion ", x_ac, y_ac
         print "Probabilidad", np.diag(predP)
 
@@ -128,9 +149,8 @@ if __name__ == '__main__':
         if not z:
             continue
 
-        upX,upP = a.update(z)
+        upX, upP = a.update(z)
         [x_pos, x_vel, x_ac, y_pos, y_vel, y_ac] = upX[:, 0]
-
 
         print "----Update----"
         print "Posicion", x_pos, y_pos
@@ -142,3 +162,4 @@ if __name__ == '__main__':
         print ("----------------------------")
 
     plotResults(zs, predictions, covariances)
+
