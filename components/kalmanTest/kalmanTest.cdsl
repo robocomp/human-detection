@@ -1,0 +1,13 @@
+
+import "HumanPose.idsl";
+
+Component kalmanTest
+{
+    Communications
+    {
+     	subscribesTo HumanPose;
+    };
+	language python;
+};
+
+
