@@ -1,5 +1,5 @@
 # Endpoints for subscriptions
-HumanPoseTopic.Endpoints=tcp -p 0
+HumanPoseTopic.Endpoints=tcp -p 19199
 
 
 
