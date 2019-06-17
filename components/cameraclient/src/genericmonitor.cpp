@@ -152,7 +152,7 @@ bool GenericMonitor::configGetString(Ice::CommunicatorPtr communicator, const st
 		throw error;
 	}
 
-	auto parts = QString::fromStdString(value).split("@");
+/*	auto parts = QString::fromStdString(value).split("@");
 	QString variableName=QString::fromStdString(compound);
 
 
@@ -210,7 +210,7 @@ bool GenericMonitor::configGetString(Ice::CommunicatorPtr communicator, const st
 		if (not found)
 		{
 		}
-	}
+	}*/
 	std::cout << compound << " " << value << std::endl;
 	return true;
 }

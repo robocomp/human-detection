@@ -88,14 +88,17 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 */
 SpecificWorker::~SpecificWorker()
 {
-	camcv1.release();
-	camcv2.release();
+	for(int i=0;i < ncameras; i++)
+		cameras[i].release();
+
 	std::cout << "Destroying SpecificWorker" << std::endl;
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 	config_params = params;
+	writeVideo = bool(config_params["writeVideo"].value == "true");
+	ncameras = QString::fromStdString(config_params["numCameras"].value).toInt();
 	return true;
 }
 
@@ -135,37 +138,37 @@ void SpecificWorker::initialize(int period)
 //	cv::setMouseCallback("camera", mouse_callback, this);
 	//cam.run(URL);
 	
-	
 
-	this->Period = 300;
+	this->Period = 100;
 	timer.start(Period);
 
-	//initVideoLive();
-	initVideoReader();
+	initVideo();
+
 	//createRemap(480, 640, -0.122435, -0.0633192, 0.362244);
 //	createRemap(480, 640, 0.000001,0.000000000001,0);
 
-	//descriptor
-	
-    
-
 }
 
-void SpecificWorker::initVideoLive()
+void SpecificWorker::initVideo()
 {
-	camcv1.open(0);
-	camcv1.set(CV_CAP_PROP_FRAME_WIDTH,IWIDTH);
-	camcv1.set(CV_CAP_PROP_FRAME_HEIGHT,IHEIGHT);
-	camcv2.open(1);
-	camcv2.set(CV_CAP_PROP_FRAME_WIDTH,IWIDTH);
-	camcv2.set(CV_CAP_PROP_FRAME_HEIGHT,IHEIGHT);
-	videoWriter1 = cv::VideoWriter("cameraT.avi",CV_FOURCC('M','J','P','G'), 4, cv::Size(IWIDTH, IHEIGHT));
-	videoWriter2 = cv::VideoWriter("cameraP.avi",CV_FOURCC('M','J','P','G'), 4, cv::Size(IWIDTH, IHEIGHT));
-}
-void SpecificWorker::initVideoReader()
-{
-	camcv1.open("v3_cameraT.avi");
-	camcv2.open("v3_cameraP.avi");
+	int width = QString::fromStdString(config_params["width"].value).toInt();
+	int height = QString::fromStdString(config_params["height"].value).toInt();
+	for(int i=0;i < ncameras; i++)
+	{
+		std::string s = QString::number(i).toStdString();
+		std::string source = config_params["camera.Params_" + s +".source"].value;
+		cv::VideoCapture cam = cv::VideoCapture(source);
+		cam.set(CV_CAP_PROP_FRAME_WIDTH, width);
+		cam.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+		cameras.push_back(cam);
+		if(writeVideo)
+		{
+			std::string videoName = config_params["camera.Params_" + s +".name"].value + ".avi";
+			cv::VideoWriter writer = cv::VideoWriter(videoName, CV_FOURCC('M','J','P','G'), 25, cv::Size(width, height));
+			videoWriter.push_back(writer);
+		}
+	}
+	timeStamp.resize(ncameras);
 	frame_counter = 0;
 }
 
@@ -208,8 +211,10 @@ void SpecificWorker::createRemap(int width, int height, float K1, float K2, floa
 
 }
 
-void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
+void SpecificWorker::checkPersonImage(cv::Mat frame, int camera_id)
 {
+	std::string s = QString::number(camera_id).toStdString();
+	std::string camera = config_params["camera.Params_" + s +".name"].value;
 	//convert image
 	RoboCompPeopleServer::TImage img;
 	img.image.assign(frame.data, frame.data + (frame.total() * frame.elemSize()));
@@ -227,7 +232,7 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, std::string camera)
 		for(auto &person : people)
 		{
 			RoboCompHumanPose::JointsDescriptor jDes;
-computeORBDescriptor(frame, person.joints, jDes);			
+//computeORBDescriptor(frame, person.joints, jDes);			
 			QVec coor = getFloorCoordinates(person, camera);
 			if(coor.isEmpty()) 
 				qDebug() << "no bone found";
@@ -251,67 +256,34 @@ computeORBDescriptor(frame, person.joints, jDes);
 			{
 				RoboCompHumanPose::humansDetected humanD;
 				humanD.humanList = pList;
-				if(camera == "cameraT")
-				{
-					humanD.idCamera = 0;
-					humanD.timeStamp = timeStamp1;
-				}
-				else{
-					humanD.idCamera = 1;
-					humanD.timeStamp = timeStamp2;
-				}
+				humanD.idCamera = camera_id;
+				humanD.timeStamp = timeStamp[camera_id];
 				humanpose_pubproxy->obtainHumanPose(humanD);
 			}
 		}
 		catch(const Ice::Exception& e)
 		{
-			std::cerr << e.what() << '\n';
+			std::cerr << e.what() << std::endl;
 		}
 	}
 	catch(const Ice::Exception& e)
 	{
-		std::cerr << e.what() << '\n';
-	}
-
-}
-
-void SpecificWorker::readFrameLive(int camera, cv::Mat &frame)
-{
-	auto t0 = std::chrono::high_resolution_clock::now();
-	if (camera == 1)
-	{
-		camcv1 >> frame;
-		timeStamp1 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
-		videoWriter1.write(frame);
-	}
-	else
-	{
-		camcv2 >> frame;
-		timeStamp2 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
-		videoWriter2.write(frame);
+		std::cerr << e.what() << std::endl;
 	}
 }
 
-void SpecificWorker::readFrameVideo(int camera, cv::Mat &frame)
+void SpecificWorker::readFrame(int camera, cv::Mat &frame)
 {
 	auto t0 = std::chrono::high_resolution_clock::now();
-	try
-	{
-		if (camera == 1)
-		{
-			camcv1.read(frame);
-			timeStamp1 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
-		}
-		else
-		{
-			camcv2.read(frame);
-			timeStamp2 =  t0.time_since_epoch() / std::chrono::milliseconds(1);
-		}
+	try{
+		cameras[camera].read(frame);
+		timeStamp[camera] =  t0.time_since_epoch() / std::chrono::milliseconds(1);
 	}catch(...)
 	{
-		qDebug()<<"Error reading frame from video";
+		std::cout<<"Error reading frame from camera: "<<camera<<std::endl;
 	}
 }
+
 
 void SpecificWorker::compute()
 {
@@ -332,33 +304,35 @@ void SpecificWorker::compute()
 	cv::Mat dst2;
 	cv::remap(frame, dst2, map1b, map2b, cv::INTER_LINEAR);
 	cv::imshow("remap_auto", dst2);*/
-	cv::Mat frame1, frame2; 
-	//live
+	
+	for(int i=0;i<cameras.size();i++)
+	{
+		cv::Mat frame;
+		cv::Mat framered; 
+		readFrame(i, frame);
+		if(writeVideo)
+			videoWriter[i].write(frame);	
 
-//	readFrameLive(1, frame1);
-//	readFrameLive(2, frame2);
+		cv::resize(frame, framered, cv::Size(640,480));
+
+		checkPersonImage(framered, i);
+	}
 	//video
-	readFrameVideo(1,frame1);
-	readFrameVideo(2,frame2);
-	frame_counter += 1;
+/*	frame_counter += 1;
 	if (frame_counter >= camcv1.get(CV_CAP_PROP_FRAME_COUNT))
 	{
         frame_counter = 0;
         qDebug()<< "RELOOP VIDEO" << camcv1.set(CV_CAP_PROP_POS_FRAMES, 0),camcv2.set(CV_CAP_PROP_POS_FRAMES, 0);
 		return;
 	}
-
+*/
 	//use frame
-	checkPersonImage(frame1, "cameraT");
-//TODO => just one camera
-//	checkPersonImage(frame2, "cameraP");
 	
 //	pMOG2->apply(frame, fgMaskMOG2);
 //	cv::erode(fgMaskMOG2, erode, kernel);
 //	cv::dilate(erode, dilate, kernel);
 //	auto count = cv::countNonZero(fgMaskMOG2);
 
-	
 	auto end = std::chrono::steady_clock::now();
 	std::cout << "Elapsed = " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << std::endl;
 	begin = end;
