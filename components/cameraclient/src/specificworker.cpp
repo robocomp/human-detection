@@ -160,6 +160,11 @@ void SpecificWorker::initVideo()
 		cv::VideoCapture cam = cv::VideoCapture(source);
 		cam.set(CV_CAP_PROP_FRAME_WIDTH, width);
 		cam.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+		if (cam.isOpened() == false)
+		{
+			std::cout<<"Error opening camera: "<< source << " check camera and config file" << std::endl;
+			exit(-1);
+		}
 		cameras.push_back(cam);
 		if(writeVideo)
 		{
