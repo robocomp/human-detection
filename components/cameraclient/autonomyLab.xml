@@ -130,65 +130,65 @@
 				<plane id="planeTag00" nz="-1" size="-348,348,10"   texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0.png" />
 			<!-- CAMERAS -->
 				<transform id="cam1Translation" tx="2214.850830" ty="252.174255" tz="-3230.291992" rx="0.424422" ry="-0.671550" rz="1.811220"  >
-					<rgbd id="rgbd1" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
+					<rgbd id="camera1" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
 					<plane id="cam1_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
 				</transform>
 				<transform id="cam2Translation" tx="25.470093" ty="-3442.829102" tz="-3461.852783" rx="-0.914222" ry="-0.326684" rz="-0.122960"  >
-					<rgbd id="rgbd2" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
+					<rgbd id="camera2" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
 					<plane id="cam2_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
 				</transform>
 				<transform id="cam3Translation" tx="-60.905029" ty="3559.683350" tz="-3483.345703" rx="0.955583" ry="0.344598" rz="3.035972"  >
-					<rgbd id="rgbd3" focal="333" width="640" height="480" port="10096" noise="0.00" ifconfig="40000,50000" />
+					<rgbd id="camera3" focal="333" width="640" height="480" port="10096" noise="0.00" ifconfig="40000,50000" />
 					<plane id="cam3_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
 				</transform>
 			</transform>
             
             
 			<!-- ROOM B -->
-			<transform id="pared7" tx="4593.4101565" tz="105.78302" ty="950" >
-				<plane id="muro7" nx="42.76941" nz="309.890625" size="312.828102789,1900,9"  texture="#008800" />
+			<transform id="pared7" tx="4593.4101565" tz="105.78302" ty="1450" >
+				<plane id="muro7" nx="42.76941" nz="309.890625" size="312.828102789,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared8" tx="4744.1069335" tz="-70.0668945" ty="950" >
-				<plane id="muro8" nx="308.930419" nz="-8.497071" size="309.047252049,1900,9"  texture="#008800" />
+			<transform id="pared8" tx="4744.1069335" tz="-70.0668945" ty="1450" >
+				<plane id="muro8" nx="308.930419" nz="-8.497071" size="309.047252049,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared9" tx="5408.647705" tz="-222.950745" ty="950" >
-				<plane id="muro9" nx="-3.162842" nz="1337.578614" size="1337.58235343,1900,9"  texture="#008800" />
+			<transform id="pared9" tx="5408.647705" tz="-222.950745" ty="1450" >
+				<plane id="muro9" nx="-3.162842" nz="1337.578614" size="1337.58235343,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared10" tx="6087.995361" tz="-598.3643495" ty="950" >
-				<plane id="muro10" nx="753.990051" nz="21.117676" size="754.285723878,1900,9"  texture="#008800" />
+			<transform id="pared10" tx="6087.995361" tz="-598.3643495" ty="1450" >
+				<plane id="muro10" nx="753.990051" nz="21.117676" size="754.285723878,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared11" tx="6501.73291" tz="-981.21698" ty="950" >
-				<plane id="muro11" nx="11.71521" nz="806.358398" size="806.443495956,1900,9"  texture="#008800" />
+			<transform id="pared11" tx="6501.73291" tz="-981.21698" ty="1450" >
+				<plane id="muro11" nx="11.71521" nz="806.358398" size="806.443495956,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared12" tx="6895.427734" tz="-2179.236023" ty="950" >
-				<plane id="muro12" nx="2384.322876" nz="-18.96875" size="2384.39832882,1900,9"  texture="#008800" />
+			<transform id="pared12" tx="6895.427734" tz="-2179.236023" ty="1450" >
+				<plane id="muro12" nx="2384.322876" nz="-18.96875" size="2384.39832882,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared13" tx="5404.627197" tz="-3447.184326" ty="950" >
-				<plane id="muro13" nx="151.57373" nz="-2962.632324" size="2966.5071857,1900,9"  texture="#008800" />
+			<transform id="pared13" tx="5404.627197" tz="-3447.184326" ty="1450" >
+				<plane id="muro13" nx="151.57373" nz="-2962.632324" size="2966.5071857,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared14" tx="3928.830322" tz="-3720.036865" ty="950" >
-				<plane id="muro14" nx="394.131348" nz="11.038574" size="394.285898292,1900,9"  texture="#008800" />
+			<transform id="pared14" tx="3928.830322" tz="-3720.036865" ty="1450" >
+				<plane id="muro14" nx="394.131348" nz="11.038574" size="394.285898292,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared15" tx="3728.9559325" tz="-3931.4294435" ty="950" >
-				<plane id="muro15" nx="28.654785" nz="-410.787353" size="411.785558377,1900,9"  texture="#008800" />
+			<transform id="pared15" tx="3728.9559325" tz="-3931.4294435" ty="1450" >
+				<plane id="muro15" nx="28.654785" nz="-410.787353" size="411.785558377,2900,9"  texture="#008800" />
 			</transform>
 			<!-- "lateral habitacion A derecha" -->
-			<transform id="1pared1" tx="1771.4277345" tz="-4100" ty="950" >
-				<plane id="1muro1" nx="-165.011719" nz="3442.443847" size="3500,1900"  texture="#008800" />
+			<transform id="1pared1" tx="1771.4277345" tz="-4100" ty="1450" >
+				<plane id="1muro1" nx="-165.011719" nz="3442.443847" size="3500,2900"  texture="#008800" />
 			</transform>
 			<!-- "frontal habitacion A entrada derecha" -->
-			<transform id="1pared0" tx="96.8421635" tz="-2989.551636" ty="950" ry="-0.05">
-				<plane id="1muro0" nx="2484.26001" nz="86.727295" size="2590,1900,9"  texture="#00FFFF" />
+			<transform id="1pared0" tx="96.8421635" tz="-2989.551636" ty="1450" ry="-0.05">
+				<plane id="1muro0" nx="2484.26001" nz="86.727295" size="2590,2900,9"  texture="#00FFFF" />
 			</transform>
 			<!-- recibidor lateral derecha -->
-			<transform id="1pared4" tx="-1038.0255125" tz="-1739.7702635" ty="950" ry="0.025" >
-				<plane id="1muro4" nx="125.657227" nz="-2037.280517" size="2041,1900"  texture="#008800" />
+			<transform id="1pared4" tx="-1038.0255125" tz="-1739.7702635" ty="1450" ry="0.025" >
+				<plane id="1muro4" nx="125.657227" nz="-2037.280517" size="2041,2900"  texture="#008800" />
 			</transform>
-			<transform id="pared20" tx="-2030.214111" tz="-980.0798645" ty="950" >
-				<plane id="muro20" nx="-1542.252381" nz="-43.194336" size="1600,1900,9"  texture="#008800" />
+			<transform id="pared20" tx="-2030.214111" tz="-980.0798645" ty="1450" >
+				<plane id="muro20" nx="-1542.252381" nz="-43.194336" size="1600,2900,9"  texture="#008800" />
 			</transform>
-			<transform id="pared21" tx="64.261719" tz="-141.1133725" ty="950" >
-				<plane id="muro21" nx="-135.680603" nz="4232.145996" size="4234.32036548,1900,9"  texture="#008800" />
+			<transform id="pared21" tx="64.261719" tz="-141.1133725" ty="1450" >
+				<plane id="muro21" nx="-135.680603" nz="4232.145996" size="4234.32036548,2900,9"  texture="#008800" />
 			</transform>
 
 
