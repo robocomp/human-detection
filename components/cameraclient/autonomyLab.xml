@@ -125,6 +125,7 @@
 
 		<transform id="room_5">
 			<!-- APRIL -->
+			<!--<transform id="april" tx="3672" tz="-2018" rx="1.57075" rz="1.57075" >-->
 			<transform id="april" tx="3672" tz="-2018" rx="1.57075" rz="1.57075" >
 				<axes id="axes2"/>
 				<plane id="planeTag00" nz="-1" size="-348,348,10"   texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0.png" />

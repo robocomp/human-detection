@@ -75,7 +75,7 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 		{"right_shoulder", 1500}});
 	
 
-		const float fx=830, fy=830, sx=1, sy=1, Ox=320, Oy=240;
+		const float fx=1000/3, fy=1000/2.25, sx=1, sy=1, Ox=320, Oy=240;
 		K = QMat::zeros(3,3);
 		K(0,0) = -fx/sx; K(0,1) = 0.f; 		K(0,2) = Ox;
 		K(1,0) = 0; 	 K(1,1) = -fy/sy; 	K(1,2) = Oy;
@@ -92,6 +92,8 @@ SpecificWorker::~SpecificWorker()
 		cameras[i].release();
 
 	std::cout << "Destroying SpecificWorker" << std::endl;
+	//FILE
+	writefile.close();
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -121,13 +123,16 @@ void SpecificWorker::initialize(int period)
 	personPose->setPos(0, 0);
 
 	innermodel = std::make_shared<InnerModel>(config_params["InnerModelPath"].value);
-/*	//RTMat rt( 0.825561463833, -0.0538341365755, 0.25232693553, 262.576263428, 83.0633926392, 3213.46557617); //tripode
-	RTMat rt( 0.880809009075, 0.0176280960441, -0.391859769821, -386.366424561, -195.634735107, 3453.25854492); //perchero
-	 RTMat rti = rt.invert();
-	 rti.print("rti");
-	 QVec angles = rti.extractAnglesR_min();
-	 angles.print("angles");
-	 exit(-1);
+/*	//RTMat rt( 0.825561463833, -0.0538341365755, 0.25232693553, 262.576263428, 83.0633926392, 3213.46557617); 
+	//RTMat rt( 0.737965762615, 0.268141806126, -1.76533913612, 1030.12792969, -419.619506836, 3763.86743164); //cam1
+	RTMat rt( 0.921807467937, 0.295849949121, -0.186536058784, 1596.12695312, -448.183227539, 4592.34765625); //cam2
+	//RTMat rt( -2.17224001884, -3.42536067963, -0.224267318845, 1678.2298584, -616.77331543, 4648.85888672); //cam3
+
+	RTMat rti = rt.invert();
+	rti.print("rti");
+	QVec angles = rti.extractAnglesR_min();
+	angles.print("angles");
+	exit(-1);
 */
 	pMOG2 = cv::createBackgroundSubtractorMOG2();
 	size_t erosion_size = 2;
@@ -139,7 +144,7 @@ void SpecificWorker::initialize(int period)
 	//cam.run(URL);
 	
 
-	this->Period = 100;
+	this->Period = 30;
 	timer.start(Period);
 
 	initVideo();
@@ -151,15 +156,23 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::initVideo()
 {
+//std::cout << cv::getBuildInformation()<<std::endl;
 	int width = QString::fromStdString(config_params["width"].value).toInt();
 	int height = QString::fromStdString(config_params["height"].value).toInt();
 	for(int i=0;i < ncameras; i++)
 	{
 		std::string s = QString::number(i).toStdString();
 		std::string source = config_params["camera.Params_" + s +".source"].value;
+std::cout<<"before creation "<<source<<std::endl;		
 		cv::VideoCapture cam = cv::VideoCapture(source);
-		cam.set(CV_CAP_PROP_FRAME_WIDTH, width);
-		cam.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+//cv::VideoCapture cam = cv::VideoCapture("rtspsrc location=rtsp://camera2:opticalflow2@158.49.247.144:88/videoMain ! decodebin ! videoconvert ! appsink max-buffers=1 drop=true");
+//cv::VideoCapture cam = cv::VideoCapture("rtspsrc location=rtsp://camera2:opticalflow2@158.49.247.144:88/videoMain latency=20 ! rtph264depay !omxh264dec !  appsink max-buffers=1 drop=true", cv::CAP_GSTREAMER);
+std::cout<<"after creation"<<std::endl;
+		//cam.set(CV_CAP_PROP_FRAME_WIDTH, width);
+		//cam.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+	//FILE
+//cam.run("http://158.49.247.190:88/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr=camera1&pwd=opticalflow1");
+	writefile.open(source+".txt");
 		if (cam.isOpened() == false)
 		{
 			std::cout<<"Error opening camera: "<< source << " check camera and config file" << std::endl;
@@ -234,13 +247,18 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, int camera_id)
 		drawBody(frame, people, camera);
 		RoboCompHumanPose::personList pList;
 		int id =0;
+//FILE
+writefile << "9999"<<";"<<"9999"<<"\n";
 		for(auto &person : people)
 		{
 			RoboCompHumanPose::JointsDescriptor jDes;
 //computeORBDescriptor(frame, person.joints, jDes);			
 			QVec coor = getFloorCoordinates(person, camera);
-			if(coor.isEmpty()) 
+			if(coor.isEmpty()){
 				qDebug() << "no bone found";
+//FILE
+writefile << "0"<<";"<<"0"<<"\n";
+			}
 			else
 			{ 
 				std::cout << "Flor coor: " << coor.x() <<" "<< coor.y() <<" "<< coor.z() <<std::endl;
@@ -253,8 +271,11 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, int camera_id)
 				pType.pos.z = coor.z();
 				pType.jointsDescriptor = jDes;
 				pList.push_back(pType);
+//FILE
+writefile << coor.x()<<";"<<coor.z()<<"\n";
 			}
 		}
+
 		//publish_results
 		try{
 			if(pList.size() > 0)
@@ -281,7 +302,11 @@ void SpecificWorker::readFrame(int camera, cv::Mat &frame)
 {
 	auto t0 = std::chrono::high_resolution_clock::now();
 	try{
-		cameras[camera].read(frame);
+		//cameras[camera].read(frame);
+
+		cameras[camera].grab();
+		cameras[camera].retrieve(frame);
+
 		timeStamp[camera] =  t0.time_since_epoch() / std::chrono::milliseconds(1);
 	}catch(...)
 	{
@@ -294,9 +319,9 @@ void SpecificWorker::compute()
 {
 	static auto begin = std::chrono::steady_clock::now();
 	//URL
-	/*auto [ret, frame] = cam.read(); //access without copy
-	if(ret == false) return;
-	
+	//auto [ret, frame] = cam.read(); //access without copy
+	//if(ret == false) return;
+	/*
 	//remap
 	cv::Mat undistor;
 	cv::undistort(frame, undistor, mtx, dist);
@@ -319,8 +344,7 @@ void SpecificWorker::compute()
 			videoWriter[i].write(frame);	
 
 		cv::resize(frame, framered, cv::Size(640,480));
-
-		checkPersonImage(framered, i);
+		checkPersonImage(frame, i);
 	}
 	//video
 /*	frame_counter += 1;
@@ -345,16 +369,16 @@ void SpecificWorker::compute()
 
 QVec SpecificWorker::getFloorCoordinates(const RoboCompPeopleServer::Person &p, const std::string &camera)
 {
-	qDebug() << __FUNCTION__;
+	std::cout << __FUNCTION__<<camera<<std::endl;
 	{
 		auto &&[good, coor] = inverseRay(p, "left_ankle", camera);	
 	 	if(good) return coor;
 	}
-	{
+/*	{
 		auto &&[good, coor] = inverseRay(p, "right_ankle", camera);	
 		if(good) return coor;
 	}
-/*	{
+	{
 		auto &&[good, coor] = inverseRay(p, "left_knee", camera);	
 		if(good) return coor;
 	}
@@ -375,21 +399,20 @@ std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::P
 	auto j = &p.joints.at(joint);	
 	if( j->score != 0 )
 	{
-		//qDebug() << __FUNCTION__ << "entro";
+qDebug() << __FUNCTION__ << "entro"<<QString::fromStdString(camera);
 		QVec p1 = QVec::vec3(j->x, j->y, 1.0);
-		//qDebug() << __FUNCTION__ << "hola";
 std::cout<< "joint "<< joint <<" "<<j->x <<" "<< j->y<<std::endl;
 		QVec p2 = Ki * p1;
-		//qDebug() << __FUNCTION__ << "despues ki";
-//		p2.print("P2");
+qDebug() << __FUNCTION__ << "despues ki";
+p2.print("P2");
 		QMat r = innermodel->getRotationMatrixTo(QString::fromStdString(camera), "world");
 		QVec p3i = r * p2;
 		QVec p3 = innermodel->transform("world", p2, QString::fromStdString(camera));
-//		p3i.print("P3");
+p3i.print("P3");
 		QVec cam = innermodel->transform("world", QString::fromStdString(camera));
-//		cam.print("cam");
+cam.print("cam");
 		QVec p4 = p3 - cam;
-//		p4.print("vector restado");
+//p4.print("vector restado");
 		double k = (-joint_heights.at(joint) - cam.y()) / p4.y();
 		//double k = (- cam.y()) / p4.y();
 		return std::make_tuple(true, cam + (p4 * (T)k));
@@ -476,3 +499,4 @@ cv::drawKeypoints(frameGray, drawKeypoints, frameGray, cv::Scalar(0,255,0));
 std::cout<<"jDes"<<jDes.size()<<std::endl;	
 cv::imshow("orb", frameGray);
 }
+
