@@ -109,17 +109,17 @@ class Person:
 	def predict(self):
 		if self._last_time_predicted != -1:
 			current_time = datetime.datetime.now()
-			seconds_dt = (current_time-self._last_time_predicted).total_seconds()
-			predicted, cov = self.tracker.predict_with_time_diff(seconds_dt)
-			self._pos = Position2D(float(predicted[0]*1000), float(predicted[2]*1000))
+			miliseconds_dt = (self._last_time_detected-current_time).total_seconds() * 1000
+			predicted, cov =self.tracker.predict_with_time_diff(miliseconds_dt)
+			self._pos = Position2D(float(predicted[0]), float(predicted[2]))
 			self._last_time_predicted = current_time
 
 	def update_position(self, position):
 		current_time = datetime.datetime.now()
 		self._last_time_detected = current_time
 		self._last_time_predicted = current_time
-		predicted, cov = self.tracker.update([position.x/1000, position.y/1000])
-		self._pos = Position2D(float(predicted[0]*1000), float(predicted[2]*1000))
+		predicted, cov =self.tracker.update([position.x, position.y])
+		self._pos = Position2D(float(predicted[0]), float(predicted[2]))
 
 
 	# Reset the tracker to this position
@@ -127,13 +127,13 @@ class Person:
 		current_time = datetime.datetime.now()
 		self._last_time_detected = current_time
 		self._last_time_predicted = current_time
-		self.tracker.init_to_position(position.x/1000, position.y/1000)
+		self.tracker.init_to_position(position.x, position.y)
 		self._pos = position
 
 
 	def detection_delta_time(self):
 		current_time = datetime.datetime.now()
-		delta_time = (current_time-self._last_time_detected).total_seconds()
+		delta_time = (current_time-self._last_time_detected).total_seconds() * 1000
 		return delta_time
 
 	def __repr__(self):
