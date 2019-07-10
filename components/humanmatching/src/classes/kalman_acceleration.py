@@ -11,23 +11,23 @@ import math
 class KalmanTracker(KalmanFilter):
     def __init__(self, x=0, y=0):
         super(KalmanTracker, self).__init__(dim_x=6, dim_z=2)
+
+        self.init_to_position(x, y)
+
+    def init_to_position(self, x, y):
         # Measurement Function
         self.H = np.array([[1, 0, 0, 0, 0, 0],
                            [0, 0, 0, 1, 0, 0]])
 
         # Measurement Noise Matrix
-        self.R = np.eye(2) * 0.25  # 0.5 meters2 error
-
-        # Process Noise Matrix
-        # q = Q_discrete_white_noise(dim=3, dt=1, var=0.01)
-        # self.Q = block_diag(q, q)
+        self.R = np.eye(2) * 0.25  # meters2 error
 
 
         # Initial Position X, vel X, ac X, Y, vel Y, ac Y
         self.x = np.array([[x, 0, 0, y, 0, 0]]).T
 
         # Covariance Matrix
-        self.P = self.P * 2.5
+        self.P = self.P * 0.5
 
     def predict_with_time_diff(self, dt):
         self.F = np.array([[1., dt, .5 * dt * dt, 0., 0., 0.],
