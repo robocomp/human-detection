@@ -2,14 +2,23 @@ CommonBehavior.Endpoints=tcp -p 10011
 
 
 # Endpoints for implemented interfaces
-PeopleServerProxy = peopleserver:tcp -h localhost -p 11222
-
+#PeopleServerProxy = peopleserver:tcp -h 158.49.247.239 -p 11222
+PeopleServerProxy = peopleserver:tcp -p 11222
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 
 
 InnerModelPath = world.xml
+lifeVideo = true
+writeVideo = false
+width = 1920
+height = 1080
+numCameras = 2
 
-cameraName = cameraE
+#name, source
+camera.Params_0 = camera1,url1
+camera.Params_1 = camera3,url2
+
+
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

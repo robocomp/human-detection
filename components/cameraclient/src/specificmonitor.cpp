@@ -90,8 +90,31 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	aux.editable = true;
 	configGetString( "","InnerModelPath", aux.value, "nofile");
 	params["InnerModelPath"] = aux;
-	configGetString( "","cameraName", aux.value, "nofile");
-	params["cameraName"] = aux;
+	configGetString( "","writeVideo", aux.value, "false");
+	params["writeVideo"] = aux;
+	configGetString( "","width", aux.value, "640");
+	params["width"] = aux;
+	configGetString( "","height", aux.value, "480");
+	params["height"] = aux;
+
+	configGetString( "","numCameras", aux.value, "0");
+	params["numCameras"] = aux;
+	int ncameras = QString::fromStdString(aux.value).toInt();
+qDebug()<<"ncameras"<<ncameras;	
+//TODO: GenericMonitor has problems reading @ ==> if component is regenerated check configGetString method
+	for (int i=0; i<ncameras; i++)
+	{
+		std::string s = QString::number(i).toStdString();
+		configGetString("", "camera.Params_" + s, aux.value, "");
+		params["camera.Params_" + s] = aux;
+		QStringList list = QString::fromStdString(aux.value).split(",");
+		if (list.size() != 2)
+			qFatal("Error reading camera. Expected 4 params, got %d, check config file.", list.size());
+		aux.value=list[0].toStdString();
+		params["camera.Params_" + s +".name"] = aux;
+		aux.value=list[1].toStdString();
+		params["camera.Params_" + s +".source"] = aux;
+	}
 }
 
 //Check parameters and transform them to worker structure
