@@ -65,15 +65,15 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 		{"right_ear", "right_shoulder"}});
 
 	joint_heights = HUMAN_JOINT_HEIGHTS({
-		{"left_ankle", 100},
-		{"right_ankle", 100},
+		{"left_ankle", 0},
+		{"right_ankle", 0},
 		{"right_knee", 480},
 		{"left_knee", 480},
 		{"left_hip", 900},
 		{"right_hip", 900},
 		{"left_shoulder", 1500},
 		{"right_shoulder", 1500}});
-	
+//TODO: change ankle to 100	
 
 		const float fx=1000/3, fy=1000/2.25, sx=1, sy=1, Ox=320, Oy=240;
 		K = QMat::zeros(3,3);
@@ -123,28 +123,67 @@ void SpecificWorker::initialize(int period)
 	personPose->setPos(0, 0);
 
 	innermodel = std::make_shared<InnerModel>(config_params["InnerModelPath"].value);
-/*	//RTMat rt( 0.825561463833, -0.0538341365755, 0.25232693553, 262.576263428, 83.0633926392, 3213.46557617); 
-	//RTMat rt( 0.737965762615, 0.268141806126, -1.76533913612, 1030.12792969, -419.619506836, 3763.86743164); //cam1
-	RTMat rt( 0.921807467937, 0.295849949121, -0.186536058784, 1596.12695312, -448.183227539, 4592.34765625); //cam2
-	//RTMat rt( -2.17224001884, -3.42536067963, -0.224267318845, 1678.2298584, -616.77331543, 4648.85888672); //cam3
+	/*CAM1*/
+//	cam1 = RTMat( 0.737965762615, 0.268141806126, -1.76533913612, 1030.12792969, -419.619506836, 3763.86743164).invert(); //cam1
+	Rot3DOX c1rx (0.0160948876292);
+	Rot3DOY c1ry (-0.72818338871);
+	Rot3DOZ c1rz (1.56664347649);
+	QMat c1rZYX = c1rx * c1ry * c1rz;
 
-	RTMat rti = rt.invert();
-	rti.print("rti");
-	QVec angles = rti.extractAnglesR_min();
+	cam1 = RTMat();
+	cam1.setR(c1rZYX);
+	cam1.setTr(-93.2905502319, -289.977020264, 3632.88183594);
+	cam1 = cam1.invert();
+	innermodel->getNode("cam1Translation")->setR(cam1.getR());
+	innermodel->getNode("cam1Translation")->setTr(cam1.getTr());
+
+	/*CAM2*/
+//	cam2 = RTMat( 0.921807467937, 0.295849949121, -0.186536058784, 1596.12695312, -448.183227539, 4592.34765625).invert(); //cam2
+	Rot3DOX c2rx (0.904023706913);
+	Rot3DOY c2ry (-0.00980525650084);
+	Rot3DOZ c2rz (-3.0668721199);
+	QMat c2rZYX = c2rx * c2ry *c2rz;
+
+	cam2 = RTMat();
+	cam2.setR(c2rZYX);
+	cam2.setTr(190.045349121, -284.308776855, 4370.49072266);
+	cam2 = cam2.invert();
+	innermodel->getNode("cam2Translation")->setR(cam2.getR());
+	innermodel->getNode("cam2Translation")->setTr(cam2.getTr());
+
+	/*CAM3*/
+//	cam3 = RTMat( -2.17224001884, -3.42536067963, -0.224267318845, 1678.2298584, -616.77331543, 4648.85888672).invert(); //cam3
+	Rot3DOX c3rx (-0.94207662344);
+	Rot3DOY c3ry (0.0282895453274);
+	Rot3DOZ c3rz (0.0459268987179);
+	QMat c3rZYX = c3rx * c3ry *c3rz;
+
+	cam3 = RTMat();
+	cam3.setR(c3rZYX);
+	cam3.setTr(235.665634155, -446.066101074, 4394.38623047);
+	cam3 = cam3.invert();
+	innermodel->getNode("cam3Translation")->setR(cam3.getR());
+	innermodel->getNode("cam3Translation")->setTr(cam3.getTr());
+	
+
+	
+
+	//RTMat rti = rt.invert();
+/*	cam1.print("rti");
+	QVec angles = cam1.extractAnglesR_min();
 	angles.print("angles");
-	exit(-1);
-*/
+	exit(-1);*/
+
 	pMOG2 = cv::createBackgroundSubtractorMOG2();
 	size_t erosion_size = 2;
 	kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE, 
 										cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                         cv::Point( erosion_size, erosion_size ) );
 	
-//	cv::setMouseCallback("camera", mouse_callback, this);
 	//cam.run(URL);
 	
 
-	this->Period = 30;
+	this->Period = 100;
 	timer.start(Period);
 
 	initVideo();
@@ -165,13 +204,12 @@ void SpecificWorker::initVideo()
 		std::string source = config_params["camera.Params_" + s +".source"].value;
 std::cout<<"before creation "<<source<<std::endl;		
 		cv::VideoCapture cam = cv::VideoCapture(source);
-//cv::VideoCapture cam = cv::VideoCapture("rtspsrc location=rtsp://camera2:opticalflow2@158.49.247.144:88/videoMain ! decodebin ! videoconvert ! appsink max-buffers=1 drop=true");
-//cv::VideoCapture cam = cv::VideoCapture("rtspsrc location=rtsp://camera2:opticalflow2@158.49.247.144:88/videoMain latency=20 ! rtph264depay !omxh264dec !  appsink max-buffers=1 drop=true", cv::CAP_GSTREAMER);
+		cv::setMouseCallback(source, mouse_callback, this);
 std::cout<<"after creation"<<std::endl;
 		//cam.set(CV_CAP_PROP_FRAME_WIDTH, width);
 		//cam.set(CV_CAP_PROP_FRAME_HEIGHT, height);
 	//FILE
-//cam.run("http://158.49.247.190:88/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr=camera1&pwd=opticalflow1");
+
 	writefile.open(source+".txt");
 		if (cam.isOpened() == false)
 		{
@@ -242,8 +280,16 @@ void SpecificWorker::checkPersonImage(cv::Mat frame, int camera_id)
 	try
 	{
 		scale = 0.7;
-//RoboCompPeopleServer::People people;		
-		auto people = peopleserver_proxy->processImage(img, 0.7);
+RoboCompPeopleServer::People people;		
+if(newPoint)
+{
+	RoboCompPeopleServer::Person person;		
+	person.joints["left_ankle"] = keypoint;
+	people.push_back(person);
+}
+	
+	
+//		auto people = peopleserver_proxy->processImage(img, 0.7);
 		drawBody(frame, people, camera);
 		RoboCompHumanPose::personList pList;
 		int id =0;
@@ -335,7 +381,7 @@ void SpecificWorker::compute()
 	cv::remap(frame, dst2, map1b, map2b, cv::INTER_LINEAR);
 	cv::imshow("remap_auto", dst2);*/
 	
-	for(int i=0;i<cameras.size();i++)
+	for(unsigned int i=0;i<cameras.size();i++)
 	{
 		cv::Mat frame;
 		cv::Mat framered; 
@@ -445,24 +491,24 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 void SpecificWorker::mouseClick(int  event, int  x, int  y)
 {
 	//set (x,y) reference from image center
-//	x = x - IWIDTH/2;
-//	y = y - IHEIGHT/2;
+	x = x - 640/2;
+	y = y - 480/2;
 	std::cout<<"*************************"<<std::endl;
 	std::cout<<"MOUSE "<< x <<" "<< y<<std::endl;
 	std::cout<<"*************************"<<std::endl;
-/*	newPoint = true;
+	newPoint = true;
 	keypoint.x = x;
 	keypoint.y = y;
-*/
-	
 
+	
+/*
 	float cx = 651;
 	float cy = 512;
 	float f = 1404;
 	float z = 853;
 	float xw = z/f * (x-cx);
 	float yw = z/f * (y-cy);
-	std::cout<<"Image point: "<<x<<" "<<y<<" corrected center(x-cx) "<<(x-cx)<<" (y-cy) "<<y-cy<<" 3D "<<xw<<" "<<yw<<endl;
+	std::cout<<"Image point: "<<x<<" "<<y<<" corrected center(x-cx) "<<(x-cx)<<" (y-cy) "<<y-cy<<" 3D "<<xw<<" "<<yw<<endl;*/
 }
 
 void SpecificWorker::computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints, RoboCompHumanPose::JointsDescriptor &jDes)

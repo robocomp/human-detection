@@ -93,6 +93,7 @@ private:
 	QVec getFloorCoordinates(const RoboCompPeopleServer::Person &person, const std::string &camera);
 	std::tuple<bool, QVec> inverseRay(const RoboCompPeopleServer::Person &p, const std::string &joint, const std::string &camera);
 	QMat K, Ki;
+	RTMat cam1, cam2, cam3;
 	//descriptor
 	cv::Ptr<cv::ORB> orb;
 	void computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints, RoboCompHumanPose::JointsDescriptor &jDes);
@@ -106,6 +107,7 @@ static void mouse_callback(int event, int x, int y, int, void* userdata)
 		// Check for null pointer in userdata and handle the error
 		SpecificWorker* worker = reinterpret_cast<SpecificWorker*>(userdata);
 		worker->mouseClick(event, x, y);
+		std::cout<<"mouse_callback";
 	}
 }
 
