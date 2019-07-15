@@ -77,7 +77,7 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 
 		const float fx=1000/3, fy=1000/2.25, sx=1, sy=1, Ox=320, Oy=240;
 		K = QMat::zeros(3,3);
-		K(0,0) = -fx/sx; K(0,1) = 0.f; 		K(0,2) = Ox;
+		K(0,0) = fx/sx; K(0,1) = 0.f; 		K(0,2) = Ox;
 		K(1,0) = 0; 	 K(1,1) = -fy/sy; 	K(1,2) = Oy;
 		K(2,0) = 0;		 K(2,1) = 0;		K(2,2) = 1;
 		Ki = K.invert();
@@ -125,48 +125,60 @@ void SpecificWorker::initialize(int period)
 	innermodel = std::make_shared<InnerModel>(config_params["InnerModelPath"].value);
 	/*CAM1*/
 //	cam1 = RTMat( 0.737965762615, 0.268141806126, -1.76533913612, 1030.12792969, -419.619506836, 3763.86743164).invert(); //cam1
-	Rot3DOX c1rx (0.0160948876292);
+	Rot3DOX c1rx (-0.0160948876292);
 	Rot3DOY c1ry (-0.72818338871);
 	Rot3DOZ c1rz (1.56664347649);
-	QMat c1rZYX = c1rx * c1ry * c1rz;
+	QMat c1rZYX = c1rz * c1ry * c1rx;
 
 	cam1 = RTMat();
 	cam1.setR(c1rZYX);
 	cam1.setTr(-93.2905502319, -289.977020264, 3632.88183594);
 	cam1 = cam1.invert();
+
 	innermodel->getNode("cam1Translation")->setR(cam1.getR());
 	innermodel->getNode("cam1Translation")->setTr(cam1.getTr());
 
 	/*CAM2*/
 //	cam2 = RTMat( 0.921807467937, 0.295849949121, -0.186536058784, 1596.12695312, -448.183227539, 4592.34765625).invert(); //cam2
-	Rot3DOX c2rx (0.904023706913);
+	Rot3DOX c2rx (-0.904023706913);
 	Rot3DOY c2ry (-0.00980525650084);
 	Rot3DOZ c2rz (-3.0668721199);
-	QMat c2rZYX = c2rx * c2ry *c2rz;
+	QMat c2rZYX = c2rz * c2ry *c2rx;
 
 	cam2 = RTMat();
 	cam2.setR(c2rZYX);
 	cam2.setTr(190.045349121, -284.308776855, 4370.49072266);
 	cam2 = cam2.invert();
+cam2.print("cam2");
 	innermodel->getNode("cam2Translation")->setR(cam2.getR());
 	innermodel->getNode("cam2Translation")->setTr(cam2.getTr());
 
 	/*CAM3*/
 //	cam3 = RTMat( -2.17224001884, -3.42536067963, -0.224267318845, 1678.2298584, -616.77331543, 4648.85888672).invert(); //cam3
-	Rot3DOX c3rx (-0.94207662344);
+	Rot3DOX c3rx (0.94207662344);
 	Rot3DOY c3ry (0.0282895453274);
 	Rot3DOZ c3rz (0.0459268987179);
-	QMat c3rZYX = c3rx * c3ry *c3rz;
+	QMat c3rZYX = c3rz * c3ry *c3rx;
 
 	cam3 = RTMat();
 	cam3.setR(c3rZYX);
 	cam3.setTr(235.665634155, -446.066101074, 4394.38623047);
 	cam3 = cam3.invert();
+cam3.print("cam3");	
 	innermodel->getNode("cam3Translation")->setR(cam3.getR());
 	innermodel->getNode("cam3Translation")->setTr(cam3.getTr());
 	
 
-	
+QVec p1 = QVec::vec3(3672, 0, -2018 );
+QVec pCam1 = innermodel->transform("cam1Translation",p1, "world");
+pCam1.print("pCam1");	
+QVec pCam2 = innermodel->transform("cam2Translation",p1, "world");
+pCam2.print("pCam2");	
+QVec pCam3 = innermodel->transform("cam3Translation",p1, "world");
+pCam3.print("pCam3");	
+
+innermodel->save("cameras_pose.xml");
+
 
 	//RTMat rti = rt.invert();
 /*	cam1.print("rti");
@@ -204,7 +216,6 @@ void SpecificWorker::initVideo()
 		std::string source = config_params["camera.Params_" + s +".source"].value;
 std::cout<<"before creation "<<source<<std::endl;		
 		cv::VideoCapture cam = cv::VideoCapture(source);
-		cv::setMouseCallback(source, mouse_callback, this);
 std::cout<<"after creation"<<std::endl;
 		//cam.set(CV_CAP_PROP_FRAME_WIDTH, width);
 		//cam.set(CV_CAP_PROP_FRAME_HEIGHT, height);
@@ -445,16 +456,23 @@ std::tuple<bool, QVec>  SpecificWorker::inverseRay(const RoboCompPeopleServer::P
 	auto j = &p.joints.at(joint);	
 	if( j->score != 0 )
 	{
+QVec p1111 = QVec::vec3(5672,0, -2018);
+	QVec pAS = innermodel->getNode<InnerModelRGBD>("camera1")->project("world", p1111);
+pAS.print("coordenadas en");
+	Cam cameraX = innermodel->getNode<InnerModelRGBD>("camera1")->camera;
+cameraX.print("camera_matrix");	
+	QVec ray = cameraX.getRay(QVec::vec2(pAS.x(), pAS.y()));
+	ray.print("ray");
+
+
 qDebug() << __FUNCTION__ << "entro"<<QString::fromStdString(camera);
 		QVec p1 = QVec::vec3(j->x, j->y, 1.0);
 std::cout<< "joint "<< joint <<" "<<j->x <<" "<< j->y<<std::endl;
 		QVec p2 = Ki * p1;
 qDebug() << __FUNCTION__ << "despues ki";
 p2.print("P2");
-		QMat r = innermodel->getRotationMatrixTo(QString::fromStdString(camera), "world");
-		QVec p3i = r * p2;
 		QVec p3 = innermodel->transform("world", p2, QString::fromStdString(camera));
-p3i.print("P3");
+p3.print("P3");
 		QVec cam = innermodel->transform("world", QString::fromStdString(camera));
 cam.print("cam");
 		QVec p4 = p3 - cam;
@@ -469,10 +487,12 @@ cam.print("cam");
 
 void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People &people, std::string camera)
 {
+	cv::setMouseCallback(camera, mouse_callback, this);
 	for(auto &p : people)
 	{
 		qDebug() << __FUNCTION__ <<"person id = "<<p.id;
-		for (auto &[first, second] : skeleton)
+//TODO: Uncomment to draw body
+/*		for (auto &[first, second] : skeleton)
 		{
 			auto j1 = &p.joints.at(first);
 			auto j2 = &p.joints.at(second);
@@ -482,7 +502,7 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 				cv::circle(frame,cv::Point(j2->x, j2->y),10,cv::Scalar(0,0,255));
 			if (j1->score > 0 and j2->score > 0)
 				cv::line(frame, cv::Point(j1->x, j1->y), cv::Point(j2->x, j2->y), cv::Scalar(0,255,0), 2);
-		}
+		}*/
 	}
 	cv::imshow(camera, frame);
 	cvWaitKey(1);
@@ -491,14 +511,15 @@ void SpecificWorker::drawBody(cv::Mat frame, const RoboCompPeopleServer::People 
 void SpecificWorker::mouseClick(int  event, int  x, int  y)
 {
 	//set (x,y) reference from image center
-	x = x - 640/2;
-	y = y - 480/2;
+	//x = x - 640/2;
+	//y = y - 480/2;
 	std::cout<<"*************************"<<std::endl;
 	std::cout<<"MOUSE "<< x <<" "<< y<<std::endl;
 	std::cout<<"*************************"<<std::endl;
 	newPoint = true;
 	keypoint.x = x;
 	keypoint.y = y;
+	keypoint.score = 100;
 
 	
 /*
