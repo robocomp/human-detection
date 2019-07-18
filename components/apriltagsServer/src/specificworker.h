@@ -58,8 +58,9 @@ private:
     cv::Mat image_gray, image_color;
     RoboCompAprilTagsServer::tag send_detection(::AprilTags::TagDetection detection, double tagsize, double mfx, double mfy, double mpx, double mpy);
     void rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz);
+    void rotationFromMatrix2(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz);
 
 
 };
-
+inline double standardRad(double t);
 #endif

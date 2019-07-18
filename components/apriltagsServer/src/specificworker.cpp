@@ -44,8 +44,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
     m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
-    image_gray.create(480,640,CV_8UC1);
-    image_color.create(480,640,CV_8UC3);
+    //image_gray.create(480,640,CV_8UC1);
+    //image_color.create(480,640,CV_8UC3);
+    image_gray.create(1080,1920,CV_8UC1);
+    image_color.create(1080,1920,CV_8UC3);
     return true;
 }
 
@@ -65,12 +67,11 @@ void SpecificWorker::compute()
 
 tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy)
 {
-    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<endl;
+ //   cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<" resolution: ("<<frame.frmt.width<<","<<frame.frmt.height<<")"<<endl;
     RoboCompAprilTagsServer::tagsList tagsList1;
     try
     {
         memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
-        qDebug()<<"resolution"<<frame.frmt.width<<frame.frmt.height;
         cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
         vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
         std::cout << detections.size() << " tags detected:" << std::endl;
@@ -103,13 +104,33 @@ void SpecificWorker::rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, do
     rz = ret(2);
 
 }
-
+void SpecificWorker::rotationFromMatrix2(const Eigen::Matrix3d &wRo, double &yaw, double &pitch, double &roll) {
+    yaw = standardRad(atan2(wRo(1,0), wRo(0,0)));
+    double c = cos(yaw);
+    double s = sin(yaw);
+    pitch = standardRad(atan2(-wRo(2,0), wRo(0,0)*c + wRo(1,0)*s));
+    roll = standardRad(atan2(wRo(0,2)*s - wRo(1,2)*c, -wRo(0,1)*s + wRo(1,1)*c));
+}
+/**
+ * Normalize angle to be within the interval [-pi,pi].
+ */
+const double PI = 3.14159265358979323846;
+const double TWOPI = 2.0*PI;
+inline double standardRad(double t) {
+  if (t >= 0.) {
+    t = fmod(t+PI, TWOPI) - PI;
+  } else {
+    t = fmod(t-PI, -TWOPI) + PI;
+  }
+  return t;
+}
 RoboCompAprilTagsServer::tag SpecificWorker::send_detection(::AprilTags::TagDetection detection, double tagsize, double mfx, double mfy, double mpx, double mpy)
 {
-    cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ") ";
+//    cout << "  Id: " << detection.id << " (Hamming: " << detection.hammingDistance << ") "<<endl;
     Eigen::Vector3d translation;
     Eigen::Matrix3d rotation;
     detection.getRelativeTranslationRotation(tagsize, mfx, mfy, mpx, mpy, translation, rotation);
+cout <<rotation <<endl;
     QVec T(3);
     T(0) = -translation(1);//*0.65;
     T(1) =  translation(2);//*0.65;
@@ -120,8 +141,14 @@ RoboCompAprilTagsServer::tag SpecificWorker::send_detection(::AprilTags::TagDete
 
     double rx, ry, rz;
     rotationFromMatrix(fixed_rot, rx, ry, rz);
+//    cout << "ORIGINAL ROTATION"<<endl;
     cout << mfx << "  " << mfy << endl;
-    cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+    cout << "ORI  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+    
+//    cout << "NEW ROTATION"<<endl;
+    rotationFromMatrix2(fixed_rot, rz, ry, rx);
+    cout << mfx << "  " << mfy << endl;
+    cout << "NEW  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 
     RoboCompAprilTagsServer::tag t;
     t.id=detection.id;
@@ -133,5 +160,5 @@ RoboCompAprilTagsServer::tag SpecificWorker::send_detection(::AprilTags::TagDete
     t.rz=rz;
 
     return t;
-
 }
+
