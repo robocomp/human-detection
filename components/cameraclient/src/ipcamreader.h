@@ -7,6 +7,7 @@
 #include <opencv2/opencv.hpp>
 #include <curl/curl.h>
 #include <chrono>
+#include <thread>
 
 static std::queue<cv::Mat> micola;
 

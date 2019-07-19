@@ -145,7 +145,7 @@ void SpecificWorker::initialize(int period)
 	cam2.setR(c2rZYX);
 	cam2.setTr(217.058700562, -190.08354187, 4365.43603516);
 	cam2 = cam2.invert();
-cam2.print("cam2");
+
 	innermodel->getNode("cam2Translation")->setR(cam2.getR());
 	innermodel->getNode("cam2Translation")->setTr(cam2.getTr());
 
@@ -159,7 +159,7 @@ cam2.print("cam2");
 	cam3.setR(c3rZYX);
 	cam3.setTr(-25.1116256714, 288.730499268, 4390.10351562);
 	cam3 = cam3.invert();
-cam3.print("cam3");	
+
 	innermodel->getNode("cam3Translation")->setR(cam3.getR());
 	innermodel->getNode("cam3Translation")->setTr(cam3.getTr());
 	
@@ -173,7 +173,7 @@ cam3.print("cam3");
 	//cam.run(URL);
 	
 
-	this->Period = 100;
+	this->Period = 30;
 	timer.start(Period);
 
 	initVideo();

@@ -29,10 +29,10 @@
 	#include <QtGui>
 #endif
 #include <ui_mainUI.h>
-
 #include <CommonBehavior.h>
 
 #include <HumanPose.h>
+#include <AprilTagsServer.h>
 #include <PeopleServer.h>
 
 #define CHECK_PERIOD 5000
@@ -40,9 +40,10 @@
 
 using namespace std;
 using namespace RoboCompHumanPose;
+using namespace RoboCompAprilTagsServer;
 using namespace RoboCompPeopleServer;
 
-using TuplePrx = std::tuple<RoboCompPeopleServer::PeopleServerPrxPtr,RoboCompHumanPose::HumanPosePrxPtr>;
+using TuplePrx = std::tuple<RoboCompAprilTagsServer::AprilTagsServerPrxPtr,RoboCompPeopleServer::PeopleServerPrxPtr,RoboCompHumanPose::HumanPosePrxPtr>;
 
 
 class GenericWorker :
@@ -63,11 +64,13 @@ public:
 	QMutex *mutex;
 
 
+	AprilTagsServerPrxPtr apriltagsserver_proxy;
 	PeopleServerPrxPtr peopleserver_proxy;
 	HumanPosePrxPtr humanpose_pubproxy;
 
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -76,7 +79,8 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-	virtual void initialize(int period) = 0;
+    virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };
