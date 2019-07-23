@@ -38,6 +38,8 @@
 
 #define IWIDTH 640//1280
 #define IHEIGHT 480//960
+#define APRILWIDTH 1280
+#define APRILHEIGHT 720
 #define DESCRIPTOR_SIZE 10
 
 using SKELETON_CONNECTIONS = std::vector<std::tuple<std::string, std::string>>;
@@ -97,6 +99,9 @@ private:
 	//descriptor
 	cv::Ptr<cv::ORB> orb;
 	void computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints, RoboCompHumanPose::JointsDescriptor &jDes);
+	//april
+	RoboCompAprilTagsServer::Image aprilImage;
+	void computeAprilPosition(cv::Mat frame, int id_camera);
 };
 
 //OpenCV Mouse callback

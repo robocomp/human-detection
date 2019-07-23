@@ -181,6 +181,11 @@ void SpecificWorker::initialize(int period)
 	//createRemap(480, 640, -0.122435, -0.0633192, 0.362244);
 //	createRemap(480, 640, 0.000001,0.000000000001,0);
 
+	//april
+	aprilImage.frmt.width = APRILWIDTH;
+	aprilImage.frmt.height = APRILHEIGHT;
+	aprilImage.data.resize(aprilImage.frmt.width * aprilImage.frmt.height *3 );
+
 }
 
 void SpecificWorker::initVideo()
@@ -371,7 +376,8 @@ void SpecificWorker::compute()
 			videoWriter[i].write(frame);	
 
 		cv::resize(frame, framered, cv::Size(640,480));
-		checkPersonImage(frame, i);
+//		checkPersonImage(frame, i);
+		computeAprilPosition(frame, i);
 	}
 	//video
 /*	frame_counter += 1;
@@ -507,3 +513,35 @@ std::cout<<"jDes"<<jDes.size()<<std::endl;
 cv::imshow("orb", frameGray);
 }
 
+void SpecificWorker::computeAprilPosition(cv::Mat frame, int id_camera)
+{
+	std::string s = QString::number(id_camera).toStdString();
+	std::string camera = config_params["camera.Params_" + s +".name"].value;
+	try
+	{
+		memcpy(&aprilImage.data[0], &frame.data[0], aprilImage.frmt.width * aprilImage.frmt.height*3);
+		RoboCompAprilTagsServer::tagsList tags = apriltagsserver_proxy->getAprilTags(aprilImage, 384, 1000/1.5, 1000/1.5);
+
+cv::imshow(camera, frame);
+		if(tags.size() > 0)
+		{
+			for (auto tag: tags)
+			{
+				QVec p = QVec::vec3(tag.tx, tag.ty, tag.tz);
+				QVec w = innermodel->transform("world", p, QString::fromStdString(camera));
+
+				std::cout<<"Position "<<tag.tx <<";"<< tag.ty << ";" << tag.tz <<";"<<std::endl;
+				std::cout<<"World "<< w.x() <<";"<< w.y() << ";" << w.z() <<";"<<std::endl;
+				writefile << w.x() <<";"<< w.z() <<"\n";
+			}
+		}
+		else // No tag
+		{
+			writefile << "9999" <<";"<< "9999" <<"\n";
+		}
+	}
+	catch(const Ice::Exception& e)
+	{
+		std::cerr <<"Error connecting to ArpilTags: "<< e.what() << std::endl;
+	}
+}
