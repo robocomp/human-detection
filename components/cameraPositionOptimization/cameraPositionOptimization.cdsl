@@ -1,0 +1,9 @@
+
+Component cameraPositionOptimization
+{
+    Communications
+    {
+    };
+	language Cpp11;
+};
+
