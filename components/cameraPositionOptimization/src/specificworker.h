@@ -27,6 +27,8 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
+#include <fstream>
+
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 
@@ -37,13 +39,18 @@ public:
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
+	QVec converToWorld(QString camera, float tx, float ty, float tz, float rx, float ry, float rz);
+	void setCameraPositions();
+
+	RTMat cam1, cam2, cam3;
+	float euclidean3D_distance(QVec p1, QVec p2);
 
 
 public slots:
 	void compute();
 	void initialize(int period);
 private:
-	std::shared_ptr<InnerModel> innerModel;
+	std::shared_ptr<InnerModel> innermodel;
 
 };
 

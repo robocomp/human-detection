@@ -2,7 +2,7 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 
-InnerModelPath = innermodel.xml
+InnerModelPath = autonomyLab.xml
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
