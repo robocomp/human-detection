@@ -43,7 +43,7 @@ public:
 	void setCameraPositions();
 
 	RTMat cam1, cam2, cam3;
-	float euclidean3D_distance(QVec p1, QVec p2);
+	float euclidean3D_distance(const QVec &p1, const QVec &p2);
 
 
 public slots:

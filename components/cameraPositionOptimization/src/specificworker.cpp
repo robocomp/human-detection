@@ -108,7 +108,8 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-
+	int lines = 1;
+	float dist_error = 0.f;
 	std::ifstream infile("april.txt");
 	std::string line;
 	while (std::getline(infile, line))
@@ -117,22 +118,27 @@ void SpecificWorker::compute()
 		qDebug()<<"Frame"<<list[0];
 		QVec p1 = converToWorld(list[1], list[2].toFloat(), list[3].toFloat(), list[4].toFloat(), list[5].toFloat(), list[6].toFloat(), list[7].toFloat());
 		QVec p2 = converToWorld(list[8], list[9].toFloat(), list[10].toFloat(), list[11].toFloat(), list[12].toFloat(), list[13].toFloat(), list[14].toFloat());
-		p1.print("p1");
-		p2.print("p2");
-		if (list.size() < 15) // Only two cameras
+
+		if (list.size() <= 15) // Only two cameras
 		{
-			float dist_error = euclidean3D_distance(p1, p2);
-			qDebug()<< "distance error"<<dist_error;
+			float error = euclidean3D_distance(p1, p2);
+			qDebug()<< "distance error"<<error;
+			dist_error += error;
 		}
 		else //three cameras
 		{
 			QVec p3 = converToWorld(list[15], list[16].toFloat(), list[17].toFloat(), list[18].toFloat(), list[19].toFloat(), list[20].toFloat(), list[21].toFloat());
-			qDebug()<<"Three";
+			float d1_2 = euclidean3D_distance(p1, p2);
+			float d1_3 = euclidean3D_distance(p1, p3);
+			float d2_3 = euclidean3D_distance(p2, p3);
+			dist_error += (d1_2 + d1_3 + d2_3)/3.f;
+			
 		}
-		
+		lines++;
 
 
 	}
+	qDebug()<<"lines "<<lines<<" dist_error "<<dist_error/lines;
 	exit(0);
 
 }
@@ -143,12 +149,11 @@ QVec SpecificWorker::converToWorld(QString camera, float tx, float ty, float tz,
 	return innermodel->transform("world", p, camera);
 }
 
-float SpecificWorker::euclidean3D_distance(QVec p1, QVec p2)
+float SpecificWorker::euclidean3D_distance(const QVec &p1, const QVec &p2)
 {
 	float xSqr = (p1.x() - p2.x()) * (p1.x() - p2.x());
 	float ySqr = (p1.y() - p2.y()) * (p1.y() - p2.y());
 	float zSqr = (p1.z() - p2.z()) * (p1.z() - p2.z());
-
 	return sqrt(xSqr + ySqr + zSqr);
 }
 
