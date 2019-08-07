@@ -101,7 +101,8 @@ private:
 	void computeORBDescriptor(cv::Mat frame, RoboCompPeopleServer::TJoints joints, RoboCompHumanPose::JointsDescriptor &jDes);
 	//april
 	RoboCompAprilTagsServer::Image aprilImage;
-	void computeAprilPosition(cv::Mat frame, int id_camera);
+	std::string computeAprilPosition(cv::Mat frame, int id_camera);
+	int valid_frames=0;
 };
 
 //OpenCV Mouse callback

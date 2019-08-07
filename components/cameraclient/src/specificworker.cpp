@@ -193,14 +193,15 @@ void SpecificWorker::initVideo()
 //std::cout << cv::getBuildInformation()<<std::endl;
 	int width = QString::fromStdString(config_params["width"].value).toInt();
 	int height = QString::fromStdString(config_params["height"].value).toInt();
+//Save points in file
+writefile.open("april.txt");
 	for(int i=0;i < ncameras; i++)
 	{
 		std::string s = QString::number(i).toStdString();
 		std::string source = config_params["camera.Params_" + s +".source"].value;
 		cv::VideoCapture cam = cv::VideoCapture(source);
 
-//Save points in file
-writefile.open(source+".txt");
+
 		if (cam.isOpened() == false)
 		{
 			std::cout<<"Error opening camera: "<< source << " check camera and config file" << std::endl;
@@ -366,7 +367,8 @@ void SpecificWorker::compute()
 	cv::Mat dst2;
 	cv::remap(frame, dst2, map1b, map2b, cv::INTER_LINEAR);
 	cv::imshow("remap_auto", dst2);*/
-	
+
+	std::vector<std::string> april(3);	
 	for(unsigned int i=0;i<cameras.size();i++)
 	{
 		cv::Mat frame;
@@ -377,17 +379,28 @@ void SpecificWorker::compute()
 
 		cv::resize(frame, framered, cv::Size(640,480));
 //		checkPersonImage(frame, i);
-		computeAprilPosition(frame, i);
+		april[i] = computeAprilPosition(frame, i);
 	}
-	//video
-/*	frame_counter += 1;
-	if (frame_counter >= camcv1.get(CV_CAP_PROP_FRAME_COUNT))
+	//check if april detected on several cameras
+	int cont = (april[0] != "" ) + (april[1] != "" ) + (april[02] != "" );
+	std::cout <<cont<< "****" <<april[0] <<" " << april[1] <<" "<< april[2]<<std::endl;
+	if (cont >= 2)
 	{
+		writefile << QString::number(valid_frames).toStdString() << " " << april[0]<<" "<<april[1] << april[2]<<"\n";
+		valid_frames++;
+	}
+
+
+	//video
+	frame_counter += 1;
+	if (frame_counter >= cameras[0].get(CV_CAP_PROP_FRAME_COUNT))
+	{
+		exit(0);
         frame_counter = 0;
-        qDebug()<< "RELOOP VIDEO" << camcv1.set(CV_CAP_PROP_POS_FRAMES, 0),camcv2.set(CV_CAP_PROP_POS_FRAMES, 0);
+        //qDebug()<< "RELOOP VIDEO" << camcv1.set(CV_CAP_PROP_POS_FRAMES, 0),camcv2.set(CV_CAP_PROP_POS_FRAMES, 0);
 		return;
 	}
-*/
+
 	//use frame
 	
 //	pMOG2->apply(frame, fgMaskMOG2);
@@ -513,8 +526,9 @@ std::cout<<"jDes"<<jDes.size()<<std::endl;
 cv::imshow("orb", frameGray);
 }
 
-void SpecificWorker::computeAprilPosition(cv::Mat frame, int id_camera)
+std::string SpecificWorker::computeAprilPosition(cv::Mat frame, int id_camera)
 {
+	std::string result = "";
 	std::string s = QString::number(id_camera).toStdString();
 	std::string camera = config_params["camera.Params_" + s +".name"].value;
 	try
@@ -522,7 +536,7 @@ void SpecificWorker::computeAprilPosition(cv::Mat frame, int id_camera)
 		memcpy(&aprilImage.data[0], &frame.data[0], aprilImage.frmt.width * aprilImage.frmt.height*3);
 		RoboCompAprilTagsServer::tagsList tags = apriltagsserver_proxy->getAprilTags(aprilImage, 384, 1000/1.5, 1000/1.5);
 
-cv::imshow(camera, frame);
+//cv::imshow(camera, frame);
 		if(tags.size() > 0)
 		{
 			for (auto tag: tags)
@@ -532,16 +546,22 @@ cv::imshow(camera, frame);
 
 				std::cout<<"Position "<<tag.tx <<";"<< tag.ty << ";" << tag.tz <<";"<<std::endl;
 				std::cout<<"World "<< w.x() <<";"<< w.y() << ";" << w.z() <<";"<<std::endl;
-				writefile << w.x() <<";"<< w.z() <<"\n";
+				result = camera;
+				result += " " + QString::number(w.x()).toStdString();
+				result += " " + QString::number(w.y()).toStdString();
+				result += " " + QString::number(w.z()).toStdString();
+				result += " " + QString::number(w.rx()).toStdString();
+				result += " " + QString::number(w.ry()).toStdString();
+				result += " " + QString::number(w.rz()).toStdString() + " ";
 			}
 		}
 		else // No tag
 		{
-			writefile << "9999" <<";"<< "9999" <<"\n";
 		}
 	}
 	catch(const Ice::Exception& e)
 	{
 		std::cerr <<"Error connecting to ArpilTags: "<< e.what() << std::endl;
 	}
+	return result;
 }
