@@ -556,12 +556,12 @@ std::string SpecificWorker::computeAprilPosition(cv::Mat frame, int id_camera)
 				std::cout<<"Position "<<tag.tx <<";"<< tag.ty << ";" << tag.tz <<";"<<std::endl;
 				std::cout<<"World "<< w.x() <<";"<< w.y() << ";" << w.z() <<";"<<std::endl;
 				result = camera;
-				result += " " + QString::number(w.x()).toStdString();
-				result += " " + QString::number(w.y()).toStdString();
-				result += " " + QString::number(w.z()).toStdString();
-				result += " " + QString::number(w.rx()).toStdString();
-				result += " " + QString::number(w.ry()).toStdString();
-				result += " " + QString::number(w.rz()).toStdString() + " ";
+				result += " " + QString::number(tag.tx).toStdString();
+				result += " " + QString::number(tag.ty).toStdString();
+				result += " " + QString::number(tag.tz).toStdString();
+				result += " " + QString::number(tag.rx).toStdString();
+				result += " " + QString::number(tag.ry).toStdString();
+				result += " " + QString::number(tag.rz).toStdString() + " ";
 			}
 		}
 		else // No tag
