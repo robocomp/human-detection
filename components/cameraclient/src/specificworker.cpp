@@ -384,9 +384,18 @@ void SpecificWorker::compute()
 	//check if april detected on several cameras
 	int cont = (april[0] != "" ) + (april[1] != "" ) + (april[02] != "" );
 	std::cout <<cont<< "****" <<april[0] <<" " << april[1] <<" "<< april[2]<<std::endl;
-	if (cont >= 2)
+	if (cont == 2)
 	{
 		writefile << QString::number(valid_frames).toStdString() << " " << april[0]<<" "<<april[1] << april[2]<<"\n";
+		valid_frames++;
+	}
+	else if (cont == 3)
+	{
+		writefile << QString::number(valid_frames).toStdString() << " " << april[0]<<" "<<april[1]<<"\n";
+		valid_frames++;
+		writefile << QString::number(valid_frames).toStdString() << " " << april[0]<<" "<<april[2]<<"\n";
+		valid_frames++;
+		writefile << QString::number(valid_frames).toStdString() << " " << april[1]<<" "<<april[2]<<"\n";
 		valid_frames++;
 	}
 
