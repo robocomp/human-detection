@@ -41,6 +41,7 @@ private:
 	int cameraChanged;
 	QVec savedCamera;
 	std::vector<QVec> cameras;
+	float lambda, nu;
 public:
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
@@ -52,7 +53,7 @@ public:
 	int randomValue(int min, int max);
 	void restoreCameraValues();
 	float euclidean3D_distance(const QVec &p1, const QVec &p2);
-
+	float compute_distance(const QVec &p1, const QVec &p2);
 
 public slots:
 	void compute();

@@ -44,11 +44,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
 
-
-
-	
-
-
 	return true;
 }
 
@@ -82,6 +77,9 @@ void SpecificWorker::initialize(int period)
 	updateCameraPosition("cam2Translation", cameras.at(1));
 	updateCameraPosition("cam3Translation", cameras.at(2));
 
+	//optimization parameters
+	lambda = 0.1;
+	nu = 0.01;
 
 	//init compute
 	this->Period = period;
@@ -135,22 +133,15 @@ void SpecificWorker::compute()
 
 		if (list.size() <= 15) // Only two cameras
 		{
-			float error = euclidean3D_distance(p1, p2);
+			float error = compute_distance(p1, p2);
 			qDebug()<< "distance error"<<error;
 			dist_error += error;
 		}
 		else //three cameras
 		{
-			QVec p3 = converToWorld(list[15], list[16].toFloat(), list[17].toFloat(), list[18].toFloat(), list[19].toFloat(), list[20].toFloat(), list[21].toFloat());
-			float d1_2 = euclidean3D_distance(p1, p2);
-			float d1_3 = euclidean3D_distance(p1, p3);
-			float d2_3 = euclidean3D_distance(p2, p3);
-			dist_error += (d1_2 + d1_3 + d2_3)/3.f;
-			
+			qDebug()<<"Incorrect file line:"<<lines;	
 		}
 		lines++;
-
-
 	}
 	qDebug()<<"lines "<<lines<<" dist_error "<<dist_error/lines;
 	exit(0);
@@ -161,6 +152,24 @@ QVec SpecificWorker::converToWorld(QString camera, float tx, float ty, float tz,
 {
 	QVec p = QVec::vec6(tx, ty, tz, rx, ry, rz);
 	return innermodel->transform("world", p, camera);
+}
+
+float SpecificWorker::compute_distance(const QVec &p1, const QVec &p2)
+{
+	//traslation
+	QVec t1 = QVec::vec3(p1.x(), p1.y(), p1.z());
+	QVec t2 = QVec::vec3(p2.x(), p2.y(), p2.z());
+	//rotation
+	QVec r1 = QVec::vec3(p1.rx(), p1.ry(), p1.rz());
+	QVec r2 = QVec::vec3(p2.rx(), p2.ry(), p2.rz());
+
+	//distance	
+	float dt = euclidean3D_distance(t1,t2); 
+	float dr = (r1-r2).norm2();
+
+	//error
+	float error = lambda * dt + nu * dr;
+	return error;
 }
 
 float SpecificWorker::euclidean3D_distance(const QVec &p1, const QVec &p2)
