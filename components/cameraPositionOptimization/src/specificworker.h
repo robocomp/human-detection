@@ -28,6 +28,8 @@
 #define SPECIFICWORKER_H
 
 #include <fstream>
+#include <iostream>
+#include <random>
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
@@ -35,16 +37,23 @@
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
+private:
+	int cameraChanged;
+	QVec savedCamera;
+	std::vector<QVec> cameras;
+	float lambda, nu;
 public:
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 	QVec converToWorld(QString camera, float tx, float ty, float tz, float rx, float ry, float rz);
-	void setCameraPositions();
+	void updateCameraPosition(string camera, QVec values);
+	void randomCameraChange();
 
-	RTMat cam1, cam2, cam3;
-	float euclidean3D_distance(QVec p1, QVec p2);
-
+	int randomValue(int min, int max);
+	void restoreCameraValues();
+	float euclidean3D_distance(const QVec &p1, const QVec &p2);
+	float compute_distance(const QVec &p1, const QVec &p2);
 
 public slots:
 	void compute();

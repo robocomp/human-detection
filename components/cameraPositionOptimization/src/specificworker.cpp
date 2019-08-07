@@ -44,71 +44,84 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	}
 	catch(std::exception e) { qFatal("Error reading config params"); }
 
-
-
-	
-
-
 	return true;
 }
 
-void SpecificWorker::setCameraPositions()
+
+
+void SpecificWorker::updateCameraPosition(string camera, QVec values)
 {
-	/*CAM1*/
-	Rot3DOX c1rx (-0.00779854133725); //***********RX inverse SIGN************
-	Rot3DOY c1ry (-0.731414854527);
-	Rot3DOZ c1rz (1.56042146683);
-	QMat c1rZYX = c1rz * c1ry * c1rx;
+	Rot3DOX crx (-values.rx()); //***********RX inverse SIGN************
+	Rot3DOY cry (values.ry());
+	Rot3DOZ crz (values.rz());
+	QMat crZYX = crz * cry * crx;
 
-	cam1 = RTMat();
-	cam1.setR(c1rZYX);
-	cam1.setTr(-88.5111083984, -294.114929199, 3636.78735352);
-	cam1 = cam1.invert();
+	RTMat cam = RTMat();
+	cam.setR(crZYX);
+	cam.setTr(values.x(), values.y(), values.z());
+	cam = cam.invert();
 
-	innermodel->getNode("cam1Translation")->setR(cam1.getR());
-	innermodel->getNode("cam1Translation")->setTr(cam1.getTr());
-
-	/*CAM2*/
-	Rot3DOX c2rx (-0.881269991398); //***********RX inverse SIGN************
-	Rot3DOY c2ry (-0.0238653570414);
-	Rot3DOZ c2rz (-3.06511044502);
-	QMat c2rZYX = c2rz * c2ry *c2rx;
-
-	cam2 = RTMat();
-	cam2.setR(c2rZYX);
-	cam2.setTr(217.058700562, -190.08354187, 4365.43603516);
-	cam2 = cam2.invert();
-
-	innermodel->getNode("cam2Translation")->setR(cam2.getR());
-	innermodel->getNode("cam2Translation")->setTr(cam2.getTr());
-
-	/*CAM3*/
-	Rot3DOX c3rx (0.775234341621); //***********RX inverse SIGN************
-	Rot3DOY c3ry (-0.0307027455419);
-	Rot3DOZ c3rz (-0.00459992652759);
-	QMat c3rZYX = c3rz * c3ry *c3rx;
-
-	cam3 = RTMat();
-	cam3.setR(c3rZYX);
-	cam3.setTr(-25.1116256714, 288.730499268, 4390.10351562);
-	cam3 = cam3.invert();
-
-	innermodel->getNode("cam3Translation")->setR(cam3.getR());
-	innermodel->getNode("cam3Translation")->setTr(cam3.getTr());
+	innermodel->getNode<InnerModelTransform>(camera)->setR(cam.getR());
+	innermodel->getNode<InnerModelTransform>(camera)->setTr(cam.getTr());
 }
 
 void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
-	setCameraPositions();
+
+	//initialize cameras
+	cameras.push_back(QVec::vec6(-88.5111083984, -294.114929199, 3636.78735352, 0.00779854133725, -0.731414854527, 1.56042146683));
+	cameras.push_back(QVec::vec6(217.058700562, -190.08354187, 4365.43603516, 0.881269991398, -0.0238653570414, -3.06511044502));
+	cameras.push_back(QVec::vec6(-25.1116256714, 288.730499268, 4390.10351562, -0.775234341621, -0.0307027455419, -0.00459992652759));
+	updateCameraPosition("cam1Translation", cameras.at(0));
+	updateCameraPosition("cam2Translation", cameras.at(1));
+	updateCameraPosition("cam3Translation", cameras.at(2));
+
+	//optimization parameters
+	lambda = 0.1;
+	nu = 0.01;
+
+	//init compute
 	this->Period = period;
 	timer.start(Period);
-	
+}
+
+//if random change do not decrease error
+void SpecificWorker::restoreCameraValues()
+{
+	cameras[cameraChanged] = savedCamera;
+	std::string cameraName = "cam" + std::to_string(cameraChanged+1) + "Translation";
+	updateCameraPosition(cameraName, savedCamera);
+}
+
+//apply random value change to random camera at random position
+void SpecificWorker::randomCameraChange()
+{
+	cameraChanged = randomValue(0, 2); //select camera to update
+	savedCamera = cameras.at(cameraChanged); //save actual camera values
+
+	int pos = randomValue(0, 6); //select value to change
+	float factor = randomValue(-5, 5)/100.f; // factor to apply
+	QVec newValues = savedCamera;
+	newValues[pos] += factor * newValues[pos];
+	std::string cameraName = "cam" + std::to_string(cameraChanged+1) + "Translation";
+	updateCameraPosition(cameraName, newValues);
+
+	cameras.at(cameraChanged) = newValues;
+}
+
+int SpecificWorker::randomValue(int min, int max)
+{
+	std::random_device rd; // obtain a random number from hardware
+    std::mt19937 eng(rd()); // seed the generator
+    std::uniform_int_distribution<> distr(min, max);
+	return distr(eng);
 }
 
 void SpecificWorker::compute()
 {
-
+	int lines = 1;
+	float dist_error = 0.f;
 	std::ifstream infile("april.txt");
 	std::string line;
 	while (std::getline(infile, line))
@@ -117,22 +130,20 @@ void SpecificWorker::compute()
 		qDebug()<<"Frame"<<list[0];
 		QVec p1 = converToWorld(list[1], list[2].toFloat(), list[3].toFloat(), list[4].toFloat(), list[5].toFloat(), list[6].toFloat(), list[7].toFloat());
 		QVec p2 = converToWorld(list[8], list[9].toFloat(), list[10].toFloat(), list[11].toFloat(), list[12].toFloat(), list[13].toFloat(), list[14].toFloat());
-		p1.print("p1");
-		p2.print("p2");
-		if (list.size() < 15) // Only two cameras
+
+		if (list.size() <= 15) // Only two cameras
 		{
-			float dist_error = euclidean3D_distance(p1, p2);
-			qDebug()<< "distance error"<<dist_error;
+			float error = compute_distance(p1, p2);
+			qDebug()<< "distance error"<<error;
+			dist_error += error;
 		}
 		else //three cameras
 		{
-			QVec p3 = converToWorld(list[15], list[16].toFloat(), list[17].toFloat(), list[18].toFloat(), list[19].toFloat(), list[20].toFloat(), list[21].toFloat());
-			qDebug()<<"Three";
+			qDebug()<<"Incorrect file line:"<<lines;	
 		}
-		
-
-
+		lines++;
 	}
+	qDebug()<<"lines "<<lines<<" dist_error "<<dist_error/lines;
 	exit(0);
 
 }
@@ -143,12 +154,29 @@ QVec SpecificWorker::converToWorld(QString camera, float tx, float ty, float tz,
 	return innermodel->transform("world", p, camera);
 }
 
-float SpecificWorker::euclidean3D_distance(QVec p1, QVec p2)
+float SpecificWorker::compute_distance(const QVec &p1, const QVec &p2)
+{
+	//traslation
+	QVec t1 = QVec::vec3(p1.x(), p1.y(), p1.z());
+	QVec t2 = QVec::vec3(p2.x(), p2.y(), p2.z());
+	//rotation
+	QVec r1 = QVec::vec3(p1.rx(), p1.ry(), p1.rz());
+	QVec r2 = QVec::vec3(p2.rx(), p2.ry(), p2.rz());
+
+	//distance	
+	float dt = euclidean3D_distance(t1,t2); 
+	float dr = (r1-r2).norm2();
+
+	//error
+	float error = lambda * dt + nu * dr;
+	return error;
+}
+
+float SpecificWorker::euclidean3D_distance(const QVec &p1, const QVec &p2)
 {
 	float xSqr = (p1.x() - p2.x()) * (p1.x() - p2.x());
 	float ySqr = (p1.y() - p2.y()) * (p1.y() - p2.y());
 	float zSqr = (p1.z() - p2.z()) * (p1.z() - p2.z());
-
 	return sqrt(xSqr + ySqr + zSqr);
 }
 
