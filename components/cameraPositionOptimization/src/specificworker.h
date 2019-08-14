@@ -49,41 +49,33 @@ class SpecificWorker : public GenericWorker
 Q_OBJECT
 
 public:
-
 	struct CostFunctor 
 		{
-			CostFunctor(std::shared_ptr<InnerModel> innermodel, const std::string camera_A, const QVec &mark_A, const std::string camera_B, const QVec &mark_B) 
-			: innermodel(innermodel), camera_A(camera_A), mark_A(mark_A), camera_B(camera_B), mark_B(mark_B) {}
+			CostFunctor(std::shared_ptr<InnerModel> innermodel, 
+						std::map<std::string, std::tuple<std::string, QVec, double * >> cameras_map,
+						const std::string camera_A, const QVec &mark_A, const std::string camera_B, const QVec &mark_B) 
+			: innermodel(innermodel), cameras_map(cameras_map), camera_A(camera_A), mark_A(mark_A), camera_B(camera_B), mark_B(mark_B) {}
 			bool operator()(const double* const mut_cam_A, const double* const mut_cam_B, double* residuals) const 
 			{
-				// is rescaled in the copy by *1000
-				updateCameraPosition(camera_A, mut_cam_A);
-				updateCameraPosition(camera_B, mut_cam_B);
-				QVec pA = innermodel->transformS("world", mark_A, camera_A);
-				QVec pB = innermodel->transformS("world", mark_B, camera_B);
+				const double *pA = mut_cam_A; const double *pB = mut_cam_B;
+				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_A)), pA[0], pA[1], pA[2], pA[3], pA[4], pA[5]);
+				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_B)), pB[0], pB[1], pB[2], pB[3], pB[4], pB[5]);
+				QVec rA = innermodel->transformS("world", mark_A, camera_A);
+				QVec rB = innermodel->transformS("world", mark_B, camera_B);
 
-				QVec res = pA-pB;
+				QVec res = rA-rB;
 				residuals[0] = res[0];
 				residuals[1] = res[1];
 				residuals[2] = res[2];
 
 				return true;
 			}
-			void updateCameraPosition(const std::string camera, const double* const c) const
-			{
-				std::string tcam;
-				if(camera == "camera1") tcam = "cam1Translation";
-				if(camera == "camera2") tcam = "cam2Translation";
-				if(camera == "camera3") tcam = "cam3Translation";
-				innermodel->updateTransformValuesS(tcam, c[0], c[1], c[2], c[3], c[4], c[5]);
-				innermodel->cleanupTables();
-			}
 			std::shared_ptr<InnerModel> innermodel;
+			std::map<std::string, std::tuple<std::string, QVec, double * >> cameras_map;
 			std::string camera_A;
 			QVec mark_A;
 			std::string camera_B;
 			QVec mark_B;
-			
 		};
 
 
@@ -104,11 +96,6 @@ private:
 	std::shared_ptr<InnerModel> innermodel;
 	void createList();
 	std::list<std::tuple<std::string, QVec, std::string, QVec>> measurements; //camA, mut indexA markA, camB, mut_indexB, markB
-	std::vector<std::tuple<QString, int>> camera_list;
-	std::vector<QVec> mark_list;
-	std::vector<double *> mutable_marks;
-	std::vector<double *> mutable_cameras;
-	std::vector<std::string> t_camera_names, camera_names;
 	std::map<std::string, std::tuple<std::string, QVec, double * >> cameras_map; //cam : {t_cam, mutable_camera_for_CERES }
 	int cameraChanged;
 	QVec savedCamera;

@@ -52,6 +52,7 @@ void SpecificWorker::initialize(int period)
 	std::cout << "Initialize worker" << std::endl;
 
 	//initialize cameras
+	std::vector<std::string> t_camera_names, camera_names;
 	t_camera_names = {"cam1Translation", "cam2Translation", "cam3Translation"};
 	camera_names = {"camera1", "camera2", "camera3"};
 	
@@ -64,7 +65,6 @@ void SpecificWorker::initialize(int period)
 		cameras_map[name] = std::tuple{t_name, t_pose, new double[6] {t_pose[0], t_pose[1], t_pose[2], t_pose[3], t_pose[4], t_pose[5]}};
 	}
 
-
 	// init compute
 	this->Period = period;
 	timer.setSingleShot(true);
@@ -73,14 +73,6 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	
-	// for(auto &t_cam_name : t_camera_names)
-	// {
-	// 	QVec cam = innermodel->transformS6D("world", t_cam_name);
-	// 	//cam[0] /= 1000.; cam[1] /= 1000.; cam[2] /= 1000.; // rescale translation
-	// 	double *c = new double[6] { cam[0], cam[1], cam[2], cam[3], cam[4], cam[5] };
-	// 	mutable_cameras.push_back(c);
-	// }
 
 	createList();
 	
@@ -88,11 +80,11 @@ void SpecificWorker::compute()
 	for(auto &&[cA, mA, cB, mB] : measurements)
 	{	
 		CostFunction* cost_function = new NumericDiffCostFunction<CostFunctor, ceres::RIDDERS, 3, 6, 6>
-		  		(new CostFunctor(innermodel, cA, mA, cB, mB));
+		  		(new CostFunctor(innermodel, cameras_map, cA, mA, cB, mB));
+		
 		double *mutA = std::get<double *>(cameras_map.at(cA));
 		double *mutB = std::get<double *>(cameras_map.at(cB));
 		
-		//problem.AddResidualBlock(cost_function, NULL, mutable_cameras[std::get<1>(m)], mutable_cameras[std::get<4>(m)]);
 		problem.AddResidualBlock(cost_function, NULL, mutA, mutB);
 	}
 	
@@ -102,7 +94,7 @@ void SpecificWorker::compute()
 	options.minimizer_progress_to_stdout = true;
 	options.max_num_iterations = 500;
 	options.function_tolerance = 1E-8;
-	//options.trust_region_strategy_type = ceres::DOGLEG;
+	options.trust_region_strategy_type = ceres::DOGLEG;
 	Solver::Summary summary;
 	
 	Solve(options, &problem, &summary);
@@ -129,22 +121,20 @@ void SpecificWorker::createList()
 {
 	std::ifstream infile("april.txt");
 	std::string line;
-
-	//map to converto from camera name in .txt file to camera index in mutable_cameras list
-	//std::map<QString, int> cameras_map {{"camera1",0},{"camera2",1},{"camera3",2}};
 	std::list<std::tuple<std::string, QVec, std::string, QVec>> my_measurements;
 
 	while (std::getline(infile, line))
 	{ 
 		QStringList list = QString::fromStdString(line).split(QRegExp("\\s+"), QString::SkipEmptyParts);
 		my_measurements.push_back(std::tuple{ list[1].toStdString(), 
-							   			   QVec::vec3(list[2].toDouble(), list[3].toDouble(), list[4].toDouble()),
-										   list[8].toStdString(),
-										   QVec::vec3(list[9].toDouble(), list[10].toDouble(), list[11].toDouble())});
+							   			   	  QVec::vec3(list[2].toDouble(), list[3].toDouble(), list[4].toDouble()),
+										   	  list[8].toStdString(),
+										   	  QVec::vec3(list[9].toDouble(), list[10].toDouble(), list[11].toDouble())});
 	}
 	qDebug() << "number of lines: "<< my_measurements.size();
 	//const int ITEMS = 500;
 	const int ITEMS = my_measurements.size();
+	// random resample
 	std::sample(my_measurements.begin(), my_measurements.end(), std::back_inserter(this->measurements), ITEMS, std::mt19937{std::random_device{}()});
 	qDebug() << "number of lines: "<< measurements.size();
 }
