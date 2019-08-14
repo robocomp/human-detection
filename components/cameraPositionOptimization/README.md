@@ -3,8 +3,10 @@
 #
 ``` cameraPositionOptimization
 ```
-Intro to component here
+Computes an optimizacion of the camera poses using CERES to solve a LMS problem
 
+You need to install ceres from the repositoty and clone .h contained library directly in /usr/local/include
+https://github.com/ryanhaining/cppitertools/blob/master/README.md#zip
 
 ## Configuration parameters
 As any other component,
