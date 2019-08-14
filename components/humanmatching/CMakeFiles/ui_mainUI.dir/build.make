@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/robolab/robocomp/components/human-detection/components/humanmatching
+CMAKE_SOURCE_DIR = /home/pbustos/robocomp/components/human-detection/components/humanmatching
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/robolab/robocomp/components/human-detection/components/humanmatching
+CMAKE_BINARY_DIR = /home/pbustos/robocomp/components/human-detection/components/humanmatching
 
 # Utility rule file for ui_mainUI.
 
@@ -57,7 +57,7 @@ CMakeFiles/ui_mainUI: src/ui_mainUI.py
 
 
 src/ui_mainUI.py: src/mainUI.ui
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/robolab/robocomp/components/human-detection/components/humanmatching/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating src/ui_mainUI.py from src/mainUI.ui"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/pbustos/robocomp/components/human-detection/components/humanmatching/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating src/ui_mainUI.py from src/mainUI.ui"
 	pyside2-uic src/mainUI.ui -o src/ui_mainUI.py
 
 ui_mainUI: CMakeFiles/ui_mainUI
@@ -76,6 +76,6 @@ CMakeFiles/ui_mainUI.dir/clean:
 .PHONY : CMakeFiles/ui_mainUI.dir/clean
 
 CMakeFiles/ui_mainUI.dir/depend:
-	cd /home/robolab/robocomp/components/human-detection/components/humanmatching && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/robolab/robocomp/components/human-detection/components/humanmatching /home/robolab/robocomp/components/human-detection/components/humanmatching /home/robolab/robocomp/components/human-detection/components/humanmatching /home/robolab/robocomp/components/human-detection/components/humanmatching /home/robolab/robocomp/components/human-detection/components/humanmatching/CMakeFiles/ui_mainUI.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/pbustos/robocomp/components/human-detection/components/humanmatching && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/pbustos/robocomp/components/human-detection/components/humanmatching /home/pbustos/robocomp/components/human-detection/components/humanmatching /home/pbustos/robocomp/components/human-detection/components/humanmatching /home/pbustos/robocomp/components/human-detection/components/humanmatching /home/pbustos/robocomp/components/human-detection/components/humanmatching/CMakeFiles/ui_mainUI.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/ui_mainUI.dir/depend
 

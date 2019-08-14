@@ -11,6 +11,10 @@ SET ( HEADERS
   specificmonitor.h
 )
 
+find_package(Ceres REQUIRED)
+include_directories(${CERES_INCLUDE_DIRS})
+SET( SPECIFIC_LIBS ${CERES_LIBRARIES})
+
 set(CMAKE_CXX_STANDARD 17)
 
 SET (LIBS ${LIBS}  )
