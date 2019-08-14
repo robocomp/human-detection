@@ -54,20 +54,22 @@ public:
 			CostFunctor(std::shared_ptr<InnerModel> innermodel, 
 						std::map<std::string, std::tuple<std::string, QVec, double * >> cameras_map,
 						const std::string camera_A, const QVec &mark_A, const std::string camera_B, const QVec &mark_B) 
-			: innermodel(innermodel), cameras_map(cameras_map), camera_A(camera_A), mark_A(mark_A), camera_B(camera_B), mark_B(mark_B) {}
+						: innermodel(innermodel), cameras_map(cameras_map), camera_A(camera_A), mark_A(mark_A), camera_B(camera_B), mark_B(mark_B) {}
 			bool operator()(const double* const mut_cam_A, const double* const mut_cam_B, double* residuals) const 
 			{
 				const double *pA = mut_cam_A; const double *pB = mut_cam_B;
-				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_A)), pA[0], pA[1], pA[2], pA[3], pA[4], pA[5]);
-				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_B)), pB[0], pB[1], pB[2], pB[3], pB[4], pB[5]);
+				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_A)), 
+								pA[0]*1000., pA[1]*1000., pA[2]*1000., pA[3], pA[4], pA[5]);
+				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_B)), 
+								pB[0]*1000., pB[1]*1000., pB[2]*1000., pB[3], pB[4], pB[5]);
 				QVec rA = innermodel->transformS("world", mark_A, camera_A);
 				QVec rB = innermodel->transformS("world", mark_B, camera_B);
+				QVec res = (rA-rB);
 
-				QVec res = rA-rB;
-				residuals[0] = res[0];
-				residuals[1] = res[1];
-				residuals[2] = res[2];
-
+				residuals[0] = res[0]/1000.;
+				residuals[1] = res[1]/1000.;
+				residuals[2] = res[2]/1000.;
+				
 				return true;
 			}
 			std::shared_ptr<InnerModel> innermodel;

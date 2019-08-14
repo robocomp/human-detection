@@ -62,7 +62,9 @@ void SpecificWorker::initialize(int period)
 	for(auto&& [name, t_name, cam] : iter::zip(camera_names, t_camera_names, cameras))
 	{
 		QVec t_pose = updateCameraPosition(t_name, cam);
-		cameras_map[name] = std::tuple{t_name, t_pose, new double[6] {t_pose[0], t_pose[1], t_pose[2], t_pose[3], t_pose[4], t_pose[5]}};
+		cameras_map[name] = std::tuple{t_name, t_pose, 
+			new double[6] {t_pose[0]/1000., t_pose[1]/1000., t_pose[2]/1000., t_pose[3], t_pose[4], t_pose[5]}};
+			//new double[6] {t_pose[0], t_pose[1], t_pose[2], t_pose[3], t_pose[4], t_pose[5]}};
 	}
 
 	// init compute
@@ -73,7 +75,6 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-
 	createList();
 	
 	Problem problem;
@@ -94,7 +95,7 @@ void SpecificWorker::compute()
 	options.minimizer_progress_to_stdout = true;
 	options.max_num_iterations = 500;
 	options.function_tolerance = 1E-8;
-	options.trust_region_strategy_type = ceres::DOGLEG;
+	//options.trust_region_strategy_type = ceres::DOGLEG;
 	Solver::Summary summary;
 	
 	Solve(options, &problem, &summary);
@@ -109,7 +110,8 @@ void SpecificWorker::compute()
 		std::cout << std::endl; 
 		auto mut = std::get<double *>(val);
 		for(auto i: iter::range(3))
-			std::cout << mut[i] << " ";
+			std::cout << mut[i]*1000. << " ";
+			//std::cout << mut[i] << " ";
 		for(auto i: iter::range(3,6))
 			std::cout << mut[i] << " ";	
 		std::cout << std::endl;
@@ -132,7 +134,7 @@ void SpecificWorker::createList()
 										   	  QVec::vec3(list[9].toDouble(), list[10].toDouble(), list[11].toDouble())});
 	}
 	qDebug() << "number of lines: "<< my_measurements.size();
-	//const int ITEMS = 500;
+	//const int ITEMS = 1000;
 	const int ITEMS = my_measurements.size();
 	// random resample
 	std::sample(my_measurements.begin(), my_measurements.end(), std::back_inserter(this->measurements), ITEMS, std::mt19937{std::random_device{}()});
@@ -158,66 +160,6 @@ QVec SpecificWorker::updateCameraPosition(string camera, QVec values)
 
 	return innermodel->transformS6D("world", camera);		
 }
-
-///////////////////////////////////////////////////////////////////////////////777
-
-
-//if random change do not decrease error
-void SpecificWorker::restoreCameraValues()
-{
-	cameras[cameraChanged] = savedCamera;
-	std::string cameraName = "cam" + std::to_string(cameraChanged+1) + "Translation";
-	updateCameraPosition(cameraName, savedCamera);
-}
-
-//apply random value change to random camera at random position
-void SpecificWorker::randomCameraChange()
-{
-	cameraChanged = randomValue(0, 2); //select camera to update
-	savedCamera = cameras.at(cameraChanged); //save actual camera cam
-
-	int pos = randomValue(0, 6); //select value to change
-	float factor = randomValue(-5, 5)/100.f; // factor to apply
-	QVec newcam = savedCamera;
-	newcam[pos] += factor * newcam[pos];
-	std::string cameraName = "cam" + std::to_string(cameraChanged+1) + "Translation";
-	updateCameraPosition(cameraName, newcam);
-
-	cameras.at(cameraChanged) = newcam;
-}
-
-
-int SpecificWorker::randomValue(int min, int max)
-{
-	std::random_device rd; // obtain a random number from hardware
-    std::mt19937 eng(rd()); // seed the generator
-    std::uniform_int_distribution<> distr(min, max);
-	return distr(eng);
-}
-QVec SpecificWorker::converToWorld(QString camera, float tx, float ty, float tz, float rx, float ry, float rz)
-{
-	QVec p = QVec::vec6(tx, ty, tz, rx, ry, rz);
-	return innermodel->transform("world", p, camera);
-}
-
-// float SpecificWorker::compute_distance(const QVec &p1, const QVec &p2)
-// {
-// 	//traslation
-// 	QVec t1 = QVec::vec3(p1.x(), p1.y(), p1.z());
-// 	QVec t2 = QVec::vec3(p2.x(), p2.y(), p2.z());
-// 	//rotation
-// 	QVec r1 = QVec::vec3(p1.rx(), p1.ry(), p1.rz());
-// 	QVec r2 = QVec::vec3(p2.rx(), p2.ry(), p2.rz());
-
-// 	//distance	
-// 	float dt = (p1-p2).norm2(); 
-// 	float dr = (r1-r2).norm2();
-
-// 	//error
-// 	float error = lambda * dt + nu * dr;
-// 	return error;
-// }
-
 
 
 
