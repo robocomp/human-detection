@@ -30,6 +30,7 @@
 #include <cppitertools/itertools.hpp>
 #include <fstream>
 #include <iostream>
+#include <chrono>
 #include <random>
 #include "ceres/ceres.h"
 #include <genericworker.h>
@@ -56,8 +57,11 @@ public:
 						const std::string camera_A, const QVec &mark_A, const std::string camera_B, const QVec &mark_B) 
 						: innermodel(innermodel), cameras_map(cameras_map), camera_A(camera_A), mark_A(mark_A), camera_B(camera_B), mark_B(mark_B) {}
 			bool operator()(const double* const mut_cam_A, const double* const mut_cam_B, double* residuals) const 
+			//bool operator()(const double* const mut_cam_A, double* residuals) const 
 			{
-				const double *pA = mut_cam_A; const double *pB = mut_cam_B;
+				const double *pA = mut_cam_A; 
+				const double *pB = mut_cam_B;
+				//const double *pB = std::get<double *>(cameras_map.at(camera_B));
 				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_A)), 
 								pA[0]*1000., pA[1]*1000., pA[2]*1000., pA[3], pA[4], pA[5]);
 				innermodel->updateTransformValuesS(std::get<std::string>(cameras_map.at(camera_B)), 

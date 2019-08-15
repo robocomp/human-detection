@@ -88,6 +88,16 @@ void SpecificWorker::compute()
 		
 		problem.AddResidualBlock(cost_function, NULL, mutA, mutB);
 	}
+	// for(auto &&[cA, mA, cB, mB] : measurements)
+	// {	
+	// 	CostFunction* cost_function = new NumericDiffCostFunction<CostFunctor, ceres::RIDDERS, 3, 6>
+	// 	  		(new CostFunctor(innermodel, cameras_map, cA, mA, cB, mB));
+		
+	// 	double *mutA = std::get<double *>(cameras_map.at(cA));
+	// 	//double *mutB = std::get<double *>(cameras_map.at(cB));
+		
+	// 	problem.AddResidualBlock(cost_function, NULL, mutA);
+	// }
 	
 	// Run the solver!
 	Solver::Options options;
@@ -124,14 +134,26 @@ void SpecificWorker::createList()
 	std::ifstream infile("april.txt");
 	std::string line;
 	std::list<std::tuple<std::string, QVec, std::string, QVec>> my_measurements;
-
+	std::random_device r;
+	std::default_random_engine e1(r());
+	std::uniform_int_distribution<int> uniform_dist(0, 1);
 	while (std::getline(infile, line))
 	{ 
 		QStringList list = QString::fromStdString(line).split(QRegExp("\\s+"), QString::SkipEmptyParts);
-		my_measurements.push_back(std::tuple{ list[1].toStdString(), 
-							   			   	  QVec::vec3(list[2].toDouble(), list[3].toDouble(), list[4].toDouble()),
-										   	  list[8].toStdString(),
-										   	  QVec::vec3(list[9].toDouble(), list[10].toDouble(), list[11].toDouble())});
+		 // Choose a random mean between 0 and 1
+    	int choice = uniform_dist(e1);
+		if(choice==0)
+			my_measurements.push_back(std::tuple{ list[1].toStdString(), 
+								   			   	  QVec::vec3(list[2].toDouble(), list[3].toDouble(), list[4].toDouble()),
+											   	  list[8].toStdString(),
+											   	  QVec::vec3(list[9].toDouble(), list[10].toDouble(), list[11].toDouble())});
+		else
+			my_measurements.push_back(std::tuple{ list[8].toStdString(), 
+								   			   	  QVec::vec3(list[9].toDouble(), list[10].toDouble(), list[11].toDouble()),
+											   	  list[1].toStdString(),
+											   	  QVec::vec3(list[2].toDouble(), list[3].toDouble(), list[4].toDouble())});
+								
+
 	}
 	qDebug() << "number of lines: "<< my_measurements.size();
 	//const int ITEMS = 1000;
@@ -139,9 +161,40 @@ void SpecificWorker::createList()
 	// random resample
 	std::sample(my_measurements.begin(), my_measurements.end(), std::back_inserter(this->measurements), ITEMS, std::mt19937{std::random_device{}()});
 	qDebug() << "number of lines: "<< measurements.size();
+
+	// check for outliers
+	std::vector<double> residuals;
+	for(auto &&[cA, mA, cB, mB] : measurements)
+	{
+		QVec rA = innermodel->transformS("world", mA, std::get<std::string>(cameras_map.at(cA)));
+		QVec rB = innermodel->transformS("world", mB, std::get<std::string>(cameras_map.at(cB)));
+		double res = (rA-rB).norm2();
+		residuals.push_back(res);
+	}
+	std::sort(std::begin(residuals), std::end(residuals), std::greater<double>());
+	double mean = std::accumulate(std::begin(residuals), std::end(residuals), 0.0) / residuals.size();
+	std::vector<double> diff(residuals.size());
+	std::transform(std::begin(residuals), std::end(residuals), diff.begin(), [mean](double x) { return x - mean; });
+	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+	double stdev = std::sqrt(sq_sum / residuals.size());
+	for(auto i : iter::range(300))
+	 	std::cout << residuals[i] << std::endl;
+	std::cout << mean << " " << stdev << std::endl;
+
+	//filter
+	auto cola = std::remove_if(std::begin(measurements), std::end(measurements), 
+		[stdev, this](auto&& m)
+			{ 
+				auto&& [cA,mA,cB,mB] = m;
+				//std::cout << cA << " " << cB << std::endl;
+				QVec rA = innermodel->transformS("world", mA, std::get<std::string>(cameras_map.at(cA)));
+				QVec rB = innermodel->transformS("world", mB, std::get<std::string>(cameras_map.at(cB)));
+				double res = (rA-rB).norm2();
+				return res > 3. * stdev;
+			});	
+	measurements.erase(cola, std::end(measurements));
+	qDebug() << "Size" << measurements.size();
 }
-
-
 QVec SpecificWorker::updateCameraPosition(string camera, QVec values)
 {
 	Rot3DOX crx (-values.rx()); //***********RX inverse SIGN************
