@@ -1,3 +1,0 @@
-/home/pbustos/robocomp/components/human-detection/components/humanmatching/CMakeFiles/rebuild_cache.dir
-/home/pbustos/robocomp/components/human-detection/components/humanmatching/CMakeFiles/ui_mainUI.dir
-/home/pbustos/robocomp/components/human-detection/components/humanmatching/CMakeFiles/edit_cache.dir
