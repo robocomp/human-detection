@@ -29,6 +29,7 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <opencv2/opencv.hpp>
 
 class SpecificWorker : public GenericWorker
 {
@@ -38,13 +39,23 @@ public:
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
+	void initVideo();
+	void readFrame(int camera, cv::Mat &frame);
+	RoboCompAprilTagsServer::tagsList computeAprilPosition(cv::Mat frame, int id_camera);
+	QVec updateCameraPosition(string camera, QVec values);
 
 public slots:
 	void compute();
 	void initialize(int period);
 private:
-	std::shared_ptr<InnerModel> innerModel;
-
+	RoboCompCommonBehavior::ParameterList config_params;
+	std::shared_ptr<InnerModel> innermodel;
+	std::vector<cv::VideoCapture> videoCapture;
+	std::vector<RoboCompAprilTagsServer::tagsList> peopleList;
+	std::vector<long> timeStamp;
+	std::vector<cv::Mat> frames;
+	int ncameras = 0;
+	RoboCompAprilTagsServer::Image aprilImage;
 };
 
 #endif

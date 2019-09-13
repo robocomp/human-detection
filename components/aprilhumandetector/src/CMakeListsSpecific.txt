@@ -11,6 +11,8 @@ SET ( HEADERS
   specificmonitor.h
 )
 
+INCLUDE( $ENV{ROBOCOMP}/cmake/modules/opencv3.cmake )
 set(CMAKE_CXX_STANDARD 17)
+ADD_DEFINITIONS( -O3  -Wfatal-errors -fmax-errors=5)
 
 SET (LIBS ${LIBS}  )
