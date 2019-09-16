@@ -56,7 +56,6 @@ terminal_handler.setFormatter(formatter)
 # add the file_handlers to the logger
 logger.addHandler(file_handler)
 logger.addHandler(terminal_handler)
-app = QtWidgets.QApplication(sys.argv)
 
 CURRENT_FILE_PATH = os.path.dirname(__file__)
 
