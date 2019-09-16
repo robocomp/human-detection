@@ -129,7 +129,7 @@ class HumanVisualizationWidget(QGraphicsView):
 			"roundTables": "Khaki",
 			"walls": "Brown",
 			"points": "Blue"}
-
+		self.clear()
 		for type, color in types_colors.items():
 			if type in json_data:
 				tables = json_data[type]
@@ -145,9 +145,6 @@ class HumanVisualizationWidget(QGraphicsView):
 					box.setPos(float(object[4]), float(object[5]))
 					box.setRotation(float(object[6]))
 					self._boxes.append(box)
-		self.clear()
-		for item in self._boxes:
-			self._scene.addItem(item)
 
 	def load_json_world(self, file):
 
