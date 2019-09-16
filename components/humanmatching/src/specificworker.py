@@ -41,21 +41,6 @@ from classes.person import Position2D, Person
 # import librobocomp_osgviewer
 # import librobocomp_innermodel
 
-file_handler = logging.FileHandler('humanmatching.log')
-file_handler.setLevel(logging.DEBUG)
-
-terminal_handler = logging.StreamHandler(sys.stdout)
-terminal_handler.setLevel(logging.DEBUG)
-
-# create a logging format
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
-
-file_handler.setFormatter(formatter)
-terminal_handler.setFormatter(formatter)
-
-# add the file_handlers to the logger
-logger.addHandler(file_handler)
-logger.addHandler(terminal_handler)
 
 CURRENT_FILE_PATH = os.path.dirname(__file__)
 
