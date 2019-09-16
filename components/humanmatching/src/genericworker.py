@@ -16,8 +16,11 @@
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import sys, Ice, os
 from PySide2 import QtWidgets, QtCore
+
+logger = logging.getLogger(__name__)
 
 ROBOCOMP = ''
 try:
