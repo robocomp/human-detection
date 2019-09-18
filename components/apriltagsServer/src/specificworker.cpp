@@ -44,8 +44,8 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
     m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
-    //image_gray.create(480,640,CV_8UC1);
-    //image_color.create(480,640,CV_8UC3);
+//    image_gray.create(240,320,CV_8UC1);
+//    image_color.create(240,320,CV_8UC3);
     image_gray.create(1080,1920,CV_8UC1);
     image_color.create(1080,1920,CV_8UC3);
     return true;

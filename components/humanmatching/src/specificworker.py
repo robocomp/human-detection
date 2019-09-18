@@ -108,7 +108,7 @@ class SpecificWorker(GenericWorker):
 			logger.warn("Exception. No new detection but unexpected state.")
 			# TODO: emit signal to go back
 
-	# ef _detection_state_entered(self):
+	# def _detection_state_entered(self):
 	# 	logger.debug("entered")
 	# 	try:
 	# 		humansFromCam = self._detection_queue.get_nowait()
@@ -258,6 +258,8 @@ class SpecificWorker(GenericWorker):
 		"""Component entry point for the detected human poses"""
 
 		self._detection_queue.put(humansFromCam)
-		self.new_humans_signal.emit()
+		if (len(humansFromCam.humanList)!=0):
+			print (humansFromCam)
+			self.new_humans_signal.emit()
 
 

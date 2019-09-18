@@ -8,13 +8,14 @@ AprilTagsServerProxy = apriltagsserver:tcp -h localhost -p 12555
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-InnerModelPath = innermodel.xml
-numCameras = 3
-width = 1280
-height = 720
-camera.Params_0 = camera1,camera1.avi
-camera.Params_1 = camera2,camera2.avi
-camera.Params_2 = camera3,camera3.avi
+InnerModelPath = autonomyLab.xml
+numCameras = 1
+width = 1920
+height = 1080
+
+camera.Params_0 = camera1,rtsp://camera1:opticalflow1@10.253.247.38:88/videoMain
+camera.Params_1 = camera2,rtsp://camera2:opticalflow2@10.253.247.37:88/videoMain
+camera.Params_2 = camera3,rtsp://camera3:opticalflow3@10.253.247.39:88/videoMain
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

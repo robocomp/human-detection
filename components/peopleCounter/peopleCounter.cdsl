@@ -1,0 +1,10 @@
+
+Component peopleCounter
+{
+    Communications
+    {
+    };
+	language python;
+	statemachine "statemachine.smdsl";
+};
+

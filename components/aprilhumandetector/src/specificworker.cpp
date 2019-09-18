@@ -178,7 +178,7 @@ RoboCompAprilTagsServer::tagsList SpecificWorker::computeAprilPosition(cv::Mat f
 	try
 	{
 		memcpy(&aprilImage.data[0], &frame.data[0], aprilImage.frmt.width * aprilImage.frmt.height*3);
-		peopleList[id_camera] = apriltagsserver_proxy->getAprilTags(aprilImage, 172, 1000, 1000);
+		peopleList[id_camera] = apriltagsserver_proxy->getAprilTags(aprilImage, 350, 1000, 1000);
 
 		if(peopleList[id_camera].size() > 0)
 		{

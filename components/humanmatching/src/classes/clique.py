@@ -52,7 +52,7 @@ def calculate_person_distance( p1, p2):
 	dist_a_b = numpy.sqrt(numpy.sum((a - b) ** 2))
 	return dist_a_b
 
-def calculate_clique_matching(input1, input2, noise_vector):
+def calculate_clique_matching(input1, input2, noise_vector =[]):
 	matching_graph = nx.Graph()
 	# camera_id = input.idCamera
 	current_person_list = input1
