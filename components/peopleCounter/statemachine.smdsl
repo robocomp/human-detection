@@ -2,17 +2,28 @@
 /* CHANGE THE NAME OF THE MACHINE IF YOU MAKE
    ANY CHANGE TO THE DEFAULT STATES OR TRANSITIONS */
 
-defaultMachine{
-    states compute;
-    initial_state initialize;
-    end_state finalize;
+peopleCounterMachine{
+    states processing_video;
+    initial_state initialize_video;
+    end_state finalize_video;
     transitions{
-        initialize => compute;
-        compute => compute;
-        compute => finalize;
+        initialize_video => processing_video;
+        initialize_video => finalize_video;
+        processing_video => finalize_video;
     };
 };
 
+:processing_video{
+	states detecting, tracking, update;
+	initial_state reading_frames;
+ 	transitions{
+        reading_frames => detecting;
+        reading_frames => tracking;
+        detecting => update;
+	    tracking => update;
+	    update=> reading_frames;
+    };
+};
 
 /* --------------------------------------------------------------
    This is the accepted syntax for the State Machine definition 
