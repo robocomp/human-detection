@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 by YOUR NAME HERE
 #
@@ -73,13 +75,140 @@ class SpecificWorker(GenericWorker):
 		self._state_machine._prediction_state.addTransition(self.new_humans_signal,
 														 self._state_machine._data_association_state)
 		self._state_machine.start()
-
+		self.human_matching_machine.start()
 
 	def __del__(self):
 		logger.info('SpecificWorker destructor')
 
 	def setParams(self, params):
 		return True
+
+	# =============== Slots methods for State Machine ===================
+# ===================================================================
+	#
+	# sm_initialize
+	#
+	@QtCore.Slot()
+	def sm_initialize(self):
+		print("Entered state initialize")
+		pass
+
+	#
+	# sm_cameras_matching
+	#
+	@QtCore.Slot()
+	def sm_cameras_matching(self):
+		print("Entered state cameras_matching")
+		pass
+
+	#
+	# sm_human_frames_tracking
+	#
+	@QtCore.Slot()
+	def sm_human_frames_tracking(self):
+		print("Entered state human_frames_tracking")
+		pass
+
+	#
+	# sm_finalize
+	#
+	@QtCore.Slot()
+	def sm_finalize(self):
+		print("Entered state finalize")
+		pass
+
+	#
+	# sm_check_new_data
+	#
+	@QtCore.Slot()
+	def sm_check_new_data(self):
+		print("Entered state check_new_data")
+		pass
+
+	#
+	# sm_cameras_clique
+	#
+	@QtCore.Slot()
+	def sm_cameras_clique(self):
+		print("Entered state cameras_clique")
+		pass
+
+	#
+	# sm_results_update
+	#
+	@QtCore.Slot()
+	def sm_results_update(self):
+		print("Entered state results_update")
+		pass
+
+	#
+	# sm_end_camera_matching
+	#
+	@QtCore.Slot()
+	def sm_end_camera_matching(self):
+		print("Entered state end_camera_matching")
+		pass
+
+	#
+	# sm_tracking_initialization
+	#
+	@QtCore.Slot()
+	def sm_tracking_initialization(self):
+		print("Entered state tracking_initialization")
+		pass
+
+	#
+	# sm_first_person_state
+	#
+	@QtCore.Slot()
+	def sm_first_person_state(self):
+		print("Entered state first_person_state")
+		pass
+
+	#
+	# sm_tracking_state
+	#
+	@QtCore.Slot()
+	def sm_tracking_state(self):
+		print("Entered state tracking_state")
+		pass
+
+	#
+	# sm_end_camera_matching
+	#
+	@QtCore.Slot()
+	def sm_end_camera_matching(self):
+		print("Entered state end_camera_matching")
+		pass
+
+	#
+	# sm_prediction
+	#
+	@QtCore.Slot()
+	def sm_prediction(self):
+		print("Entered state prediction")
+		pass
+
+	#
+	# sm_data_association
+	#
+	@QtCore.Slot()
+	def sm_data_association(self):
+		print("Entered state data_association")
+		pass
+
+	#
+	# sm_data_update
+	#
+	@QtCore.Slot()
+	def sm_data_update(self):
+		print("Entered state data_update")
+		pass
+
+
+# =================================================================
+# =================================================================
+
 
 	@QtCore.Slot()
 	def compute(self):
@@ -253,7 +382,9 @@ class SpecificWorker(GenericWorker):
 		self._noise_factor = value*10
 		self.ui._noise_factor_lcd.setValue(self._noise_factor)
 
-
+	#
+	# obtainHumanPose
+	#
 	def obtainHumanPose(self, humansFromCam):
 		"""Component entry point for the detected human poses"""
 
