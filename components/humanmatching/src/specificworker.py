@@ -29,7 +29,7 @@ import copy
 from Queue import Queue, Empty
 
 import numpy
-from PySide2.QtCore import Signal
+from PySide2.QtCore import Signal, QTimer
 from PySide2.QtGui import QColor
 
 from genericworker import *
@@ -70,11 +70,8 @@ class SpecificWorker(GenericWorker):
 
 		self._update_views = False
 		self._detection_queue = Queue()
-		self._state_machine = HumanMatchingStateMachine(self)
-		self._state_machine._initial_state.addTransition(self.new_humans_signal, self._state_machine._first_person_state)
-		self._state_machine._prediction_state.addTransition(self.new_humans_signal,
-														 self._state_machine._data_association_state)
-		self._state_machine.start()
+		self.new_humans_signal.connect(self.tracking_initializationtofirst_person_state)
+		self.new_humans_signal.connect(self.predictiontodata_association)
 		self.human_matching_machine.start()
 
 	def __del__(self):
@@ -91,7 +88,7 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def sm_initialize(self):
 		print("Entered state initialize")
-		pass
+		self.initializetohuman_frames_tracking.emit()
 
 	#
 	# sm_cameras_matching
@@ -162,8 +159,21 @@ class SpecificWorker(GenericWorker):
 	#
 	@QtCore.Slot()
 	def sm_first_person_state(self):
-		print("Entered state first_person_state")
-		pass
+		logger.debug("entered sm_first_person_state")
+		try:
+			humansFromCam = self._detection_queue.get_nowait()
+			# First time detection
+			if len(self._next_person_list) == 0:
+				logger.debug("obtainHumanPose: First %d humans detected"%len(humansFromCam.humanList))
+				self._current_person_list = self._cam_humans_2_person_list(humansFromCam)
+				self.first_person_statetotracking_state.emit()
+			# print self._current_person_list
+			else:
+				logger.warning("We should not be here. self._next_person_list is not empty")
+				#TODO: emit signal to go back
+		except Empty as e:
+			logger.warn("Exception. No new detection but unexpected state.")
+			# TODO: emit signal to go back
 
 	#
 	# sm_tracking_state
@@ -186,24 +196,63 @@ class SpecificWorker(GenericWorker):
 	#
 	@QtCore.Slot()
 	def sm_prediction(self):
-		print("Entered state prediction")
-		pass
-
-	#
+		print("Entered sm_prediction %d persons "%len(self._current_person_list))
+		for person in self._current_person_list:
+			person.predict()
+			logger.debug("Person %d predicted at (%s) " % (person.person_id, str(person.pos)))
+			self._update_person_list_view(self._current_person_list, self.ui._first_view)
+		QTimer.singleShot(self.Period, self.predictiontoprediction)
+		#
 	# sm_data_association
 	#
 	@QtCore.Slot()
 	def sm_data_association(self):
-		print("Entered state data_association")
-		pass
+		logger.debug("entered sm_data_association. New humans detected")
+		try:
+			humansFromCam = self._detection_queue.get_nowait()
+
+		except Empty as e:
+			logger.warn("Exception. No new detection but unexpected state.")
+			self.data_associationtodata_update.emit()
+		else:
+			# self._update_current_person_list_view()
+			# self._update_person_list_view(self._current_person_list, self.ui._first_view)
+			# self._update_person_list_view(self._next_person_list, self.ui._second_view)
+
+			# Translate the incoming ice structure to a person list
+			new_persons_list = self._cam_humans_2_person_list(humansFromCam)
+			self._update_person_list_view(new_persons_list, self.ui._second_view)
+			self.widget_graph.clear()
+			max_clique, matching_graph = calculate_clique_matching(self._current_person_list, new_persons_list)
+			self.widget_graph.set_graph(matching_graph)
+			self.widget_graph.graph_widget.show()
+			for node_id in max_clique:
+				if node_id in matching_graph.nodes:
+					node = matching_graph.nodes[node_id]
+					old_person = node["person1"]
+					new_person = node["person2"]
+					logger.debug("Node %s relates %d in T  with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",
+								 node_id, old_person.person_id, new_person.person_id, old_person.pos.x,
+								 old_person.pos.y, new_person.pos.x, new_person.pos.y)
+					old_person.update_position(new_person.pos)
+			#
+			# next_color = random_hexrgb()
+			#
+			# self.ui._first_view.set_human_color(old_person.person_id, QColor(next_color))
+			# self.ui._second_view.set_human_color(new_person.person_id, QColor(next_color))
+			# if len(max_clique)>0:
+			#
+			# 	#TODO: Do this on a different state
+			# 	#self.people_to_update.emit()
+			self.data_associationtodata_update.emit()
 
 	#
 	# sm_data_update
 	#
 	@QtCore.Slot()
 	def sm_data_update(self):
-		print("Entered state data_update")
-		pass
+		logger.debug("entered sm_data_update")
+		self.data_updatetoprediction.emit()
 
 
 # =================================================================
@@ -217,25 +266,25 @@ class SpecificWorker(GenericWorker):
 
 ###----------- STATE MACHINE METHODS START ------------------------
 
-	def initial_state_entered(self):
-		logger.debug("entered")
+	# def initial_state_entered(self):
+	# 	logger.debug("entered")
 
-	def first_person_state_entered(self):
-		logger.debug("entered")
-		try:
-			humansFromCam = self._detection_queue.get_nowait()
-			# First time detection
-			if len(self._next_person_list) == 0:
-				logger.debug("obtainHumanPose: First %d humans detected"%len(humansFromCam.humanList))
-				self._current_person_list = self._cam_humans_2_person_list(humansFromCam)
-				self._state_machine.first_person_to_tracking.emit()
-			# print self._current_person_list
-			else:
-				logger.warning("We should not be here. self._next_person_list is not empty")
-				#TODO: emit signal to go back
-		except Empty as e:
-			logger.warn("Exception. No new detection but unexpected state.")
-			# TODO: emit signal to go back
+	# def first_person_state_entered(self):
+	# 	logger.debug("entered")
+	# 	try:
+	# 		humansFromCam = self._detection_queue.get_nowait()
+	# 		# First time detection
+	# 		if len(self._next_person_list) == 0:
+	# 			logger.debug("obtainHumanPose: First %d humans detected"%len(humansFromCam.humanList))
+	# 			self._current_person_list = self._cam_humans_2_person_list(humansFromCam)
+	# 			self._state_machine.first_person_to_tracking.emit()
+	# 		# print self._current_person_list
+	# 		else:
+	# 			logger.warning("We should not be here. self._next_person_list is not empty")
+	# 			#TODO: emit signal to go back
+	# 	except Empty as e:
+	# 		logger.warn("Exception. No new detection but unexpected state.")
+	# 		# TODO: emit signal to go back
 
 	# def _detection_state_entered(self):
 	# 	logger.debug("entered")
@@ -294,56 +343,56 @@ class SpecificWorker(GenericWorker):
 	# 	except Empty as e:
 	# 		logger.info("No new detection")
 
-	def prediction_state_entered(self):
-		logger.debug("entered. %d persons "%len(self._current_person_list))
-		for person in self._current_person_list:
-			person.predict()
-			logger.debug("Person %d predicted at (%s) " % (person.person_id, str(person.pos)))
-			self._update_person_list_view(self._current_person_list, self.ui._first_view)
+	# def prediction_state_entered(self):
+	# 	logger.debug("entered. %d persons "%len(self._current_person_list))
+	# 	for person in self._current_person_list:
+	# 		person.predict()
+	# 		logger.debug("Person %d predicted at (%s) " % (person.person_id, str(person.pos)))
+	# 		self._update_person_list_view(self._current_person_list, self.ui._first_view)
 
 
-	def data_association_state_entered(self):
-		logger.debug("entered. New humans detected")
-		try:
-			humansFromCam = self._detection_queue.get_nowait()
+	# def data_association_state_entered(self):
+	# 	logger.debug("entered. New humans detected")
+	# 	try:
+	# 		humansFromCam = self._detection_queue.get_nowait()
+    #
+	# 		# self._update_current_person_list_view()
+	# 		# self._update_person_list_view(self._current_person_list, self.ui._first_view)
+	# 		# self._update_person_list_view(self._next_person_list, self.ui._second_view)
+    #
+	# 		# Translate the incoming ice structure to a person list
+	# 		new_persons_list = self._cam_humans_2_person_list(humansFromCam)
+	# 		self._update_person_list_view(new_persons_list, self.ui._second_view)
+	# 		self.widget_graph.clear()
+	# 		max_clique, matching_graph = calculate_clique_matching(self._current_person_list, new_persons_list)
+	# 		self.widget_graph.set_graph(matching_graph)
+	# 		self.widget_graph.graph_widget.show()
+	# 		for node_id in max_clique:
+	# 			if node_id in matching_graph.nodes:
+	# 				node = matching_graph.nodes[node_id]
+	# 				old_person = node["person1"]
+	# 				new_person = node["person2"]
+	# 				logger.debug("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",
+	# 							 node_id, old_person.person_id, new_person.person_id, old_person.pos.x,
+	# 							 old_person.pos.y, new_person.pos.x, new_person.pos.y)
+	# 				old_person.update_position(new_person.pos)
+	# 				#
+	# 				# next_color = random_hexrgb()
+	# 				#
+	# 				# self.ui._first_view.set_human_color(old_person.person_id, QColor(next_color))
+	# 				# self.ui._second_view.set_human_color(new_person.person_id, QColor(next_color))
+	# 		# if len(max_clique)>0:
+	# 		#
+	# 		# 	#TODO: Do this on a different state
+	# 		# 	#self.people_to_update.emit()
+	# 		self._state_machine.data_association_to_data_update.emit()
+	# 	except Empty as e:
+	# 			logger.warn("Exception. No new detection but unexpected state.")
 
-			# self._update_current_person_list_view()
-			# self._update_person_list_view(self._current_person_list, self.ui._first_view)
-			# self._update_person_list_view(self._next_person_list, self.ui._second_view)
 
-			# Translate the incoming ice structure to a person list
-			new_persons_list = self._cam_humans_2_person_list(humansFromCam)
-			self._update_person_list_view(new_persons_list, self.ui._second_view)
-			self.widget_graph.clear()
-			max_clique, matching_graph = calculate_clique_matching(self._current_person_list, new_persons_list)
-			self.widget_graph.set_graph(matching_graph)
-			self.widget_graph.graph_widget.show()
-			for node_id in max_clique:
-				if node_id in matching_graph.nodes:
-					node = matching_graph.nodes[node_id]
-					old_person = node["person1"]
-					new_person = node["person2"]
-					logger.debug("Node %s relates %d in T is with %d in T+1. Moving from pos (%d, %d) to (%d, %d)",
-								 node_id, old_person.person_id, new_person.person_id, old_person.pos.x,
-								 old_person.pos.y, new_person.pos.x, new_person.pos.y)
-					old_person.update_position(new_person.pos)
-					#
-					# next_color = random_hexrgb()
-					#
-					# self.ui._first_view.set_human_color(old_person.person_id, QColor(next_color))
-					# self.ui._second_view.set_human_color(new_person.person_id, QColor(next_color))
-			# if len(max_clique)>0:
-			#
-			# 	#TODO: Do this on a different state
-			# 	#self.people_to_update.emit()
-			self._state_machine.data_association_to_data_update.emit()
-		except Empty as e:
-				logger.warn("Exception. No new detection but unexpected state.")
-
-
-	def data_update_state_entered(self):
-		logger.debug("entered")
-		self._state_machine.data_update_to_prediction.emit()
+	# def data_update_state_entered(self):
+	# 	logger.debug("entered")
+	# 	self._state_machine.data_update_to_prediction.emit()
 
 ###----------- STATE MACHINE METHODS END ------------------------
 
@@ -387,7 +436,7 @@ class SpecificWorker(GenericWorker):
 	#
 	def obtainHumanPose(self, humansFromCam):
 		"""Component entry point for the detected human poses"""
-
+		logger.debug("obtainHumanPose")
 		self._detection_queue.put(humansFromCam)
 		if (len(humansFromCam.humanList)!=0):
 			print (humansFromCam)
