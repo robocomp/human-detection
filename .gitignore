@@ -28,3 +28,11 @@ components/humanGame/cmake-build-debug/
 *.log
 
 components/humanPoseFake/bin/
+
+components/cameraclient/\.idea/
+
+components/kalmanTest/\.idea/
+
+components/openpifpafserver/\.idea/
+
+components/peopleCounter/\.idea/
