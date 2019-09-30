@@ -34,7 +34,7 @@ from resources.centroidtracker import CentroidTracker
 from resources.trackableobject import TrackableObject
 
 from genericworker import *
-
+from RoboCompPeopleServer import TImage
 
 class ReadIPStream:
     def __init__(self, url):
@@ -240,36 +240,70 @@ class SpecificWorker(GenericWorker):
         else:
             self.trackers = cv2.MultiTracker_create()
 
-        blob = cv2.dnn.blobFromImage(self.frame, 0.007843, (self.width, self.height), 127.5)
-        self.net.setInput(blob)
-        detections = self.net.forward()
+        ###Deteccion con red neuronal
+        # blob = cv2.dnn.blobFromImage(self.frame, 0.007843, (self.width, self.height), 127.5)
+        # self.net.setInput(blob)
+        # detections = self.net.forward()
+        #
+        # for i in np.arange(0, detections.shape[2]):
+        #
+        #     conf = detections[0, 0, i, 2]
+        #
+        #     if conf > self.confidence:
+        #
+        #         idx = int(detections[0, 0, i, 1])
+        #         if self.classes[idx] != "person":
+        #             continue
+        #
+        #         box = detections[0, 0, i, 3:7] * np.array([self.width, self.height, self.width, self.height])
+        #         (startX, startY, endX, endY) = box.astype("int")
 
-        for i in np.arange(0, detections.shape[2]):
+                # if self.selected_tracker == "dlib":
+                #
+                #     tracker = dlib.correlation_tracker()
+                #     rect = dlib.rectangle(startX, startY, endX, endY)
+                #     tracker.start_track(self.rgb, rect)
+                #     self.trackers.append(tracker)
+                #
+                # else:
+                #     (x, y, w, h) = (startX, startY, endX - startX, endY - startY)
+                #     tracker = self.opencv_trackers[self.selected_tracker]()
+                #     self.trackers.add(tracker, self.frame, (x, y, w, h))
+                #
+                # self.rects.append((startX, startY, endX, endY))
 
-            conf = detections[0, 0, i, 2]
+        ##Deteccion con openPifPaf
+        im = TImage()
+        im.image = self.frame.data
+        im.height, im.width, im.depth = self.frame.shape
+        people = self.peopleserver_proxy.processImage(im, 1)
 
-            if conf > self.confidence:
+        for p in people:
+            joints = p.joints
+            list = []
+            for jointname,pose in joints.items():
+               if pose.score > 0:
+                   list.append((int(pose.x),int(pose.y)))
+                   cv2.circle(self.frame, (int(pose.x), int(pose.y)), 2, (0, 0, 255), -1)
 
-                idx = int(detections[0, 0, i, 1])
-                if self.classes[idx] != "person":
-                    continue
+            x,y,w,h = cv2.boundingRect(cv2.UMat(np.asarray(list)))
+            if self.selected_tracker == "dlib":
+                tracker = dlib.correlation_tracker()
+                rect = dlib.rectangle(x, y, x+w, y+h)
+                tracker.start_track(self.rgb, rect)
+                self.trackers.append(tracker)
 
-                box = detections[0, 0, i, 3:7] * np.array([self.width, self.height, self.width, self.height])
-                (startX, startY, endX, endY) = box.astype("int")
+            else:
+                tracker = self.opencv_trackers[self.selected_tracker]()
+                self.trackers.add(tracker, self.frame, (x, y, w, h))
 
-                if self.selected_tracker == "dlib":
+            self.rects.append((x, y, x+w, y+h))
 
-                    tracker = dlib.correlation_tracker()
-                    rect = dlib.rectangle(startX, startY, endX, endY)
-                    tracker.start_track(self.rgb, rect)
-                    self.trackers.append(tracker)
 
-                else:
-                    (x, y, w, h) = (startX, startY, endX - startX, endY - startY)
-                    tracker = self.opencv_trackers[self.selected_tracker]()
-                    self.trackers.add(tracker, self.frame, (x, y, w, h))
 
-                self.rects.append((startX, startY, endX, endY))
+        #recorrer personas que devuelve, paara cada una almacenar los joints con score >0
+        #para cada persona calcular el bounding rect que contiene los puntos de su esqueleto (habia que haceru na doble transformacion para calcular el bounding rect)
+        #teniendo los rectangulos detectados para cada persona dependiendo del tracking añadirlos
 
         self.detectingtoupdate.emit()
 

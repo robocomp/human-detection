@@ -44,6 +44,18 @@ except:
 	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
 	pass
 
+ice_PeopleServer = False
+for p in icePaths:
+	if os.path.isfile(p+'/PeopleServer.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"PeopleServer.ice"
+		Ice.loadSlice(wholeStr)
+		ice_PeopleServer = True
+		break
+if not ice_PeopleServer:
+	print 'Couln\'t load PeopleServer'
+	sys.exit(-1)
+from RoboCompPeopleServer import *
 
 
 
@@ -52,9 +64,14 @@ class GenericWorker(QtCore.QObject):
 
 	kill = QtCore.Signal()
 #Signals for State Machine
-	initializetocompute = QtCore.Signal()
-	computetocompute = QtCore.Signal()
-	computetofinalize = QtCore.Signal()
+	initialize_videotoprocessing_video = QtCore.Signal()
+	initialize_videotofinalize_video = QtCore.Signal()
+	processing_videotofinalize_video = QtCore.Signal()
+	reading_framestodetecting = QtCore.Signal()
+	reading_framestotracking = QtCore.Signal()
+	detectingtoupdate = QtCore.Signal()
+	trackingtoupdate = QtCore.Signal()
+	updatetoreading_frames = QtCore.Signal()
 
 #-------------------------
 
@@ -62,6 +79,7 @@ class GenericWorker(QtCore.QObject):
 		super(GenericWorker, self).__init__()
 
 
+		self.peopleserver_proxy = mprx["PeopleServerProxy"]
 
 		
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
@@ -69,29 +87,84 @@ class GenericWorker(QtCore.QObject):
 		self.timer = QtCore.QTimer(self)
 
 #State Machine
-		self.defaultMachine= QtCore.QStateMachine()
-		self.compute_state = QtCore.QState(self.defaultMachine)
-		self.initialize_state = QtCore.QState(self.defaultMachine)
+		self.peopleCounterMachine= QtCore.QStateMachine()
+		self.processing_video_state = QtCore.QState(self.peopleCounterMachine)
+		self.initialize_video_state = QtCore.QState(self.peopleCounterMachine)
 
-		self.finalize_state = QtCore.QFinalState(self.defaultMachine)
+		self.finalize_video_state = QtCore.QFinalState(self.peopleCounterMachine)
+
+
+
+		self.detecting_state = QtCore.QState(self.processing_video_state)
+		self.tracking_state = QtCore.QState(self.processing_video_state)
+		self.update_state = QtCore.QState(self.processing_video_state)
+		self.reading_frames_state = QtCore.QState(self.processing_video_state)
+
 
 
 #------------------
 #Initialization State machine
-		self.initialize_state.addTransition(self.initializetocompute, self.compute_state)
-		self.compute_state.addTransition(self.computetocompute, self.compute_state)
-		self.compute_state.addTransition(self.computetofinalize, self.finalize_state)
+		self.initialize_video_state.addTransition(self.initialize_videotoprocessing_video, self.processing_video_state)
+		self.initialize_video_state.addTransition(self.initialize_videotofinalize_video, self.finalize_video_state)
+		self.processing_video_state.addTransition(self.processing_videotofinalize_video, self.finalize_video_state)
+		self.reading_frames_state.addTransition(self.reading_framestodetecting, self.detecting_state)
+		self.reading_frames_state.addTransition(self.reading_framestotracking, self.tracking_state)
+		self.detecting_state.addTransition(self.detectingtoupdate, self.update_state)
+		self.tracking_state.addTransition(self.trackingtoupdate, self.update_state)
+		self.update_state.addTransition(self.updatetoreading_frames, self.reading_frames_state)
 
 
-		self.compute_state.entered.connect(self.sm_compute)
-		self.initialize_state.entered.connect(self.sm_initialize)
-		self.finalize_state.entered.connect(self.sm_finalize)
-		self.timer.timeout.connect(self.computetocompute)
+		self.processing_video_state.entered.connect(self.sm_processing_video)
+		self.initialize_video_state.entered.connect(self.sm_initialize_video)
+		self.finalize_video_state.entered.connect(self.sm_finalize_video)
+		self.reading_frames_state.entered.connect(self.sm_reading_frames)
+		self.detecting_state.entered.connect(self.sm_detecting)
+		self.tracking_state.entered.connect(self.sm_tracking)
+		self.update_state.entered.connect(self.sm_update)
 
-		self.defaultMachine.setInitialState(self.initialize_state)
+		self.peopleCounterMachine.setInitialState(self.initialize_video_state)
+		self.processing_video_state.setInitialState(self.reading_frames_state)
 
 #------------------
 
+#Slots funtion State Machine
+	@QtCore.Slot()
+	def sm_processing_video(self):
+		print "Error: lack sm_processing_video in Specificworker"
+		sys.exit(-1)
+
+	@QtCore.Slot()
+	def sm_initialize_video(self):
+		print "Error: lack sm_initialize_video in Specificworker"
+		sys.exit(-1)
+
+	@QtCore.Slot()
+	def sm_finalize_video(self):
+		print "Error: lack sm_finalize_video in Specificworker"
+		sys.exit(-1)
+
+	@QtCore.Slot()
+	def sm_detecting(self):
+		print "Error: lack sm_detecting in Specificworker"
+		sys.exit(-1)
+
+	@QtCore.Slot()
+	def sm_tracking(self):
+		print "Error: lack sm_tracking in Specificworker"
+		sys.exit(-1)
+
+	@QtCore.Slot()
+	def sm_update(self):
+		print "Error: lack sm_update in Specificworker"
+		sys.exit(-1)
+
+	@QtCore.Slot()
+	def sm_reading_frames(self):
+		print "Error: lack sm_reading_frames in Specificworker"
+		sys.exit(-1)
+
+
+#-------------------------
 	@QtCore.Slot()
 	def killYourSelf(self):
 		rDebug("Killing myself")
