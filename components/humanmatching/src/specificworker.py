@@ -19,7 +19,9 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 import logging
+from collections import defaultdict
 
+from classes.camera_frame import CameraFrame
 from classes.clique import calculate_clique_matching
 from classes.state_machine import HumanMatchingStateMachine
 
@@ -47,6 +49,10 @@ from classes.person import Position2D, Person
 CURRENT_FILE_PATH = os.path.dirname(__file__)
 
 
+def chunks(l, n):
+	"""Yield successive n-sized chunks from l."""
+	for i in xrange(0, len(l), n):
+		yield l[i:i + n]
 
 class SpecificWorker(GenericWorker):
 
@@ -62,6 +68,7 @@ class SpecificWorker(GenericWorker):
 		self.timer.start(self.Period)
 		self._current_person_list = []
 		self._next_person_list = []
+		self.__cameras_data = {}
 
 		self.widget_graph = QNetworkxController(self.ui._graph_view)
 		self.ui._noise_slider.sliderMoved.connect(self.set_noise_factor)
@@ -72,7 +79,9 @@ class SpecificWorker(GenericWorker):
 		self._detection_queue = Queue()
 		self.new_humans_signal.connect(self.tracking_initializationtofirst_person_state)
 		self.new_humans_signal.connect(self.predictiontodata_association)
+		self.new_humans_signal.connect(self.predictiontodata_association)
 		self.human_matching_machine.start()
+		self._cameras_buffer = defaultdict()
 
 	def __del__(self):
 		logger.info('SpecificWorker destructor')
@@ -88,7 +97,7 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def sm_initialize(self):
 		print("Entered state initialize")
-		self.initializetohuman_frames_tracking.emit()
+		self.initializetocameras_matching.emit()
 
 	#
 	# sm_cameras_matching
@@ -120,7 +129,9 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def sm_check_new_data(self):
 		print("Entered state check_new_data")
-		pass
+		for new_cam_data in self._detection_queue:
+			self._cameras_buffer[new_cam_data.idCamera] = new_cam_data
+
 
 	#
 	# sm_cameras_clique
@@ -128,7 +139,47 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def sm_cameras_clique(self):
 		print("Entered state cameras_clique")
-		pass
+		# generate split pairs of cameras [1,2] [3,4] [5] from self._cameras_buffer
+		cameras_data_array = self._cameras_buffer
+		result = self.recursive_camera_clique(cameras_data_array)
+
+
+
+	def recursive_camera_clique(self, cameras_data_array):
+		cam_pairs = chunks(cameras_data_array, 2)
+		new_camera_array = []
+		for pair in cam_pairs:
+			# create virtual cam with all the persons from both cams
+			virtual_cam = HumanPose.humansDetected()
+			virtual_human_list = [pair[0].humanList + pair[1].humanList]
+
+			# calculate mathing persons with click
+			humans1 = self._cam_humans_2_person_list(pair[0])
+			humans2 = self._cam_humans_2_person_list(pair[1])
+			virtual_human_list = [humans1 + humans2]
+			max_clique, matching_graph = calculate_clique_matching(humans1, humans2)
+			for node_id in max_clique:
+				if node_id in matching_graph.nodes:
+					node = matching_graph.nodes[node_id]
+					first_person = node["person1"]
+					second_person = node["person2"]
+					logger.debug("Node %s relates %d in with %d. Merging positions (%d, %d) to (%d, %d)",
+								 node_id, first_person.person_id, second_person.person_id, first_person.pos.x,
+								 first_person.pos.y, second_person.pos.x, second_person.pos.y)
+					new_person = Person.merge(first_person, second_person)
+					if first_person in virtual_cam:
+						virtual_human_list.remove(first_person)
+					if second_person in virtual_cam:
+						virtual_human_list.remove(second_person)
+					virtual_human_list.append(new_person)
+			virtual_cam.
+			new_camera_array.append(virtual_cam)
+		if len(new_camera_array) > 1:
+			return  self.recursive_camera_clique(new_camera_array)
+		else:
+			 return new_camera_array
+
+
 
 	#
 	# sm_results_update
@@ -402,10 +453,22 @@ class SpecificWorker(GenericWorker):
 			detected_person = Person()
 			#TODO: is the camera id the one we assume for the person? How we update this?
 			detected_person.person_id = cam_person.id
+			detected_person.confidence = cam_person.confidence
 			detected_person.cameras.append(humansFromCam.idCamera)
 			detected_person.initialice_tracker(Position2D(cam_person.pos.x, cam_person.pos.z))
 			new_person_list.append(detected_person)
 		return new_person_list
+
+	def _person_list_to_cam_humans(self, person_list, cam = None):
+		new_cam = HumanPose.humansDetected()
+		for person in person_list:
+			cam_person = HumanPose.PersonType()
+			cam_person.id = person.person_id
+			cam_person.confidence = person.confidence
+			cam_person.pos.x, cam_person.pos.z
+			new_cam.cameras.append(humansFromCam.idCamera)
+			new_cam.initialice_tracker(Position2D(cam_person.pos.x, cam_person.pos.z))
+		return new_cam
 
 	def _update_person_list_view(self, person_list, view):
 		view.clear()
@@ -437,8 +500,9 @@ class SpecificWorker(GenericWorker):
 	def obtainHumanPose(self, humansFromCam):
 		"""Component entry point for the detected human poses"""
 		logger.debug("obtainHumanPose")
-		self._detection_queue.put(humansFromCam)
-		if (len(humansFromCam.humanList)!=0):
+		camera_frame = CameraFrame.from_ice_struct(humansFromCam)
+		if (len(camera_frame.person_list)!=0):
+			self._detection_queue.put(camera_frame)
 			print (humansFromCam)
 			self.new_humans_signal.emit()
 
