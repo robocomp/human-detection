@@ -56,10 +56,19 @@ class Person:
 		self._velocity = []
 		self._last_time_detected = -1
 		self._last_time_predicted = -1
+		self._confidence = 0
 
 	@property
 	def person_id(self):
 		return self._person_id
+
+	@property
+	def confidence(self):
+	    return self._confidence
+
+	@confidence.setter
+	def confidence(self, value):
+	    self._confidence = value
 
 	@property
 	def pos(self):
@@ -135,6 +144,13 @@ class Person:
 		current_time = datetime.datetime.now()
 		delta_time = (current_time-self._last_time_detected).total_seconds()
 		return delta_time
+
+	@staticmethod
+	def merge(person1, person2):
+		if person1.confidence >= person2.confidence:
+			return person1
+		else:
+			return person2
 
 	def __repr__(self):
 		return 'Person (%d) at %s'%(self.person_id, str(self.pos))
