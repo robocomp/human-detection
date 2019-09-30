@@ -1,7 +1,9 @@
+import "PeopleServer.idsl";
 Component peopleCounter
 {
     Communications
     {
+        requires PeopleServer;
     };
 	language python;
 	statemachine "statemachine.smdsl";
