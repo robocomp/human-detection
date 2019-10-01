@@ -19,6 +19,7 @@ human_matching_machine{
 
     transitions{
         check_new_data => cameras_clique;
+        check_new_data => check_new_data;
         cameras_clique => results_update;
         results_update => end_camera_matching;
     };

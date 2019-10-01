@@ -25,7 +25,7 @@ class CameraFrame:
     def timestamp(self, value):
         self.__timestamp = value
 
-    def @property
+    @property
     def person_list(self):
         return self.__person_list
 
@@ -43,14 +43,14 @@ class CameraFrame:
         # 		 personList humanList;
         # 	};
         new_camera_frame = CameraFrame()
-        new_camera_frame.id_camera = humansFromCam.IdCamera
-        new_camera_frame.timestamp = humansFromCam.timestamp
+        new_camera_frame.id_camera = humansFromCam.idCamera
+        new_camera_frame.timestamp = humansFromCam.timeStamp
         new_camera_frame.person_list = []
         for cam_person in humansFromCam.humanList:
             detected_person = Person()
             # TODO: is the camera id the one we assume for the person? How we update this?
             detected_person.person_id = cam_person.id
-            detected_person.confidence = cam_person.confidence
+            detected_person.confidence = cam_person.pos.confidence
             detected_person.cameras.append(humansFromCam.idCamera)
             detected_person.initialice_tracker(Position2D(cam_person.pos.x, cam_person.pos.z))
             new_camera_frame.person_list.append(detected_person)
