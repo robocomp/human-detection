@@ -129,8 +129,20 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def sm_check_new_data(self):
 		print("Entered state check_new_data")
-		for new_cam_data in self._detection_queue:
-			self._cameras_buffer[new_cam_data.idCamera] = new_cam_data
+		new_data = False
+		while True:
+			try:
+				new_cam_data = self._detection_queue.get_nowait()
+				self._cameras_buffer[new_cam_data.idCamera] = new_cam_data
+				new_data = True
+			except Empty:  # on python 2 use Queue.Empty
+				break
+		if new_data:
+			self.check_new_datatocameras_clique.emit()
+		else:
+			self.check_new_datatocheck_new_data.emit()
+
+
 
 
 	#
@@ -142,6 +154,7 @@ class SpecificWorker(GenericWorker):
 		# generate split pairs of cameras [1,2] [3,4] [5] from self._cameras_buffer
 		cameras_data_array = self._cameras_buffer
 		result = self.recursive_camera_clique(cameras_data_array)
+		self.cameras_cliquetoresults_update.emit()
 
 
 
@@ -172,7 +185,7 @@ class SpecificWorker(GenericWorker):
 					if second_person in virtual_cam:
 						virtual_human_list.remove(second_person)
 					virtual_human_list.append(new_person)
-			virtual_cam.
+			# virtual_cam.
 			new_camera_array.append(virtual_cam)
 		if len(new_camera_array) > 1:
 			return  self.recursive_camera_clique(new_camera_array)
@@ -187,7 +200,7 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def sm_results_update(self):
 		print("Entered state results_update")
-		pass
+		self.results_updatetocheck_new_data.emit()
 
 	#
 	# sm_end_camera_matching
@@ -503,7 +516,6 @@ class SpecificWorker(GenericWorker):
 		camera_frame = CameraFrame.from_ice_struct(humansFromCam)
 		if (len(camera_frame.person_list)!=0):
 			self._detection_queue.put(camera_frame)
-			print (humansFromCam)
 			self.new_humans_signal.emit()
 
 
