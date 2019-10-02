@@ -51,12 +51,13 @@ class Person:
 		# self._position_history = Queue(5)
 		# self._rot = 0
 		self.tracker = KalmanTracker()
-		self._color = random_hexrgb()
+		self.__color = random_hexrgb()
 		self._cameras = []
 		self._velocity = []
 		self._last_time_detected = -1
 		self._last_time_predicted = -1
 		self._confidence = 0
+
 
 	@property
 	def person_id(self):
@@ -80,7 +81,13 @@ class Person:
 
 	@property
 	def color(self):
-		return self._color
+		return self.__color
+
+
+	@color.setter
+	def color(self, value):
+		assert isinstance(value, basestring) and value.startswith('#') and len(value) == 7, "Color must be given in a hex value string with the format #FFFFFFF but %s given"+str(value)
+		self.__color = value
 
 	@property
 	def cameras(self):
