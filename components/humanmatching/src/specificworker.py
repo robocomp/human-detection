@@ -51,8 +51,10 @@ CURRENT_FILE_PATH = os.path.dirname(__file__)
 
 def chunks(l, n):
 	"""Yield successive n-sized chunks from l."""
+	pairs_array = []
 	for i in xrange(0, len(l), n):
-		yield l[i:i + n]
+		pairs_array.append(l[i:i + n])
+	return pairs_array
 
 class SpecificWorker(GenericWorker):
 
@@ -82,6 +84,15 @@ class SpecificWorker(GenericWorker):
 		self.new_humans_signal.connect(self.predictiontodata_association)
 		self.human_matching_machine.start()
 		self._cameras_buffer = defaultdict()
+		self.__current_virtual_cam = None
+
+	@property
+	def current_virtual_cam(self):
+	    return self.__current_virtual_cam
+
+	@current_virtual_cam.setter
+	def current_virtual_cam(self, value):
+	    self.__current_virtual_cam = value
 
 	def __del__(self):
 		logger.info('SpecificWorker destructor')
@@ -133,14 +144,14 @@ class SpecificWorker(GenericWorker):
 		while True:
 			try:
 				new_cam_data = self._detection_queue.get_nowait()
-				self._cameras_buffer[new_cam_data.idCamera] = new_cam_data
+				self._cameras_buffer[new_cam_data.id_camera] = new_cam_data
 				new_data = True
 			except Empty:  # on python 2 use Queue.Empty
 				break
 		if new_data:
 			self.check_new_datatocameras_clique.emit()
 		else:
-			self.check_new_datatocheck_new_data.emit()
+			QTimer.singleShot(self.Period, self.check_new_datatocheck_new_data)
 
 
 
@@ -153,7 +164,7 @@ class SpecificWorker(GenericWorker):
 		print("Entered state cameras_clique")
 		# generate split pairs of cameras [1,2] [3,4] [5] from self._cameras_buffer
 		cameras_data_array = self._cameras_buffer
-		result = self.recursive_camera_clique(cameras_data_array)
+		self.current_virtual_cam = self.recursive_camera_clique(cameras_data_array.values())
 		self.cameras_cliquetoresults_update.emit()
 
 
@@ -162,35 +173,37 @@ class SpecificWorker(GenericWorker):
 		cam_pairs = chunks(cameras_data_array, 2)
 		new_camera_array = []
 		for pair in cam_pairs:
-			# create virtual cam with all the persons from both cams
-			virtual_cam = HumanPose.humansDetected()
-			virtual_human_list = [pair[0].humanList + pair[1].humanList]
-
-			# calculate mathing persons with click
-			humans1 = self._cam_humans_2_person_list(pair[0])
-			humans2 = self._cam_humans_2_person_list(pair[1])
-			virtual_human_list = [humans1 + humans2]
-			max_clique, matching_graph = calculate_clique_matching(humans1, humans2)
-			for node_id in max_clique:
-				if node_id in matching_graph.nodes:
-					node = matching_graph.nodes[node_id]
-					first_person = node["person1"]
-					second_person = node["person2"]
-					logger.debug("Node %s relates %d in with %d. Merging positions (%d, %d) to (%d, %d)",
-								 node_id, first_person.person_id, second_person.person_id, first_person.pos.x,
-								 first_person.pos.y, second_person.pos.x, second_person.pos.y)
-					new_person = Person.merge(first_person, second_person)
-					if first_person in virtual_cam:
-						virtual_human_list.remove(first_person)
-					if second_person in virtual_cam:
-						virtual_human_list.remove(second_person)
-					virtual_human_list.append(new_person)
-			# virtual_cam.
-			new_camera_array.append(virtual_cam)
+			if len(pair) ==2:
+				# create virtual cam with all the persons from both cams
+				virtual_cam = CameraFrame()
+				# calculate mathing persons with click
+				humans1 = pair[0].person_list
+				humans2 = pair[1].person_list
+				virtual_human_list = humans1 + humans2
+				max_clique, matching_graph = calculate_clique_matching(humans1, humans2)
+				for node_id in max_clique:
+					if node_id in matching_graph.nodes:
+						node = matching_graph.nodes[node_id]
+						first_person = node["person1"]
+						second_person = node["person2"]
+						logger.debug("Node %s relates %d in with %d. Merging positions (%d, %d) to (%d, %d)",
+									 node_id, first_person.person_id, second_person.person_id, first_person.pos.x,
+									 first_person.pos.y, second_person.pos.x, second_person.pos.y)
+						new_person = Person.merge(first_person, second_person)
+						# new_person.color =
+						if first_person in virtual_human_list:
+							virtual_human_list.remove(first_person)
+						if second_person in virtual_human_list:
+							virtual_human_list.remove(second_person)
+						virtual_human_list.append(new_person)
+				virtual_cam.person_list = virtual_human_list
+				new_camera_array.append(virtual_cam)
+			else:
+				new_camera_array.append(pair[0])
 		if len(new_camera_array) > 1:
 			return  self.recursive_camera_clique(new_camera_array)
 		else:
-			 return new_camera_array
+			 return new_camera_array[0]
 
 
 
@@ -200,6 +213,7 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def sm_results_update(self):
 		print("Entered state results_update")
+		self._update_person_list_view(self.__current_virtual_cam.person_list, self.ui._second_view)
 		self.results_updatetocheck_new_data.emit()
 
 	#
@@ -488,7 +502,7 @@ class SpecificWorker(GenericWorker):
 		# logger.debug("Updating %d persons on view %s", len(person_list), str(view))
 		for person in person_list:
 			view.add_human_by_pos(person.person_id, (person.pos.x, person.pos.y))
-			color = QColor(person._color)
+			color = QColor(person.color)
 			darker_factor = 100+int(person.detection_delta_time()/200)
 			color = color.darker(darker_factor)
 			# logger.debug("setting color %s darker factor %d"%(color.name(), darker_factor))
