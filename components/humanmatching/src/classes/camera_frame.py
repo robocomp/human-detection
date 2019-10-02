@@ -5,7 +5,7 @@ class CameraFrame:
 
     def __init__(self):
         self.__id_camera = -1
-        self.__person_list = None
+        self.__person_list = []
         self.__timestamp = None
 
 
