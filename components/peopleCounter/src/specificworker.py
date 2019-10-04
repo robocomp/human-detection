@@ -185,6 +185,7 @@ class SpecificWorker(GenericWorker):
         print("[INFO] elapsed time: {:.2f}".format(self.fps.elapsed()))
         print("[INFO] approx. FPS: {:.2f}".format(self.fps.fps()))
 
+        exit(-1)
     ## Processing video sub states
     #
     # sm_reading_frames
