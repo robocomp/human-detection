@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 by YOUR NAME HERE
 #
@@ -23,7 +25,7 @@ ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
 except KeyError:
-	print ('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
+	print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
 	ROBOCOMP = '/opt/robocomp'
 
 preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
@@ -39,24 +41,36 @@ try:
 		additionalPathStr += ' -I' + p + ' '
 	icePaths.append('/opt/robocomp/interfaces')
 except:
-	print ('SLICE_PATH environment variable was not exported. Using only the default paths')
+	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
+ice_PeopleServer = False
+for p in icePaths:
+	if os.path.isfile(p+'/PeopleServer.ice'):
+		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
+		wholeStr = preStr+"PeopleServer.ice"
+		Ice.loadSlice(wholeStr)
+		ice_PeopleServer = True
+		break
+if not ice_PeopleServer:
+	print('Couln\'t load PeopleServer')
+	sys.exit(-1)
+from RoboCompPeopleServer import *
 
 
 from peopleserverI import *
 
 
 class GenericWorker(QtCore.QObject):
-	kill = QtCore.Signal()
 
+	kill = QtCore.Signal()
 
 	def __init__(self, mprx):
 		super(GenericWorker, self).__init__()
 
 
 
-
+		
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
 		self.Period = 30
 		self.timer = QtCore.QTimer(self)
@@ -71,6 +85,6 @@ class GenericWorker(QtCore.QObject):
 	# @param per Period in ms
 	@QtCore.Slot(int)
 	def setPeriod(self, p):
-		print ("Period changed", p)
+		print("Period changed", p)
 		Period = p
 		timer.start(Period)

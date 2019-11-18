@@ -44,6 +44,7 @@ class SpecificWorker(GenericWorker):
 	def initialize(self):
 		
 		# add args.device
+		print("gola")
 		class Args:
 			source = 0
 			checkpoint = None

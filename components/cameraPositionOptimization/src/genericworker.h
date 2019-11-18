@@ -23,6 +23,12 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
+#if Qt5_FOUND
+	#include <QtWidgets>
+#else
+	#include <QtGui>
+#endif
+#include <ui_mainUI.h>
 #include <CommonBehavior.h>
 
 
@@ -35,7 +41,11 @@ using TuplePrx = std::tuple<>;
 
 
 class GenericWorker :
-public QObject
+#ifdef USE_QTGUI
+	public QWidget, public Ui_guiDlg
+#else
+	public QObject
+ #endif
 {
 Q_OBJECT
 public:

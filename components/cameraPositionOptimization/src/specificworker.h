@@ -35,7 +35,8 @@
 #include "ceres/ceres.h"
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
-
+#include <QGraphicsScene>
+#include <QGraphicsView>
 
 using ceres::AutoDiffCostFunction;
 using ceres::NumericDiffCostFunction;
@@ -100,13 +101,17 @@ public slots:
 	void initialize(int period);
 private:
 	std::shared_ptr<InnerModel> innermodel;
-	void createList();
 	std::list<std::tuple<std::string, QVec, std::string, QVec>> measurements; //camA, mut indexA markA, camB, mut_indexB, markB
 	std::map<std::string, std::tuple<std::string, QVec, double * >> cameras_map; //cam : {t_cam, mutable_camera_for_CERES }
 	int cameraChanged;
 	QVec savedCamera;
 	std::vector<QVec> cameras;
 
+	QGraphicsScene scene;
+	QGraphicsView view;
+
+	std::tuple<std::vector<double>, double, double> computeResiduals();
+	void createList(int num_datos=100);
 };
 
 #endif

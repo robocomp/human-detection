@@ -61,9 +61,7 @@ import sys, traceback, IceStorm, subprocess, threading, time, os, copy
 import signal
 
 from PySide2 import QtCore
-
 from specificworker import *
-
 
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 	def __init__(self, _handler):
@@ -76,14 +74,14 @@ class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
 		try:
 			return self.handler.timeAwake()
 		except:
-			print ('Problem getting timeAwake')
+			print('Problem getting timeAwake')
 	def killYourSelf(self, current = None):
 		self.handler.killYourSelf()
 	def getAttrList(self, current = None):
 		try:
 			return self.handler.getAttrList()
 		except:
-			print ('Problem getting getAttrList')
+			print('Problem getting getAttrList')
 			traceback.print_exc()
 			status = 1
 			return
@@ -110,7 +108,7 @@ if __name__ == '__main__':
 		worker = SpecificWorker(mprx)
 		worker.setParams(parameters)
 	else:
-		print ("Error getting required connections, check config file")
+		print("Error getting required connections, check config file")
 		sys.exit(-1)
 
 	adapter = ic.createObjectAdapter('PeopleServer')

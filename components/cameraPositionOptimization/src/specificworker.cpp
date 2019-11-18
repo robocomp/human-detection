@@ -67,6 +67,10 @@ void SpecificWorker::initialize(int period)
 			//new double[6] {t_pose[0], t_pose[1], t_pose[2], t_pose[3], t_pose[4], t_pose[5]}};
 	}
 
+	view.setParent(frame);
+	view.setScene(&scene);
+	view.show();
+
 	// init compute
 	this->Period = period;
 	timer.setSingleShot(true);
@@ -75,7 +79,7 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	createList();
+	createList(5500);
 	
 	Problem problem;
 	for(auto &&[cA, mA, cB, mB] : measurements)
@@ -88,16 +92,6 @@ void SpecificWorker::compute()
 		
 		problem.AddResidualBlock(cost_function, NULL, mutA, mutB);
 	}
-	// for(auto &&[cA, mA, cB, mB] : measurements)
-	// {	
-	// 	CostFunction* cost_function = new NumericDiffCostFunction<CostFunctor, ceres::RIDDERS, 3, 6>
-	// 	  		(new CostFunctor(innermodel, cameras_map, cA, mA, cB, mB));
-		
-	// 	double *mutA = std::get<double *>(cameras_map.at(cA));
-	// 	//double *mutB = std::get<double *>(cameras_map.at(cB));
-		
-	// 	problem.AddResidualBlock(cost_function, NULL, mutA);
-	// }
 	
 	// Run the solver!
 	Solver::Options options;
@@ -119,17 +113,25 @@ void SpecificWorker::compute()
 			std::cout << pose[i] << " ";
 		std::cout << std::endl; 
 		auto mut = std::get<double *>(val);
+		auto t_name = std::get<std::string>(val);
+		innermodel->updateTransformValuesS(t_name, mut[0]*1000., mut[1]*1000., mut[2]*1000., mut[3], mut[4], mut[5]);
 		for(auto i: iter::range(3))
 			std::cout << mut[i]*1000. << " ";
-			//std::cout << mut[i] << " ";
 		for(auto i: iter::range(3,6))
 			std::cout << mut[i] << " ";	
 		std::cout << std::endl;
 		std::cout << "----------------------" << std::endl;
 	}
+	
+	//Compute new statistics
+	auto [residuals, mean, stdev] = computeResiduals();
+	// for(auto i : iter::range(300))
+	//  	std::cout << residuals[i] << std::endl;
+	std::cout << "Statistics after optimization:" <<  mean << " " << stdev << std::endl;
+
 }
 
-void SpecificWorker::createList()
+void SpecificWorker::createList(int num_datos)
 {
 	std::ifstream infile("april.txt");
 	std::string line;
@@ -155,16 +157,37 @@ void SpecificWorker::createList()
 								
 
 	}
-	qDebug() << "number of lines: "<< my_measurements.size();
-	//const int ITEMS = 1000;
-	const int ITEMS = my_measurements.size();
-	// random resample
-	std::sample(my_measurements.begin(), my_measurements.end(), std::back_inserter(this->measurements), ITEMS, std::mt19937{std::random_device{}()});
-	qDebug() << "number of lines: "<< measurements.size();
+	qDebug() << "Total number of lines in file: "<< my_measurements.size();
 
-	// check for outliers
+	// random resample
+	std::sample(my_measurements.begin(), my_measurements.end(), std::back_inserter(this->measurements), num_datos, std::mt19937{std::random_device{}()});
+	qDebug() << "Number of lines after sampling: "<< measurements.size();
+
+	auto [residuals, mean, stdev] = computeResiduals();
+
+	// for(auto i : iter::range(300))
+	//  	std::cout << residuals[i] << std::endl;
+	std::cout << "Statistics before optimization:" << mean << " " << stdev << std::endl;
+
+	//remove outliers
+	// auto cola = std::remove_if(std::begin(measurements), std::end(measurements), 
+	// 	[stdev, this](auto&& m)
+	// 		{ 
+	// 			auto&& [cA,mA,cB,mB] = m;
+	// 			//std::cout << cA << " " << cB << std::endl;
+	// 			QVec rA = innermodel->transformS("world", mA, std::get<std::string>(cameras_map.at(cA)));
+	// 			QVec rB = innermodel->transformS("world", mB, std::get<std::string>(cameras_map.at(cB)));
+	// 			double res = (rA-rB).norm2();
+	// 			return res > 3. * stdev;
+	// 		});	
+	// measurements.erase(cola, std::end(measurements));
+	qDebug() << "Number of lines after removal of outliers:" << measurements.size();
+}
+
+std::tuple<std::vector<double>, double, double> SpecificWorker::computeResiduals()
+{
 	std::vector<double> residuals;
-	for(auto &&[cA, mA, cB, mB] : measurements)
+	for(auto &&[cA, mA, cB, mB] : this->measurements)
 	{
 		QVec rA = innermodel->transformS("world", mA, std::get<std::string>(cameras_map.at(cA)));
 		QVec rB = innermodel->transformS("world", mB, std::get<std::string>(cameras_map.at(cB)));
@@ -177,24 +200,9 @@ void SpecificWorker::createList()
 	std::transform(std::begin(residuals), std::end(residuals), diff.begin(), [mean](double x) { return x - mean; });
 	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
 	double stdev = std::sqrt(sq_sum / residuals.size());
-	for(auto i : iter::range(300))
-	 	std::cout << residuals[i] << std::endl;
-	std::cout << mean << " " << stdev << std::endl;
-
-	//filter
-	auto cola = std::remove_if(std::begin(measurements), std::end(measurements), 
-		[stdev, this](auto&& m)
-			{ 
-				auto&& [cA,mA,cB,mB] = m;
-				//std::cout << cA << " " << cB << std::endl;
-				QVec rA = innermodel->transformS("world", mA, std::get<std::string>(cameras_map.at(cA)));
-				QVec rB = innermodel->transformS("world", mB, std::get<std::string>(cameras_map.at(cB)));
-				double res = (rA-rB).norm2();
-				return res > 3. * stdev;
-			});	
-	measurements.erase(cola, std::end(measurements));
-	qDebug() << "Size" << measurements.size();
+	return std::tuple{residuals, mean, stdev};
 }
+
 QVec SpecificWorker::updateCameraPosition(string camera, QVec values)
 {
 	Rot3DOX crx (-values.rx()); //***********RX inverse SIGN************
