@@ -191,6 +191,16 @@ void SpecificWorker::load_file()
 	if(!controlKeyPressed)
 	{
 		QString filename = QFileDialog::getOpenFileName(this, tr("Open file"), "", tr("Text Files (*.txt )"));
+
+		try{
+			int camera_id = filename.split("__").last().split('.').first().toInt();
+			cameraID_sb->setValue(camera_id);
+		}
+		catch (...) {
+			std::cout << "ERROR getting camera id from filemane" << std::endl;
+		}
+
+
 		QFile file(filename);
 		if(!file.open(QIODevice::ReadOnly)) {
 			QMessageBox::information(0, "error", file.errorString());
@@ -215,22 +225,32 @@ void SpecificWorker::load_file()
 			while (it.hasNext()) {
 				auto the_file = it.next();
 				qDebug() << "\tLoading from file"<<the_file;
+
 				QFile file(the_file);
 				if(!file.open(QIODevice::ReadOnly)) {
 					QMessageBox::information(0, "error", file.errorString());
 					return;
 				}
+
 				QTextStream in(&file);
 				QString text = in.readAll();
 				person_te->clear();
 				person_te->setText(text);
 				name_le->setText(QFileInfo(file).baseName());
+				try{
+					int camera_id = the_file.split("__").last().split('.').first().toInt();
+					cameraID_sb->setValue(camera_id);
+				}
+				catch (...) {
+					std::cout << "ERROR getting camera id from filemane" << std::endl;
+				}
 				this->add_frame();
 			}
 		}
 	}
 	frames_list->sortItems();
 }
+
 
 void SpecificWorker::save_file(QString filename, QString text)
 {
@@ -247,7 +267,7 @@ void SpecificWorker::save_file()
 {
 	if(!controlKeyPressed) {
 		QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), "", tr("Text Files (*.txt )"));
-		this->save_file(filename, person_te->toPlainText());
+		this->save_file(filename+"__"+QString::number(cameraID_sb->value())+".txt", person_te->toPlainText());
 	}
 	else
 	{
@@ -269,7 +289,7 @@ void SpecificWorker::save_file()
 				FakePoses poses = vari.value<FakePoses>();
 				qDebug()<<"Humans detected:"<<poses.data.humanList.size();
 				//for item, save struct to file
-				auto file_path = QDir::cleanPath(dir + QDir::separator() + name+".txt");
+				auto file_path = QDir::cleanPath(dir + QDir::separator() + name+"__"+QString::number(poses.data.idCamera)+".txt");
 				qDebug()<<"Writting to: "<<file_path;
 
 				this->save_file(file_path, poses.text);

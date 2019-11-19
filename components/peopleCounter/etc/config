@@ -1,0 +1,15 @@
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+
+#trackers: dlib, mosse, csrt, kcf, medianflow
+tracker = kcf
+save_results = False
+video_input = url
+model = /home/robolab/robocomp/components/human-detection/components/peopleCounter/mobilenet_ssd/MobileNetSSD_deploy.caffemodel
+prototxt = /home/robolab/robocomp/components/human-detection/components/peopleCounter/mobilenet_ssd/MobileNetSSD_deploy.prototxt

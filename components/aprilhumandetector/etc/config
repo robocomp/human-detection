@@ -1,0 +1,22 @@
+CommonBehavior.Endpoints=tcp -p 10000
+
+
+# Proxies for required interfaces
+AprilTagsServerProxy = apriltagsserver:tcp -h localhost -p 12555
+
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+
+InnerModelPath = autonomyLab.xml
+numCameras = 1
+width = 1920
+height = 1080
+
+camera.Params_0 = camera1,rtsp://camera1:opticalflow1@10.253.247.38:88/videoMain
+camera.Params_1 = camera2,rtsp://camera2:opticalflow2@10.253.247.37:88/videoMain
+camera.Params_2 = camera3,rtsp://camera3:opticalflow3@10.253.247.39:88/videoMain
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0

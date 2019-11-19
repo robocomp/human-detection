@@ -23,24 +23,7 @@ logger = logging.getLogger(__name__)
 
 import networkx as nx
 import numpy
-import sys
 
-
-file_handler = logging.FileHandler('humanmatching.log')
-file_handler.setLevel(logging.DEBUG)
-
-terminal_handler = logging.StreamHandler(sys.stdout)
-terminal_handler.setLevel(logging.DEBUG)
-
-# create a logging format
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
-
-file_handler.setFormatter(formatter)
-terminal_handler.setFormatter(formatter)
-
-# add the file_handlers to the logger
-logger.addHandler(file_handler)
-logger.addHandler(terminal_handler)
 
 ABS_THR = 500
 REL_THR = 250
@@ -52,11 +35,12 @@ def calculate_person_distance( p1, p2):
 	dist_a_b = numpy.sqrt(numpy.sum((a - b) ** 2))
 	return dist_a_b
 
-def calculate_clique_matching(input1, input2, noise_vector):
+def calculate_clique_matching(input1, input2, noise_vector =[]):
 	matching_graph = nx.Graph()
 	# camera_id = input.idCamera
 	current_person_list = input1
 	new_persons_list = input2
+	# TODO: This should be moved out of the clique algorithm
 	if len(noise_vector) > 0:
 		if len(noise_vector)== len(input2)*2:
 			new_persons_list = add_noise_to_person_list(new_persons_list, noise_vector)
@@ -67,7 +51,8 @@ def calculate_clique_matching(input1, input2, noise_vector):
 	# 	current_person_list = self.add_noise(current_person_list)
 	# 	self._update_person_list_view(current_person_list, self.ui._first_view)
 	# 	self._update_person_list_view(new_persons_list, self.ui._second_view)
-	logger.debug("Person list input: %s", str(new_persons_list))
+	logger.debug("Person list input1: %s", str(current_person_list))
+	logger.debug("Person list input2: %s", str(new_persons_list))
 	for detected_person in new_persons_list:
 		for existing_person in current_person_list:
 			logger.debug("Indexes: %d %d", detected_person.person_id, existing_person.person_id)

@@ -59,6 +59,7 @@ public:
 	void createRemap(int width, int height, float K1, float K2, float K3);
 	void readFrame(int camera, cv::Mat &frame);
 	void initVideo();
+	void initializeCameras();
 
 public slots:
 	void compute();

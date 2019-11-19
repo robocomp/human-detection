@@ -119,51 +119,8 @@ void SpecificWorker::initialize(int period)
 	personPose = scene.addEllipse(QRectF(-50,-50, 200, 200), QPen(QColor("LightGreen")), QBrush(QColor("LightGreen")));
 	personPose->setFlag(QGraphicsItem::ItemIsMovable);
 	personPose->setPos(0, 0);
-
 	innermodel = std::make_shared<InnerModel>(config_params["InnerModelPath"].value);
-	/*CAM1*/
-	Rot3DOX c1rx (-0.00779854133725); //***********RX inverse SIGN************
-	Rot3DOY c1ry (-0.731414854527);
-	Rot3DOZ c1rz (1.56042146683);
-	QMat c1rZYX = c1rz * c1ry * c1rx;
-
-	cam1 = RTMat();
-	cam1.setR(c1rZYX);
-	cam1.setTr(-88.5111083984, -294.114929199, 3636.78735352);
-	cam1 = cam1.invert();
-
-	innermodel->getNode("cam1Translation")->setR(cam1.getR());
-	innermodel->getNode("cam1Translation")->setTr(cam1.getTr());
-
-	/*CAM2*/
-	Rot3DOX c2rx (-0.881269991398); //***********RX inverse SIGN************
-	Rot3DOY c2ry (-0.0238653570414);
-	Rot3DOZ c2rz (-3.06511044502);
-	QMat c2rZYX = c2rz * c2ry *c2rx;
-
-	cam2 = RTMat();
-	cam2.setR(c2rZYX);
-	cam2.setTr(217.058700562, -190.08354187, 4365.43603516);
-	cam2 = cam2.invert();
-
-	innermodel->getNode("cam2Translation")->setR(cam2.getR());
-	innermodel->getNode("cam2Translation")->setTr(cam2.getTr());
-
-	/*CAM3*/
-	Rot3DOX c3rx (0.775234341621); //***********RX inverse SIGN************
-	Rot3DOY c3ry (-0.0307027455419);
-	Rot3DOZ c3rz (-0.00459992652759);
-	QMat c3rZYX = c3rz * c3ry *c3rx;
-
-	cam3 = RTMat();
-	cam3.setR(c3rZYX);
-	cam3.setTr(-25.1116256714, 288.730499268, 4390.10351562);
-	cam3 = cam3.invert();
-
-	innermodel->getNode("cam3Translation")->setR(cam3.getR());
-	innermodel->getNode("cam3Translation")->setTr(cam3.getTr());
-	
-
+	//initializeCameras();
 	pMOG2 = cv::createBackgroundSubtractorMOG2();
 	size_t erosion_size = 2;
 	kernel = cv::getStructuringElement( cv::MORPH_ELLIPSE, 
@@ -187,6 +144,51 @@ void SpecificWorker::initialize(int period)
 	aprilImage.data.resize(aprilImage.frmt.width * aprilImage.frmt.height *3 );
 
 }
+void SpecificWorker::initializeCameras()
+{
+//TODO: NEW VALUES FROM PABLO
+	/*CAM1*/ 
+	Rot3DOX c1rx (-0.035668); //***********RX inverse SIGN************
+	Rot3DOY c1ry (-0.783326);
+	Rot3DOZ c1rz (1.58033);
+	QMat c1rZYX = c1rz * c1ry * c1rx;
+
+	cam1 = RTMat();
+	cam1.setR(c1rZYX);
+	cam1.setTr(-175.093, -173.46, 3867.47);
+	cam1 = cam1.invert();
+
+	innermodel->getNode("cam1Translation")->setR(cam1.getR());
+	innermodel->getNode("cam1Translation")->setTr(cam1.getTr());
+
+	/*CAM2*/ 
+	Rot3DOX c2rx (-0.972462); //***********RX inverse SIGN************
+	Rot3DOY c2ry (-0.00790341);
+	Rot3DOZ c2rz (-3.10067);
+	QMat c2rZYX = c2rz * c2ry *c2rx;
+
+	cam2 = RTMat();
+	cam2.setR(c2rZYX);
+	cam2.setTr(377.148, 168.982, 4647.12);
+	cam2 = cam2.invert();
+
+	innermodel->getNode("cam2Translation")->setR(cam2.getR());
+	innermodel->getNode("cam2Translation")->setTr(cam2.getTr());
+
+	/*CAM3*/ 
+	Rot3DOX c3rx (0.776588); //***********RX inverse SIGN************
+	Rot3DOY c3ry (0.0931449);
+	Rot3DOZ c3rz (-0.0916028);
+	QMat c3rZYX = c3rz * c3ry *c3rx;
+
+	cam3 = RTMat();
+	cam3.setR(c3rZYX);
+	cam3.setTr(-119.301, 592.147, 4662.5);
+	cam3 = cam3.invert();
+
+	innermodel->getNode("cam3Translation")->setR(cam3.getR());
+	innermodel->getNode("cam3Translation")->setTr(cam3.getTr());
+}
 
 void SpecificWorker::initVideo()
 {
@@ -194,12 +196,12 @@ void SpecificWorker::initVideo()
 	int width = QString::fromStdString(config_params["width"].value).toInt();
 	int height = QString::fromStdString(config_params["height"].value).toInt();
 //Save points in file
-writefile.open("april.txt");
 	for(int i=0;i < ncameras; i++)
 	{
 		std::string s = QString::number(i).toStdString();
 		std::string source = config_params["camera.Params_" + s +".source"].value;
 		cv::VideoCapture cam = cv::VideoCapture(source);
+writefile.open(source+".txt");
 
 
 		if (cam.isOpened() == false)
@@ -382,7 +384,7 @@ void SpecificWorker::compute()
 		april[i] = computeAprilPosition(frame, i);
 	}
 	//check if april detected on several cameras
-	int cont = (april[0] != "" ) + (april[1] != "" ) + (april[02] != "" );
+/* 	int cont = (april[0] != "" ) + (april[1] != "" ) + (april[02] != "" );
 	std::cout <<cont<< "****" <<april[0] <<" " << april[1] <<" "<< april[2]<<std::endl;
 	if (cont == 2)
 	{
@@ -398,12 +400,13 @@ void SpecificWorker::compute()
 		writefile << QString::number(valid_frames).toStdString() << " " << april[1]<<" "<<april[2]<<"\n";
 		valid_frames++;
 	}
-
+*/
 
 	//video
 	frame_counter += 1;
 	if (frame_counter >= cameras[0].get(CV_CAP_PROP_FRAME_COUNT))
 	{
+		writefile.close();
 		exit(0);
         frame_counter = 0;
         //qDebug()<< "RELOOP VIDEO" << camcv1.set(CV_CAP_PROP_POS_FRAMES, 0),camcv2.set(CV_CAP_PROP_POS_FRAMES, 0);
@@ -556,16 +559,20 @@ std::string SpecificWorker::computeAprilPosition(cv::Mat frame, int id_camera)
 				std::cout<<"Position "<<tag.tx <<";"<< tag.ty << ";" << tag.tz <<";"<<std::endl;
 				std::cout<<"World "<< w.x() <<";"<< w.y() << ";" << w.z() <<";"<<std::endl;
 				result = camera;
+				//to get apriltag position
 				result += " " + QString::number(tag.tx).toStdString();
 				result += " " + QString::number(tag.ty).toStdString();
 				result += " " + QString::number(tag.tz).toStdString();
 				result += " " + QString::number(tag.rx).toStdString();
 				result += " " + QString::number(tag.ry).toStdString();
 				result += " " + QString::number(tag.rz).toStdString() + " ";
+				//world translation
+				writefile << w.x() <<";"<< w.z() <<"\n";
 			}
 		}
 		else // No tag
 		{
+			writefile << "9999" <<";"<< "9999" <<"\n";
 		}
 	}
 	catch(const Ice::Exception& e)

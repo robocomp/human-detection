@@ -1,0 +1,51 @@
+
+human_matching_machine{
+    states cameras_matching, human_frames_tracking;
+    initial_state initialize;
+    end_state finalize;
+    transitions{
+        initialize => human_frames_tracking;
+        initialize => cameras_matching;
+        cameras_matching => finalize;
+        human_frames_tracking => finalize;
+    };
+};
+
+
+:cameras_matching{
+    states cameras_clique, results_update;
+    initial_state check_new_data;
+    end_state end_camera_matching;
+
+    transitions{
+        check_new_data => cameras_clique;
+        check_new_data => check_new_data;
+        cameras_clique => results_update;
+        results_update => end_camera_matching;
+        results_update => check_new_data;
+    };
+};
+
+:human_frames_tracking{
+    states first_person_state, tracking_state;
+    initial_state tracking_initialization;
+    end_state end_camera_matching;
+
+    transitions{
+        tracking_initialization => first_person_state;
+        first_person_state => tracking_state;
+        results_update => end_camera_matching;
+    };
+};
+
+:tracking_state{
+    states data_association, data_update;
+    initial_state prediction;
+
+    transitions{
+        prediction => prediction;
+        prediction => data_association;
+        data_association => data_update;
+        data_update => prediction;
+    };
+};

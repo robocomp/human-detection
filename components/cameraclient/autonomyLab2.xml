@@ -130,16 +130,16 @@
 				<axes id="axes2"/>
 				<plane id="planeTag00" nz="-1" size="-348,348,10"   texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0.png" />
 			<!-- CAMERAS -->
-			</transform>     
-			<transform id="cam1Translation" tx="3480.61" ty="3047.86" tz="760.84" rx="-0.788686" ry="3.16562" rz="0.0125237" >
+			</transform>           
+			<transform id="cam1Translation" tx="3547.68" ty="3091.33" tz="550.231" rx="-0.822317" ry="3.1463" rz="-0.01294988" >
 				<rgbd id="camera1" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
 				<plane id="cam1_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
-			</transform>      
-			<transform id="cam2Translation" tx="7470.57" ty="2681.7" tz="-2286.07" rx="1.54706" ry="-0.969061" rz="1.50746">
+			</transform>            
+			<transform id="cam2Translation" tx="7398.39" ty="-2192.28" tz="-2284.92" rx="1.56292" ry="-0.926011" rz="1.57509">
 				<rgbd id="camera2" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
 				<plane id="cam2_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
-			</transform>     
-			<transform id="cam3Translation" tx="-112.875" ty="3058.73" tz="-2427.11" rx="1.44644" ry="0.777321" rz="-1.39393">
+			</transform>         
+			<transform id="cam3Translation" tx="-77.1092" ty="2849.26" tz="-2228.09" rx="1.48764" ry="0.828673" rz="-1.52996">
 				<rgbd id="camera3" focal="333" width="640" height="480" port="10096" noise="0.00" ifconfig="40000,50000" />
 				<plane id="cam3_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
 			</transform>

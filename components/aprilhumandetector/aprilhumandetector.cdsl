@@ -1,0 +1,13 @@
+import "HumanPose.idsl";
+import "AprilTagsServer.idsl";
+
+Component aprilhumandetector
+{
+    Communications
+    {
+        requires AprilTagsServer;
+        publishes HumanPose;
+    };
+	language Cpp11;
+};
+

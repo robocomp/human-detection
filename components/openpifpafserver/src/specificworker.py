@@ -92,8 +92,8 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		print('SpecificWorker.compute...')
-		#cv2.imshow("", self.src)
-		#cv2.waitKey(1)
+		cv2.imshow("", self.src)
+		cv2.waitKey(1)
 		return True
 
 	#
