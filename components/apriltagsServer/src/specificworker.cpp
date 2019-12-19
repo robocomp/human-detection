@@ -46,8 +46,10 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
     m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
 //    image_gray.create(240,320,CV_8UC1);
 //    image_color.create(240,320,CV_8UC3);
-    image_gray.create(1080,1920,CV_8UC1);
-    image_color.create(1080,1920,CV_8UC3);
+    image_gray.create(480,640,CV_8UC1);
+    image_color.create(480,640,CV_8UC3);
+//    image_gray.create(1080,1920,CV_8UC1);
+//    image_color.create(1080,1920,CV_8UC3);
     return true;
 }
 
@@ -67,7 +69,7 @@ void SpecificWorker::compute()
 
 tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy)
 {
- //   cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<" resolution: ("<<frame.frmt.width<<","<<frame.frmt.height<<")"<<endl;
+//    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<" resolution: ("<<frame.frmt.width<<","<<frame.frmt.height<<")"<<endl;
     RoboCompAprilTagsServer::tagsList tagsList1;
     try
     {
@@ -146,9 +148,9 @@ cout <<rotation <<endl;
     cout << "ORI  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
     
 //    cout << "NEW ROTATION"<<endl;
-    rotationFromMatrix2(fixed_rot, rz, ry, rx);
-    cout << mfx << "  " << mfy << endl;
-    cout << "NEW  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+//    rotationFromMatrix2(fixed_rot, rz, ry, rx);
+//    cout << mfx << "  " << mfy << endl;
+//    cout << "NEW  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
 
     RoboCompAprilTagsServer::tag t;
     t.id=detection.id;
