@@ -160,6 +160,8 @@ cout <<rotation <<endl;
     t.rx=rx;
     t.ry=ry;
     t.rz=rz;
+    t.cx=detection.cxy.first;
+    t.cy=detection.cxy.second;
 
     return t;
 }
