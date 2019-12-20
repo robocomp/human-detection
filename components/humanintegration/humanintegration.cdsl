@@ -1,0 +1,12 @@
+import "HumanCameraBody.idsl";
+
+Component HumanIntegration
+{
+    Communications
+    {
+        subscribesTo HumanCameraBody;
+    };
+	language Cpp11;
+	statemachine "statemachine.smdsl";
+};
+
