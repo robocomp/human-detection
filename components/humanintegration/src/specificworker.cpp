@@ -66,8 +66,7 @@ void SpecificWorker::compute()
 	// para cada camara ..
 	for(auto &cam : cameraList)
 	{
-		auto [success, peopledata] = cam.pop();
-		if(success)	 // hay algo en la cola
+		if( const auto &[success, peopledata] = cam.pop(); success == true )
 		{
 			//transformo a coordenadas del mundo y calculo pose
 			auto observed_world_people = transformToWorld(peopledata);
@@ -91,7 +90,7 @@ void SpecificWorker::compute()
 SpecificWorker::RealPeople SpecificWorker::transformToWorld(const RoboCompHumanCameraBody::PeopleData &peopledata)
 {
 	RealPeople res;
-innerModel->transform("world", QVec::vec3(0,0,2000), "wall_camera_1").print("prueba");
+	//innerModel->transform("world", QVec::vec3(0,0,2000), "wall_camera_1").print("prueba");
 	for(const auto &obs_person : peopledata.peoplelist)
 	{
 		QVec left_s, right_s;
@@ -99,7 +98,7 @@ innerModel->transform("world", QVec::vec3(0,0,2000), "wall_camera_1").print("pru
 		{
 			//qDebug() << "claves" << QString::fromStdString(name);
 	//		QVec wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "wall_camera_" + QString::number(peopledata.cameraId));
-			QVec wj = innerModel->transform("world", QVec::vec3(1000.*key.x, 1000.*key.y, 1000.*key.z), "wall_camera_1");
+			QVec wj = innerModel->transform("world", QVec::vec3(1000.*key.x, 1000.*key.y, 1000.*key.z), "world_camera_1");
 			if(name=="right_shoulder")
 				left_s = wj;
 			if(name=="left_shoulder")
@@ -140,6 +139,6 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 	
 	cameraList[people.cameraId].push(people);
 
-	qDebug() << "Inserting in " << people.cameraId << people.peoplelist.size();
+	//qDebug() << "Inserting in " << people.cameraId << people.peoplelist.size();
 }
 

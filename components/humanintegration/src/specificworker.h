@@ -31,7 +31,7 @@
 #include <innermodel/innermodel.h>
 #include <queue>
 
-#define NCAMERAS 3
+#define NCAMERAS 2
 
 class SpecificWorker : public GenericWorker
 {
