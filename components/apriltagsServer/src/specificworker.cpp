@@ -44,35 +44,35 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
     m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
-//    image_gray.create(240,320,CV_8UC1);
-//    image_color.create(240,320,CV_8UC3);
-    image_gray.create(480,640,CV_8UC1);
-    image_color.create(480,640,CV_8UC3);
-//    image_gray.create(1080,1920,CV_8UC1);
-//    image_color.create(1080,1920,CV_8UC3);
     return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initialize worker" << std::endl;
-    this->Period = 5;
+    this->Period = 100;
     timer.start(Period);
 }
 
 void SpecificWorker::compute()
 {
+    std::cout << "Compute" << std::endl;
     QMutexLocker locker(mutex);
-    imshow("TagDetections", image_color);
-    cv::waitKey(1);
+    if (image_color.size().height > 0)
+    {
+        imshow("TagDetections", image_color);
+        cv::waitKey(1);
+    }
 }
 
 tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy)
 {
-//    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<" resolution: ("<<frame.frmt.width<<","<<frame.frmt.height<<")"<<endl;
+    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<" resolution ("<<frame.frmt.width<<","<<frame.frmt.height<<")"<<endl;
     RoboCompAprilTagsServer::tagsList tagsList1;
     try
     {
+        image_gray.create(frame.frmt.width, frame.frmt.height, CV_8UC1);
+        image_color.create(frame.frmt.width, frame.frmt.height, CV_8UC3);
         memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
         cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
         vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);

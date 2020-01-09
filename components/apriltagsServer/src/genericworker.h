@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2019 by YOUR NAME HERE
+ *    Copyright (C)2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -22,7 +22,6 @@
 #include "config.h"
 #include <stdint.h>
 #include <qlog/qlog.h>
-
 
 #include <CommonBehavior.h>
 
@@ -55,6 +54,7 @@ public:
 	virtual tagsList AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy) = 0;
 
 protected:
+
 	QTimer timer;
 	int Period;
 
@@ -63,7 +63,8 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-	virtual void initialize(int period) = 0;
+    virtual void initialize(int period) = 0;
+	
 signals:
 	void kill();
 };
