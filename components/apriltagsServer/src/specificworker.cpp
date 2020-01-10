@@ -71,8 +71,8 @@ tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const 
     RoboCompAprilTagsServer::tagsList tagsList1;
     try
     {
-        image_gray.create(frame.frmt.width, frame.frmt.height, CV_8UC1);
-        image_color.create(frame.frmt.width, frame.frmt.height, CV_8UC3);
+        image_gray.create(frame.frmt.height, frame.frmt.width, CV_8UC1);
+        image_color.create(frame.frmt.height, frame.frmt.width, CV_8UC3);
         memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
         cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
         vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
@@ -132,7 +132,6 @@ RoboCompAprilTagsServer::tag SpecificWorker::send_detection(::AprilTags::TagDete
     Eigen::Vector3d translation;
     Eigen::Matrix3d rotation;
     detection.getRelativeTranslationRotation(tagsize, mfx, mfy, mpx, mpy, translation, rotation);
-cout <<rotation <<endl;
     QVec T(3);
     T(0) = -translation(1);//*0.65;
     T(1) =  translation(2);//*0.65;
@@ -145,7 +144,7 @@ cout <<rotation <<endl;
     rotationFromMatrix(fixed_rot, rx, ry, rz);
 //    cout << "ORIGINAL ROTATION"<<endl;
     cout << mfx << "  " << mfy << endl;
-    cout << "ORI  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+    cout << "  distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
     
 //    cout << "NEW ROTATION"<<endl;
 //    rotationFromMatrix2(fixed_rot, rz, ry, rx);
