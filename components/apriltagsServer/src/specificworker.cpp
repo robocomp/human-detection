@@ -117,14 +117,15 @@ RoboCompAprilTagsServer::tag SpecificWorker::send_detection(::AprilTags::TagDete
     Eigen::Matrix3d fixed_rot = F*rotation;
 
     double rx, ry, rz;
-    rotationFromMatrix(fixed_rot, rx, ry, rz);
+ //   rotationFromMatrix(fixed_rot, rx, ry, rz);
 //    cout << "ORIGINAL ROTATION"<<endl;
-    cout << "Id=" << detection.id << " Distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
     
 //    cout << "NEW ROTATION"<<endl;
-//    rotationFromMatrix2(fixed_rot, rz, ry, rx);
+    rotationFromMatrix2(fixed_rot, rz, ry, rx);
 //    cout << mfx << "  " << mfy << endl;
 //    cout << "NEW  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+ cout << "Id=" << detection.id << " Distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+    
 
     RoboCompAprilTagsServer::tag t;
     t.id=detection.id;
