@@ -71,14 +71,8 @@ from RoboCompCameraRGBDSimple import *
 
 
 
-try:
-	from ui_mainUI import *
-except:
-	print("Can't import UI file. Did you run 'make'?")
-	sys.exit(-1)
 
-
-class GenericWorker(QtWidgets.QWidget):
+class GenericWorker(QtCore.QObject):
 
 	kill = QtCore.Signal()
 
@@ -88,9 +82,6 @@ class GenericWorker(QtWidgets.QWidget):
 
 		self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
 		self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
-		self.ui = Ui_guiDlg()
-		self.ui.setupUi(self)
-		self.show()
 
 		
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)

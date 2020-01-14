@@ -9,6 +9,5 @@ Component openpifpaf_humanbody
         publishes HumanCameraBody;
     };
 	language python;
-	gui Qt(QWidget);
 };
 
