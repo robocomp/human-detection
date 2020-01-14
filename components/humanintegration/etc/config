@@ -2,14 +2,13 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 # Endpoints for subscriptions
-HumanCameraBodyTopic.Endpoints=tcp -p 13000
-
+HumanCameraBodyTopic.Endpoints=tcp -p 16000
 
 # This property is used by the clients to connect to IceStorm.
 #TopicManager.Proxy=IceStorm/TopicManager:default -p 9999 -h 10.253.247.234
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-InnerModelPath = /home/robocomp/robocomp/components/robocomp-robolab/components/detection/extrinsic_camera_calibration/model.xml
+InnerModelPath = autonomyLab.xml
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
