@@ -38,6 +38,7 @@ ROBOCOMP_INITIALIZE( $ENV{ROBOCOMP}/ )
 ROBOCOMP_WRAP_ICE( CommonBehavior HumanCameraBody)
 SET (EXECUTABLE_OUTPUT_PATH ${RC_COMPONENT_DEVEL_PATH}/bin)
 
+QT_WRAP_UI( UI_HEADERS mainUI.ui )
 
 # Specify construction and link process
 ADD_EXECUTABLE( HumanIntegration ${SOURCES} ${MOC_SOURCES} ${RC_SOURCES} ${UI_HEADERS} )

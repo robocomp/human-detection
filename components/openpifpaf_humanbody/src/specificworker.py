@@ -65,8 +65,9 @@ class SpecificWorker(GenericWorker):
 		self.viewimage = False
 		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
-		self.Period = 30
+		self.Period = 50
 		self.fsquare = 462*462
+		self.contFPS = 0
 
 	def __del__(self):
 		print('SpecificWorker destructor')
@@ -130,16 +131,7 @@ class SpecificWorker(GenericWorker):
 		model = model.to(self.args.device)
 		self.processor = decoder.factory_from_args(self.args, model)
 
-	def publishData(self):
-		people = PeopleData()
-		people.cameraId = self.cameraid
-		people.timestamp = time.time()
-		people.peoplelist = self.peoplelist
-#		print(people)
-		try:
-			self.humancamerabody_proxy.newPeopleData(people)
-		except:
-			print("Error on camerabody data publication")
+		self.start = time.time()
 
 	@QtCore.Slot()
 	def compute(self):
@@ -152,11 +144,11 @@ class SpecificWorker(GenericWorker):
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
-
+		
 		self.width = color_.width
 		self.depth = np.array(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
 		self.color = np.frombuffer(color_.image, np.uint8).reshape(color_.height, color_.width, color_.depth)
-
+		
 		self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
 		if self.horizontalflip:
 			self.color = cv2.flip(self.color, 0)
@@ -168,12 +160,15 @@ class SpecificWorker(GenericWorker):
 		self.processImage(0.3)
 		self.publishData()
 
-		
 		if self.viewimage:
 			cv2.imshow("Color frame", self.color)
 			cv2.waitKey(1)
 
-		print("FPS:", 1 / (time.time() - start))
+		if time.time() - self.start > 1:
+			print("FPS:", self.contFPS)
+			self.start = time.time()
+			self.contFPS = 0
+		self.contFPS += 1
 		return True
 
 	#return median depth value
@@ -232,3 +227,17 @@ class SpecificWorker(GenericWorker):
 				except:
 					pass
 
+######################################
+##### PUBLISHER
+######################################
+
+	def publishData(self):
+		people = PeopleData()
+		people.cameraId = self.cameraid
+		people.timestamp = time.time()
+		people.peoplelist = self.peoplelist
+#		print(people)
+		try:
+			self.humancamerabody_proxy.newPeopleData(people)
+		except:
+			print("Error on camerabody data publication")

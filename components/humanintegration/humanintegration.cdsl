@@ -7,6 +7,8 @@ Component HumanIntegration
         subscribesTo HumanCameraBody;
     };
 	language Cpp11;
+    gui Qt(QWidget);
 	statemachine "statemachine.smdsl";
+
 };
 

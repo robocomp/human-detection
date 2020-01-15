@@ -9,6 +9,7 @@ HumanCameraBodyTopic.Endpoints=tcp -p 16000
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 InnerModelPath = autonomyLab.xml
+World = /home/pbustos/robocomp/components/human-detection/components/humanintegration/room5.json
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

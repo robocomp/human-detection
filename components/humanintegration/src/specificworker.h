@@ -30,6 +30,16 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <queue>
+// 2D drawing
+#include <QGraphicsScene>
+#include <QMainWindow>
+#include <QGraphicsView>
+#include <QGraphicsEllipseItem>
+#include <QGraphicsLineItem>
+#include <QGraphicsRectItem>
+#include <QGraphicsPolygonItem>
+#include <QGLWidget>
+#include "human.h"
 
 #define NCAMERAS 2
 
@@ -70,6 +80,13 @@ public:
 		float x,y,z;
 		float angle;
 		long tiempo_no_visible;
+		bool matched;
+	};
+
+	struct Dimensions
+	{
+		int TILE_SIZE = 50;
+		float HMIN = -2500, VMIN = -2500, WIDTH = 2500, HEIGHT = 2500;
 	};
 
 public slots:
@@ -82,11 +99,21 @@ public slots:
 
 //--------------------
 private:
+	const int MAX_AUSENTE = 1000;
 	std::shared_ptr<InnerModel> innerModel;
 	std::deque<SafeBuffer> cameraList;
-	std::vector<RealPerson> personList;
 	using RealPeople = std::vector<SpecificWorker::RealPerson>;
+	RealPeople personList;										// people in the model
 	RealPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &peopledata);
+	RoboCompCommonBehavior::ParameterList params;
+
+	// 2D draw
+	void initializeWorld();
+	QGraphicsScene scene;
+	Dimensions dimensions;
+	std::vector<QGraphicsItem *> boxes; //Obstacles
+	std::vector<Human *> humans;
+
 };
 
 #endif
