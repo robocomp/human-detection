@@ -161,10 +161,8 @@ class SpecificWorker(GenericWorker):
 			self.color = cv2.flip(self.color, 1)
 			self.depth = cv2.flip(self.depth, 1)
 
-
 		self.processImage(0.3)
-		self.publishData()
-
+		#self.publishData()
 		
 		if self.viewimage:
 			cv2.imshow("Color frame", self.color)
