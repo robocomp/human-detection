@@ -59,6 +59,7 @@ class SpecificWorker(GenericWorker):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
 		self.params = {}
+		self.cameraid = 0
 		self.depth = []
 		self.color = []
 		self.viewimage = False
@@ -72,6 +73,7 @@ class SpecificWorker(GenericWorker):
 
 	def setParams(self, params):
 		self.params = params
+		self.cameraid = self.params["cameraid"]
 		self.verticalflip = "true" in self.params["verticalflip"]
 		self.horizontalflip = "true" in self.params["horizontalflip"]
 		self.viewimage = "true" in self.params["viewimage"]
@@ -128,9 +130,9 @@ class SpecificWorker(GenericWorker):
 		model = model.to(self.args.device)
 		self.processor = decoder.factory_from_args(self.args, model)
 
-	def publishData(self, cameraid):
+	def publishData(self):
 		people = PeopleData()
-		people.cameraId = cameraid
+		people.cameraId = self.cameraid
 		people.timestamp = time.time()
 
 		try:
@@ -148,9 +150,10 @@ class SpecificWorker(GenericWorker):
 				print ('Error retrieving images!')
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
+			return
 
 		self.width = color_.width
-		self.depth = np.array(depth_.depth, dtype=np.float32)
+		self.depth = np.array(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
 		self.color = np.frombuffer(color_.image, np.uint8).reshape(color_.height, color_.width, color_.depth)
 
 		self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
@@ -162,15 +165,34 @@ class SpecificWorker(GenericWorker):
 			self.depth = cv2.flip(self.depth, 1)
 
 		self.processImage(0.3)
-		#self.publishData()
+#		self.publishData()
+
 		
 		if self.viewimage:
 			cv2.imshow("Color frame", self.color)
-#			cv2.imshow("Depth frame", self.depth)
 			cv2.waitKey(1)
 
 		print("FPS:", 1 / (time.time() - start))
 		return True
+
+	#return median depth value
+	def getDepth(self, i,j):
+		print("keypoint", i, j)
+		OFFSET = 3
+		MAX_DIFFERENCE = 100
+		median_depth = 0
+		points = 0
+		center_depth = self.depth[j,i]
+		print("center_depth", center_depth)
+		for xi in range(i-OFFSET,i+OFFSET):
+			for xj in range(j-OFFSET, j+OFFSET):
+				value = self.depth[xj, xi]
+				if median_depth - value < MAX_DIFFERENCE:
+					median_depth += value
+					points += 1
+
+		return median_depth/points
+
 
 	def processImage(self, scale):
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
@@ -180,7 +202,6 @@ class SpecificWorker(GenericWorker):
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
-
 		self.peoplelist = []
 		# create joint dictionary
 		for id, p in enumerate(keypoint_sets):
@@ -192,8 +213,8 @@ class SpecificWorker(GenericWorker):
 				keypoint.i = int(joint[0] / scale)
 				keypoint.j = int(joint[1] / scale)
 				keypoint.score = float(joint[2])
-				
-				#pdepth = 
+				if keypoint.score > 0.5:
+					pdepth = self.getDepth(keypoint.i, keypoint.j)
 				#di = math.sqrt(self.fsquare + (keypoint.j*keypoint.j))
 				
 				
@@ -203,15 +224,16 @@ class SpecificWorker(GenericWorker):
 				person.joints[COCO_IDS[pos]] = keypoint
 			self.peoplelist.append(person)
 
-			# draw
-			if self.viewimage:
-				for name1, name2 in SKELETON_CONNECTIONS:
-					joint1 = person.joints[name1]
-					joint2 = person.joints[name2]
-					if joint1.score > 0.5:
-						cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
-					if joint2.score > 0.5:
-						cv2.circle(self.color, (joint2.i, joint1.j), 10, (0, 0, 255))
-					if joint1.score > 0.5 and joint2.score > 0.5:
-						cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+		# draw
+		if self.viewimage:
+			for name1, name2 in SKELETON_CONNECTIONS:
+				joint1 = person.joints[name1]
+				joint2 = person.joints[name2]
+				if joint1.score > 0.5:
+					cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
+				if joint2.score > 0.5:
+					cv2.circle(self.color, (joint2.i, joint2.j), 10, (0, 0, 255))
+				if joint1.score > 0.5 and joint2.score > 0.5:
+					cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+
 
