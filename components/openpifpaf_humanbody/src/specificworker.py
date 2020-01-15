@@ -73,7 +73,7 @@ class SpecificWorker(GenericWorker):
 
 	def setParams(self, params):
 		self.params = params
-		self.cameraid = self.params["cameraid"]
+		self.cameraid = int(self.params["cameraid"])
 		self.verticalflip = "true" in self.params["verticalflip"]
 		self.horizontalflip = "true" in self.params["horizontalflip"]
 		self.viewimage = "true" in self.params["viewimage"]
@@ -134,7 +134,8 @@ class SpecificWorker(GenericWorker):
 		people = PeopleData()
 		people.cameraId = self.cameraid
 		people.timestamp = time.time()
-
+		people.peoplelist = self.peoplelist
+#		print(people)
 		try:
 			self.humancamerabody_proxy.newPeopleData(people)
 		except:
@@ -164,9 +165,8 @@ class SpecificWorker(GenericWorker):
 			self.color = cv2.flip(self.color, 1)
 			self.depth = cv2.flip(self.depth, 1)
 
-
 		self.processImage(0.3)
-#		self.publishData()
+		self.publishData()
 
 		
 		if self.viewimage:
@@ -178,21 +178,12 @@ class SpecificWorker(GenericWorker):
 
 	#return median depth value
 	def getDepth(self, i,j):
-		print("keypoint", i, j)
 		OFFSET = 3
-		MAX_DIFFERENCE = 100
-		median_depth = 0
-		points = 0
-		center_depth = self.depth[j,i]
-		print("center_depth", center_depth)
+		values = []
 		for xi in range(i-OFFSET,i+OFFSET):
 			for xj in range(j-OFFSET, j+OFFSET):
-				value = self.depth[xj, xi]
-				if median_depth - value < MAX_DIFFERENCE:
-					median_depth += value
-					points += 1
-
-		return median_depth/points
+				values.append(self.depth[xj, xi])
+		return np.median(values)
 
 
 	def processImage(self, scale):
@@ -210,31 +201,34 @@ class SpecificWorker(GenericWorker):
 			person.id = id
 			person.joints = dict()
 			for pos, joint in enumerate(p):
-				keypoint = KeyPoint()
-				keypoint.i = int(joint[0] / scale)
-				keypoint.j = int(joint[1] / scale)
-				keypoint.score = float(joint[2])
-				if keypoint.score > 0.5:
-					pdepth = self.getDepth(keypoint.i, keypoint.j)
-				#di = math.sqrt(self.fsquare + (keypoint.j*keypoint.j))
-				
-				
-#				keypoint.x = float(self.points[self.width * keypoint.j + keypoint.i][0])
-#				keypoint.y = float(self.points[self.width * keypoint.j + keypoint.i][1])
-#				keypoint.z = float(self.points[self.width * keypoint.j + keypoint.i][2])
-				person.joints[COCO_IDS[pos]] = keypoint
+				if float(joint[2]) > 0.5:
+					keypoint = KeyPoint()
+					keypoint.i = int(joint[0] / scale)
+					keypoint.j = int(joint[1] / scale)
+					keypoint.score = float(joint[2])
+					
+					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
+					di = math.sqrt(self.fsquare + (keypoint.i*keypoint.i))
+					dj = math.sqrt(self.fsquare + (keypoint.j*keypoint.j))
+					
+					keypoint.x = pdepth * (keypoint.i/di)
+					keypoint.y = pdepth * (keypoint.j/dj)
+					keypoint.z = pdepth
+					person.joints[COCO_IDS[pos]] = keypoint
 			self.peoplelist.append(person)
 
 		# draw
 		if self.viewimage:
 			for name1, name2 in SKELETON_CONNECTIONS:
-				joint1 = person.joints[name1]
-				joint2 = person.joints[name2]
-				if joint1.score > 0.5:
-					cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
-				if joint2.score > 0.5:
-					cv2.circle(self.color, (joint2.i, joint2.j), 10, (0, 0, 255))
-				if joint1.score > 0.5 and joint2.score > 0.5:
-					cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
-
+				try:
+					joint1 = person.joints[name1]
+					joint2 = person.joints[name2]
+					if joint1.score > 0.5:
+						cv2.circle(self.color, (joint1.i, joint1.j), 10, (0, 0, 255))
+					if joint2.score > 0.5:
+						cv2.circle(self.color, (joint2.i, joint2.j), 10, (0, 0, 255))
+					if joint1.score > 0.5 and joint2.score > 0.5:
+						cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
+				except:
+					pass
 
