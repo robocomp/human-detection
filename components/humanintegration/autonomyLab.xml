@@ -129,21 +129,21 @@
 			<transform id="april" tx="3672" tz="-2018" rx="1.57075" rz="-1.57075">
 				<axes id="axes2"/>
 				<plane id="planeTag00" nz="-1" size="-348,348,10"   texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0.png" />
+			
 			<!-- CAMERAS -->
-				<transform id="cam1Translation" >
+				<transform id="world_camera_1" tx="-0.576934" ty="1657.37" tz="-3689.72" rx="-0.0136013" ry="0.0" rz="0.0" >
 					<rgbd id="camera1" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
 					<plane id="cam1_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
 				</transform>
-				<transform id="cam2Translation" >
+				<transform id="world_camera_2" tx="-1922.62" ty="2364.89" tz="-0.969282" rx="1.57178" ry="0.68558" tz="-1.57161">
 					<rgbd id="camera2" focal="333" width="640" height="480" port="10097" noise="0.00" ifconfig="40000,50000" />
 					<plane id="cam2_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
 				</transform>
-				<transform id="cam3Translation" >
+				<transform id="world_camera_3" tx="-15.1405" ty="1923" tz="2972.17" rx="-0.573901" ry="3.13851" rz="-0.000156042">
 					<rgbd id="camera3" focal="333" width="640" height="480" port="10096" noise="0.00" ifconfig="40000,50000" />
 					<plane id="cam3_mesh" nz="1" px="-100" pz="-100" size="200,200,10" repeat="1" texture="#555500" />
 				</transform>
 			</transform>
-            
             
 			<!-- ROOM B -->
 			<transform id="pared7" tx="4593.4101565" tz="105.78302" ty="1450" >
@@ -191,7 +191,6 @@
 			<transform id="pared21" tx="64.261719" tz="-141.1133725" ty="1450" >
 				<plane id="muro21" nx="-135.680603" nz="4232.145996" size="4234.32036548,2900,9"  texture="#008800" />
 			</transform>
-
 
 			<!-- TABLE D MESA REDONDA DEL COMEDOR-->
 <!-- 			<transform id="tableD" tx="3574" tz="-1767" ty="730" >
@@ -242,7 +241,7 @@
 			</transform>
 
 			<!-- FRIDGE -->
-			<transform id="fridge" tx="3210" tz="-3720" ty="925" ry="-0.075" > -->
+			<transform id="fridge" tx="3210" tz="-3720" ty="925" ry="-0.075" > 
 				<mesh id="fridge_mesh" file="/home/robocomp/robocomp/files/osgModels/basics/cube2.3ds" scale="600,1850,600" collide="1" />
 			</transform>
 
