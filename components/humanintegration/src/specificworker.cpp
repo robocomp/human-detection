@@ -85,68 +85,77 @@ void SpecificWorker::compute()
 	// para cada camara ..
 	for(auto &cam : cameraList)
 	{
-		if( const auto &[success, peopledata] = cam.pop(); success == true )
+		if( const auto &[success, observed_people] = cam.pop(); success == true )
 		{
 			//transformo a coordenadas del mundo y calculo pose
-			auto observed_world_people = transformToWorld(peopledata);
-			// para todas las pers. observadas por esta cámara ...
-			for(auto &ob_p : observed_world_people)
+			auto observed_model_people = transformToWorld(observed_people);
+			//para todas las pers. observadas por esta cámara ...
+			for(auto &ob_p : observed_model_people)
 			{
 				//compruebo si ya están en el mundo: identidad
-				std::for_each(std::begin(personList), std::end(personList),[ob_p] (auto &rp) mutable
-				{  
+				for(auto &mo_p : model_people)
+				{
 					//check for maximum distance of 300 mms
-					if((QVec::vec3(rp.x,rp.y,rp.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 300)
+					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 300)
 					{
-						qDebug() << "cool, recognized person!";
+						qDebug() << "cool, recognized person!" << model_people.size();
 						// mark person from observed_world_people as recognized
 						ob_p.matched = true;
-						rp.tiempo_no_visible = 0;  //poner timestamp
+						mo_p.tiempo_no_visible = 0;  //poner timestamp
+						mo_p.human->setPos(QPointF(ob_p.x,ob_p.z));
 					}
-				});
+				}
 			}
 			// añadir aquellos que se ha visto pero no se han reconocido entre los existentes
-			std::for_each(std::begin(observed_world_people),std::end(observed_world_people), [this](auto &obs)
+			for(const auto &mo_p : observed_model_people)
 			{
-				if(obs.matched == false)
+				if(mo_p.matched == false)
 				{
-					humans.push_back(new Human(QRectF(), QColor(), QPointF()));
+					ModelPerson mp;
+					mp.x=0; mp.y=0; mp.z=0;
+					mp.angle = 0;
+					mp.tiempo_no_visible = 0;
+					mp.matched=false;
+					mp.human = new Human(QRectF(0, 0, 100, 100), QColor(Qt::green), QPointF(mo_p.x, mo_p.z), &scene);
+					model_people.push_back(mp);
 				}
-			});
+			}
 			//borrado de la lista interna que no se hayan visto en MAX_AUSENTE segundos
-			std::for_each(std::begin(personList),std::end(personList), [this](auto &obs)
+			for(auto &mo_p : model_people)
 			{
-				if(obs.tiempo_no_visible > MAX_AUSENTE)
+				if(mo_p.tiempo_no_visible > MAX_AUSENTE)
 				{
 					//marcamos el sujeto para borrado
 
 				};
 				//borrado físico
-			});
+			}
 		}
 	}
 }
 
-SpecificWorker::RealPeople SpecificWorker::transformToWorld(const RoboCompHumanCameraBody::PeopleData &peopledata)
+SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people)
 {
-	RealPeople res;
-	//innerModel->transform("world", QVec::vec3(0,0,2000), "wall_camera_1").print("prueba");
-	for(const auto &obs_person : peopledata.peoplelist)
+	ModelPeople res;
+	//innerModel->transform("world", QVec::vec3(0,0,2000), "world_camera_1").print("prueba");
+	for(const auto &obs_person : observed_people.peoplelist)
 	{
 		QVec left_s, right_s;
+		QVec wj;
 		for(const auto &[name, key] : obs_person.joints)
 		{
 			//qDebug() << "claves" << QString::fromStdString(name);
-	//		QVec wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "wall_camera_" + QString::number(peopledata.cameraId));
-			QVec wj = innerModel->transform("world", QVec::vec3(1000.*key.x, 1000.*key.y, 1000.*key.z), "world_camera_1");
+			//qDebug() << QString::fromStdString(name) ; QVec::vec3(key.x, key.y, key.z).print("key");
+			wj = innerModel->transform("world", QVec::vec3(1000*key.x, 1000*key.y, 1000*key.z), "world_camera_" + QString::number(observed_people.cameraId));
+			
 			if(name=="right_shoulder")
 				left_s = wj;
 			if(name=="left_shoulder")
 				right_s = wj;
 		}
+		//qDebug() << __FUNCTION__;
 		((left_s + right_s)/(T)2.).print("media");
-		//RealPerson rp = { wj.x(), wj.y(), wj.z(), 0.0, 0};
-		//res.push_back(rp);
+		res.push_back( { wj.x(), wj.y(), wj.z(), 0.0, 0} );
 	}	
 	return res;
 } 
@@ -185,7 +194,7 @@ void SpecificWorker::initializeWorld()
 	QVariantMap mainMap = jObject.toVariantMap();
 	//load dimensions
 	QVariantMap dim = mainMap[QString("dimensions")].toMap();
-	dimensions = Dimensions{dim["TILESIZE"].toInt(), dim["LEFT"].toFloat(), dim["BOTTOM"].toFloat(), dim["WIDTH"].toFloat(), dim["HEIGHT"].toFloat()};
+	dimensions = Dimensions{dim["LEFT"].toFloat(), dim["BOTTOM"].toFloat(), dim["WIDTH"].toFloat(), dim["HEIGHT"].toFloat()};
 
 	//load tables
 	QVariantMap tables = mainMap[QString("tables")].toMap();

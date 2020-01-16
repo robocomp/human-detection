@@ -2,7 +2,7 @@
 #include <QtCore>
 #include <QGraphicsSceneMouseEvent>
 
-Human::Human(const QRectF &r, QColor color_, QPointF pos) : 
+Human::Human(const QRectF &r, QColor color_, QPointF pos, QGraphicsScene *scene) : 
 	QGraphicsEllipseItem(r) ,  color(color_)
 {
 	setFlag(ItemIsMovable);
@@ -21,10 +21,5 @@ Human::Human(const QRectF &r, QColor color_, QPointF pos) :
 	this->setPos(pos);
 	this->color.setAlpha(80);
 	this->setZValue(10);
+	scene->addItem(this);
 };
-
-
-qreal Human::rotation() const
-{
-	return ellipseItem->rotation();
-}

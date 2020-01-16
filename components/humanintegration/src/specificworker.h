@@ -53,7 +53,7 @@ public:
 
 	void HumanCameraBody_newPeopleData(PeopleData people);
 
-
+	//Interchange thread safe buffer
 	struct SafeBuffer
 	{
 		std::queue<RoboCompHumanCameraBody::PeopleData> peopledata;
@@ -75,24 +75,21 @@ public:
 		}
 	};
 	
-	struct RealPerson
+	//data type for people in the model
+	struct ModelPerson
 	{
 		float x,y,z;
 		float angle;
 		long tiempo_no_visible;
 		bool matched;
+		Human *human;
 	};
 
-	struct Dimensions
-	{
-		int TILE_SIZE = 50;
-		float HMIN = -2500, VMIN = -2500, WIDTH = 2500, HEIGHT = 2500;
-	};
 
 public slots:
 	void compute();
 	void initialize(int period);
-//Specification slot methods State Machine
+	//Specification slot methods State Machine
 	void sm_compute();
 	void sm_initialize();
 	void sm_finalize();
@@ -102,17 +99,20 @@ private:
 	const int MAX_AUSENTE = 1000;
 	std::shared_ptr<InnerModel> innerModel;
 	std::deque<SafeBuffer> cameraList;
-	using RealPeople = std::vector<SpecificWorker::RealPerson>;
-	RealPeople personList;										// people in the model
-	RealPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &peopledata);
+	using ModelPeople = std::vector<ModelPerson>;
+	ModelPeople model_people;										// people in the model
+	ModelPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people);
 	RoboCompCommonBehavior::ParameterList params;
 
 	// 2D draw
+	struct Dimensions 		// Size of the world
+	{
+		float HMIN = -2500, VMIN = -2500, WIDTH = 2500, HEIGHT = 2500;
+	};
 	void initializeWorld();
 	QGraphicsScene scene;
 	Dimensions dimensions;
 	std::vector<QGraphicsItem *> boxes; //Obstacles
-	std::vector<Human *> humans;
 
 };
 

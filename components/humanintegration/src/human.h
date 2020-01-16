@@ -25,11 +25,7 @@ class Human : public QObject, public QGraphicsEllipseItem
 {     
 	Q_OBJECT
 	public:
-		Human(const QRectF &r, QColor color_, QPointF pos);  
-		void setPolygon(QGraphicsPolygonItem *poly)				{ polygon_item = poly; }
-		QGraphicsPolygonItem * getPolygon() const				{ return polygon_item;}
-		void updatePolygon(QPolygonF poly);
-		qreal rotation() const;
+		Human(const QRectF &r, QColor color_, QPointF pos, QGraphicsScene *scene);  
 	private:
 		QGraphicsPixmapItem* pixmapItem;
 		Qt::MouseButton mouseButton;
