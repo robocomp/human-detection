@@ -40,22 +40,15 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 {
 	try
 	{
-		this->params = params;
-	}
-	catch (const std::exception &e)
-	{
-		qFatal("Error reading config params");
-	}
-	try
-	{
 		RoboCompCommonBehavior::Parameter par = params.at("InnerModelPath");
 		std::string innermodel_path = par.value;
 		innerModel = std::make_shared<InnerModel>(innermodel_path);
 	}
 	catch(const std::exception &e) { qFatal("Error reading config params"); }
-
+	this->params = params;
+	
+	
 	defaultMachine.start();
-
 	return true;
 }
 
@@ -69,7 +62,7 @@ void SpecificWorker::initialize(int period)
 	resize(QDesktopWidget().availableGeometry(this).size() * 0.6);
 	scene.setSceneRect(dimensions.HMIN, dimensions.VMIN, dimensions.WIDTH, dimensions.HEIGHT);
 	graphicsView->setViewport(new QGLWidget);
-	graphicsView->scale(1, -1);
+	graphicsView->scale(-1, 1);
 	graphicsView->setScene(&scene);
 	graphicsView->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
 
@@ -92,16 +85,17 @@ void SpecificWorker::compute()
 			//para todas las pers. observadas por esta cámara ...
 			for(auto &ob_p : observed_model_people)
 			{
+				QVec::vec3(ob_p.x,ob_p.y,ob_p.z).print("p");
 				//compruebo si ya están en el mundo: identidad
 				for(auto &mo_p : model_people)
 				{
-					//check for maximum distance of 300 mms
+					//check for maximum distance of 500 mms
 					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 300)
 					{
 						qDebug() << "cool, recognized person!" << model_people.size();
 						// mark person from observed_world_people as recognized
 						ob_p.matched = true;
-						mo_p.tiempo_no_visible = 0;  //poner timestamp
+						mo_p.tiempo_no_visible = std::chrono::system_clock::now();  //poner timestamp
 						mo_p.human->setPos(QPointF(ob_p.x,ob_p.z));
 					}
 				}
@@ -112,24 +106,23 @@ void SpecificWorker::compute()
 				if(mo_p.matched == false)
 				{
 					ModelPerson mp;
-					mp.x=0; mp.y=0; mp.z=0;
+					mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
 					mp.angle = 0;
-					mp.tiempo_no_visible = 0;
+					mp.tiempo_no_visible = std::chrono::system_clock::now();;
 					mp.matched=false;
 					mp.human = new Human(QRectF(0, 0, 100, 100), QColor(Qt::green), QPointF(mo_p.x, mo_p.z), &scene);
 					model_people.push_back(mp);
 				}
 			}
 			//borrado de la lista interna que no se hayan visto en MAX_AUSENTE segundos
-			for(auto &mo_p : model_people)
-			{
-				if(mo_p.tiempo_no_visible > MAX_AUSENTE)
-				{
-					//marcamos el sujeto para borrado
-
-				};
-				//borrado físico
-			}
+			model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this](auto &mo_p) 
+				{ 
+					if( std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-mo_p.tiempo_no_visible).count() > MAX_AUSENTE)
+					{
+						scene.removeItem(mo_p.human);
+						return true;
+					}
+				}), model_people.end());
 		}
 	}
 }
@@ -137,25 +130,30 @@ void SpecificWorker::compute()
 SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people)
 {
 	ModelPeople res;
-	//innerModel->transform("world", QVec::vec3(0,0,2000), "world_camera_1").print("prueba");
 	for(const auto &obs_person : observed_people.peoplelist)
 	{
-		QVec left_s, right_s;
-		QVec wj;
+		QVec left_s, right_s, wj;
+		QVec acum = QVec::zeros(3);
 		for(const auto &[name, key] : obs_person.joints)
 		{
 			//qDebug() << "claves" << QString::fromStdString(name);
 			//qDebug() << QString::fromStdString(name) ; QVec::vec3(key.x, key.y, key.z).print("key");
 			wj = innerModel->transform("world", QVec::vec3(1000*key.x, 1000*key.y, 1000*key.z), "world_camera_" + QString::number(observed_people.cameraId));
 			
-			if(name=="right_shoulder")
-				left_s = wj;
-			if(name=="left_shoulder")
-				right_s = wj;
+			// if(name=="right_shoulder")
+			// 	left_s = wj;
+			// if(name=="left_shoulder")
+			// 	right_s = wj;
+			acum += wj;
 		}
-		//qDebug() << __FUNCTION__;
-		((left_s + right_s)/(T)2.).print("media");
-		res.push_back( { wj.x(), wj.y(), wj.z(), 0.0, 0} );
+		//((left_s + right_s)/(T)2.).print("media");
+		if(obs_person.joints.size() > 0)
+		{
+			acum = acum/(T)obs_person.joints.size();
+			if( acum.x() != 0.0 and acum.z() != 0.0)
+				res.push_back( { acum.x(), acum.y(), acum.z(), 0.0, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
+		}
+		//res.push_back( { wj.x(), wj.y(), wj.z(), 0.0, 0} );
 	}	
 	return res;
 } 
@@ -222,7 +220,7 @@ void SpecificWorker::initializeWorld()
 		QVariantList object = t.toList();
 		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Brown")), QBrush(QColor("Brown")));
 		box->setPos(object[4].toFloat(), object[5].toFloat());
-		//box->setRotation(object[6].toFloat()*180/M_PI2);
+		box->setRotation(object[6].toFloat());
 		boxes.push_back(box);
 	}
 

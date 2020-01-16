@@ -80,9 +80,10 @@ public:
 	{
 		float x,y,z;
 		float angle;
-		long tiempo_no_visible;
-		bool matched;
+		std::chrono::time_point<std::chrono::system_clock> tiempo_no_visible;
+		bool matched = false;
 		Human *human;
+		bool to_delete = false;
 	};
 
 
@@ -96,7 +97,7 @@ public slots:
 
 //--------------------
 private:
-	const int MAX_AUSENTE = 1000;
+	const int MAX_AUSENTE = 3; //secs
 	std::shared_ptr<InnerModel> innerModel;
 	std::deque<SafeBuffer> cameraList;
 	using ModelPeople = std::vector<ModelPerson>;
@@ -107,7 +108,7 @@ private:
 	// 2D draw
 	struct Dimensions 		// Size of the world
 	{
-		float HMIN = -2500, VMIN = -2500, WIDTH = 2500, HEIGHT = 2500;
+		float HMIN = -2000, VMIN = -3000, WIDTH = 4000, HEIGHT = 6000;
 	};
 	void initializeWorld();
 	QGraphicsScene scene;
