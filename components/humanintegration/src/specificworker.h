@@ -108,7 +108,7 @@ private:
 	// 2D draw
 	struct Dimensions 		// Size of the world
 	{
-		float HMIN = -2000, VMIN = -3000, WIDTH = 4000, HEIGHT = 6000;
+		float HMIN = -3000, VMIN = -3000, WIDTH = 6000, HEIGHT = 6000;
 	};
 	void initializeWorld();
 	QGraphicsScene scene;

@@ -104,7 +104,7 @@ class SpecificWorker(GenericWorker):
 			pif_fixed_scale = None
 			profile_decoder = None
 			instance_threshold = 0.05
-			device = torch.device(type="cpu")
+			device = torch.device(type="cuda")
 			disable_cuda = False
 			scale = 1
 			key_point_threshold = 0.05
@@ -178,14 +178,14 @@ class SpecificWorker(GenericWorker):
 		for xi in range(i-OFFSET,i+OFFSET):
 			for xj in range(j-OFFSET, j+OFFSET):
 				values.append(self.depth[xj, xi])
-		return np.median(values)
+		return np.median(values) * 1000
 
 
 	def processImage(self, scale):
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
 		image_pil = PIL.Image.fromarray(image)
 		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
@@ -202,12 +202,14 @@ class SpecificWorker(GenericWorker):
 					keypoint.j = int(joint[1] / scale)
 					keypoint.score = float(joint[2])
 					
+					ki = keypoint.i - 320
+					kj = keypoint.j - 240
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					di = math.sqrt(self.fsquare + (keypoint.i*keypoint.i))
-					dj = math.sqrt(self.fsquare + (keypoint.j*keypoint.j))
-					
-					keypoint.x = pdepth * (keypoint.i/di)
-					keypoint.y = pdepth * (keypoint.j/dj)
+					di = math.sqrt(self.fsquare + (ki*ki))
+					dj = math.sqrt(self.fsquare + (kj*kj))
+
+					keypoint.x = pdepth * (ki/di)
+					keypoint.y = pdepth * (kj/dj)
 					keypoint.z = pdepth
 					person.joints[COCO_IDS[pos]] = keypoint
 			self.peoplelist.append(person)

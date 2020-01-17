@@ -62,12 +62,12 @@ void SpecificWorker::initialize(int period)
 	resize(QDesktopWidget().availableGeometry(this).size() * 0.6);
 	scene.setSceneRect(dimensions.HMIN, dimensions.VMIN, dimensions.WIDTH, dimensions.HEIGHT);
 	graphicsView->setViewport(new QGLWidget);
-	graphicsView->scale(-1, 1);
+	//graphicsView->scale(1, 1);
 	graphicsView->setScene(&scene);
 	graphicsView->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
 
 	this->Period = period;
-	timer.start(100);
+	timer.start(50);
 	emit this->t_initialize_to_compute();
 
 }
@@ -90,7 +90,7 @@ void SpecificWorker::compute()
 				for(auto &mo_p : model_people)
 				{
 					//check for maximum distance of 500 mms
-					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 300)
+					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 500)
 					{
 						qDebug() << "cool, recognized person!" << model_people.size();
 						// mark person from observed_world_people as recognized
@@ -138,7 +138,7 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 		{
 			//qDebug() << "claves" << QString::fromStdString(name);
 			//qDebug() << QString::fromStdString(name) ; QVec::vec3(key.x, key.y, key.z).print("key");
-			wj = innerModel->transform("world", QVec::vec3(1000*key.x, 1000*key.y, 1000*key.z), "world_camera_" + QString::number(observed_people.cameraId));
+			wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
 			
 			// if(name=="right_shoulder")
 			// 	left_s = wj;
