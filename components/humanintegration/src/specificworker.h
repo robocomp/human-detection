@@ -97,7 +97,7 @@ public slots:
 
 //--------------------
 private:
-	const int MAX_AUSENTE = 3; //secs
+	const int MAX_AUSENTE = 2; //secs
 	std::shared_ptr<InnerModel> innerModel;
 	std::deque<SafeBuffer> cameraList;
 	using ModelPeople = std::vector<ModelPerson>;

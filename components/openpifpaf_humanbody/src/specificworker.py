@@ -66,6 +66,7 @@ class SpecificWorker(GenericWorker):
 		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
+		self.focal = 462
 		self.fsquare = 462*462
 		self.contFPS = 0
 
@@ -210,7 +211,7 @@ class SpecificWorker(GenericWorker):
 
 					keypoint.x = pdepth * (ki/di)
 					keypoint.y = pdepth * (kj/dj)
-					keypoint.z = pdepth
+					keypoint.z = pdepth * self.focal / math.sqrt(ki*ki + kj*kj + self.fsquare)
 					person.joints[COCO_IDS[pos]] = keypoint
 			self.peoplelist.append(person)
 

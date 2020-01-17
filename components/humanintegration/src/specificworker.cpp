@@ -89,13 +89,15 @@ void SpecificWorker::compute()
 				//compruebo si ya están en el mundo: identidad
 				for(auto &mo_p : model_people)
 				{
-					//check for maximum distance of 500 mms
+					//check for maximum distance of 500 mm
 					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 500)
 					{
 						qDebug() << "cool, recognized person!" << model_people.size();
 						// mark person from observed_world_people as recognized
 						ob_p.matched = true;
 						mo_p.tiempo_no_visible = std::chrono::system_clock::now();  //poner timestamp
+						//compute orientation
+						//if hay hombros ....
 						mo_p.human->setPos(QPointF(ob_p.x,ob_p.z));
 					}
 				}
