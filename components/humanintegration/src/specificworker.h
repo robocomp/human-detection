@@ -42,7 +42,6 @@
 #include "human.h"
 
 #define NCAMERAS 2
-
 class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
@@ -78,6 +77,7 @@ public:
 	//data type for people in the model
 	struct ModelPerson
 	{
+		int id;
 		float x,y,z;
 		float angle;
 		std::chrono::time_point<std::chrono::system_clock> tiempo_no_visible;
@@ -98,12 +98,17 @@ public slots:
 //--------------------
 private:
 	const int MAX_AUSENTE = 2; //secs
+	std::vector<std::string> COCO_IDS{"nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
+            "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
+            "left_ankle", "right_ankle"};
+
 	std::shared_ptr<InnerModel> innerModel;
 	std::deque<SafeBuffer> cameraList;
 	using ModelPeople = std::vector<ModelPerson>;
 	ModelPeople model_people;										// people in the model
 	ModelPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people);
 	RoboCompCommonBehavior::ParameterList params;
+	std::tuple<bool, float> getOrientation(const RoboCompHumanCameraBody::Person &ob_p);
 
 	// 2D draw
 	struct Dimensions 		// Size of the world

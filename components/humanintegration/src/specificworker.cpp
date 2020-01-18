@@ -62,7 +62,7 @@ void SpecificWorker::initialize(int period)
 	resize(QDesktopWidget().availableGeometry(this).size() * 0.6);
 	scene.setSceneRect(dimensions.HMIN, dimensions.VMIN, dimensions.WIDTH, dimensions.HEIGHT);
 	graphicsView->setViewport(new QGLWidget);
-	//graphicsView->scale(1, 1);
+	graphicsView->scale(-1, 1);
 	graphicsView->setScene(&scene);
 	graphicsView->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
 
@@ -90,15 +90,14 @@ void SpecificWorker::compute()
 				for(auto &mo_p : model_people)
 				{
 					//check for maximum distance of 500 mm
-					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 500)
+					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 900)
 					{
 						qDebug() << "cool, recognized person!" << model_people.size();
 						// mark person from observed_world_people as recognized
 						ob_p.matched = true;
 						mo_p.tiempo_no_visible = std::chrono::system_clock::now();  //poner timestamp
-						//compute orientation
-						//if hay hombros ....
-						mo_p.human->setPos(QPointF(ob_p.x,ob_p.z));
+						mo_p.human->setPos(QPointF(ob_p.z,ob_p.x));
+						mo_p.human->setRotation(ob_p.angle);
 					}
 				}
 			}
@@ -109,10 +108,10 @@ void SpecificWorker::compute()
 				{
 					ModelPerson mp;
 					mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
-					mp.angle = 0;
-					mp.tiempo_no_visible = std::chrono::system_clock::now();;
+					mp.angle = mp.angle;
+					mp.tiempo_no_visible = std::chrono::system_clock::now();
 					mp.matched=false;
-					mp.human = new Human(QRectF(0, 0, 100, 100), QColor(Qt::green), QPointF(mo_p.x, mo_p.z), &scene);
+					mp.human = new Human(QRectF(0, 0, 100, 100), QColor(Qt::green), QPointF(mo_p.z, mo_p.x), &scene);
 					model_people.push_back(mp);
 				}
 			}
@@ -124,9 +123,28 @@ void SpecificWorker::compute()
 						scene.removeItem(mo_p.human);
 						return true;
 					}
+					else return false;
 				}), model_people.end());
 		}
 	}
+}
+
+std::tuple<bool, float> SpecificWorker::getOrientation(const RoboCompHumanCameraBody::Person &ob_p)
+{
+	std::pair<std::string, std::string> sh_pair{"left_shoulder", "right_shoulder"};
+	std::pair<std::string, std::string> hip_pair{"left_hip", "right_hip"};
+	std::vector<std::pair<std::string, std::string>> pair_list{sh_pair, hip_pair};
+	for(const auto &pair : pair_list)
+	{
+		if(ob_p.joints.count(pair.first)>0 and ob_p.joints.count(pair.second)>0)
+		{
+			auto first = QPointF(ob_p.joints.at(pair.first).x, ob_p.joints.at(pair.first).z);
+			auto second = QPointF(ob_p.joints.at(pair.second).x, ob_p.joints.at(pair.second).z);
+			auto line =QLineF(first, second).normalVector();	
+			return std::make_tuple(true, line.angle());
+		}
+	}
+	return std::make_tuple(false, 0.0);
 }
 
 SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people)
@@ -138,24 +156,17 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 		QVec acum = QVec::zeros(3);
 		for(const auto &[name, key] : obs_person.joints)
 		{
-			//qDebug() << "claves" << QString::fromStdString(name);
-			//qDebug() << QString::fromStdString(name) ; QVec::vec3(key.x, key.y, key.z).print("key");
 			wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
-			
-			// if(name=="right_shoulder")
-			// 	left_s = wj;
-			// if(name=="left_shoulder")
-			// 	right_s = wj;
 			acum += wj;
 		}
-		//((left_s + right_s)/(T)2.).print("media");
+		auto [success, angle_degrees] = getOrientation(obs_person);
 		if(obs_person.joints.size() > 0)
 		{
+			//compute mean of projected joints coordinates on the floor
 			acum = acum/(T)obs_person.joints.size();
 			if( acum.x() != 0.0 and acum.z() != 0.0)
-				res.push_back( { acum.x(), acum.y(), acum.z(), 0.0, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
+				res.push_back( { obs_person.id, acum.x(), acum.y(), acum.z(), angle_degrees, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
 		}
-		//res.push_back( { wj.x(), wj.y(), wj.z(), 0.0, 0} );
 	}	
 	return res;
 } 
@@ -195,17 +206,8 @@ void SpecificWorker::initializeWorld()
 	//load dimensions
 	QVariantMap dim = mainMap[QString("dimensions")].toMap();
 	dimensions = Dimensions{dim["LEFT"].toFloat(), dim["BOTTOM"].toFloat(), dim["WIDTH"].toFloat(), dim["HEIGHT"].toFloat()};
-
-	//load tables
-	QVariantMap tables = mainMap[QString("tables")].toMap();
-	for (auto &t : tables)
-	{
-		QVariantList object = t.toList();
-		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("SandyBrown")), QBrush(QColor("SandyBrown")));
-		box->setPos(object[4].toFloat(), object[5].toFloat());
-		box->setRotation(object[6].toFloat());
-		boxes.push_back(box);
-	}
+	int x_offset = -3200;
+	int y_offset = 1850;
 	//load roundtables
 	QVariantMap rtables = mainMap[QString("roundTables")].toMap();
 	for (auto &t : rtables)
@@ -213,6 +215,18 @@ void SpecificWorker::initializeWorld()
 		QVariantList object = t.toList();
 		auto box = scene.addEllipse(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Khaki")), QBrush(QColor("Khaki")));
 		box->setPos(object[4].toFloat(), object[5].toFloat());
+		//box->setPos(object[4].toFloat(), object[5].toFloat());
+		boxes.push_back(box);
+	}
+	//load tables
+	QVariantMap tables = mainMap[QString("tables")].toMap();
+	for (auto &t : tables)
+	{
+		QVariantList object = t.toList();
+		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("SandyBrown")), QBrush(QColor("SandyBrown")));
+		box->setPos(object[4].toFloat()+x_offset, object[5].toFloat()+y_offset);
+		//box->setPos(object[4].toFloat(), object[5].toFloat());
+		box->setRotation(object[6].toFloat());
 		boxes.push_back(box);
 	}
 	//load walls
@@ -221,7 +235,8 @@ void SpecificWorker::initializeWorld()
 	{
 		QVariantList object = t.toList();
 		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Brown")), QBrush(QColor("Brown")));
-		box->setPos(object[4].toFloat(), object[5].toFloat());
+		box->setPos(object[4].toFloat()+x_offset, object[5].toFloat()+y_offset);
+		//box->setPos(object[4].toFloat(), object[5].toFloat());
 		box->setRotation(object[6].toFloat());
 		boxes.push_back(box);
 	}
@@ -232,7 +247,8 @@ void SpecificWorker::initializeWorld()
 	{
 		QVariantList object = t.toList();
 		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Brown")), QBrush(QColor("Brown")));
-		box->setPos(object[4].toFloat(), object[5].toFloat());
+		box->setPos(object[4].toFloat()+x_offset, object[5].toFloat()+y_offset);
+		//box->setPos(object[4].toFloat(), object[5].toFloat());
 		//box->setRotation(object[6].toFloat()*180/M_PI2);
 		boxes.push_back(box);
 	}
@@ -242,7 +258,8 @@ void SpecificWorker::initializeWorld()
 	{
 		QVariantList object = t.toList();
 		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Brown")), QBrush(QColor("Orange")));
-		box->setPos(object[4].toFloat(), object[5].toFloat());
+		box->setPos(object[4].toFloat()+x_offset, object[5].toFloat()+y_offset);
+		//box->setPos(object[4].toFloat(), object[5].toFloat());
 		//box->setRotation(object[6].toFloat()*180/M_PI2);
 		box->setFlag(QGraphicsItem::ItemIsMovable);
 		boxes.push_back(box);
@@ -263,3 +280,12 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 	//qDebug() << "Inserting in " << people.cameraId << people.peoplelist.size();
 }
 
+
+// if(model_people.size()>0)
+// 				model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this](auto &mo_p)
+// 				{ if(mo_p.matched==false)
+// 					{
+// 						scene.removeItem(mo_p.human);
+// 						return true;
+// 					}
+// 				})); 

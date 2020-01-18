@@ -179,7 +179,7 @@ class SpecificWorker(GenericWorker):
 		for xi in range(i-OFFSET,i+OFFSET):
 			for xj in range(j-OFFSET, j+OFFSET):
 				values.append(self.depth[xj, xi])
-		return np.median(values) * 1000
+		return np.median(values) * 1000 #to mm
 
 
 	def processImage(self, scale):
@@ -206,12 +206,13 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = keypoint.j - 240
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					di = math.sqrt(self.fsquare + (ki*ki))
-					dj = math.sqrt(self.fsquare + (kj*kj))
-
-					keypoint.x = pdepth * (ki/di)
-					keypoint.y = pdepth * (kj/dj)
+					
 					keypoint.z = pdepth * self.focal / math.sqrt(ki*ki + kj*kj + self.fsquare)
+					#keypoint.x = pdepth*ki/math.sqrt(ki*ki+kj*kj+self.fsquare) 
+					#keypoint.y = pdepth*kj/math.sqrt(ki*ki+kj*kj+self.fsquare) 
+					keypoint.x = ki*keypoint.z/self.focal
+					keypoint.y = kj*keypoint.z/self.focal
+					
 					person.joints[COCO_IDS[pos]] = keypoint
 			self.peoplelist.append(person)
 
