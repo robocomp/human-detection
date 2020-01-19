@@ -84,6 +84,7 @@ public:
 		bool matched = false;
 		Human *human;
 		bool to_delete = false;
+		int cameraId;
 	};
 
 

@@ -62,72 +62,114 @@ void SpecificWorker::initialize(int period)
 	resize(QDesktopWidget().availableGeometry(this).size() * 0.6);
 	scene.setSceneRect(dimensions.HMIN, dimensions.VMIN, dimensions.WIDTH, dimensions.HEIGHT);
 	graphicsView->setViewport(new QGLWidget);
-	graphicsView->scale(-1, 1);
+	graphicsView->scale(1, -1);
 	graphicsView->setScene(&scene);
 	graphicsView->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
 
 	this->Period = period;
-	timer.start(50);
+	timer.start(100);
 	emit this->t_initialize_to_compute();
 
 }
-/////////////////////////////////////////////////
+
+// delete-create version
 void SpecificWorker::compute()
 {
-	// match de lo que llega con lo que hay en el estado
-	// para cada camara ..
+	//add one per camera
 	for(auto &cam : cameraList)
 	{
 		if( const auto &[success, observed_people] = cam.pop(); success == true )
 		{
-			//transformo a coordenadas del mundo y calculo pose
-			auto observed_model_people = transformToWorld(observed_people);
-			//para todas las pers. observadas por esta cámara ...
-			for(auto &ob_p : observed_model_people)
-			{
-				QVec::vec3(ob_p.x,ob_p.y,ob_p.z).print("p");
-				//compruebo si ya están en el mundo: identidad
-				for(auto &mo_p : model_people)
-				{
-					//check for maximum distance of 500 mm
-					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 900)
-					{
-						qDebug() << "cool, recognized person!" << model_people.size();
-						// mark person from observed_world_people as recognized
-						ob_p.matched = true;
-						mo_p.tiempo_no_visible = std::chrono::system_clock::now();  //poner timestamp
-						mo_p.human->setPos(QPointF(ob_p.z,ob_p.x));
-						mo_p.human->setRotation(ob_p.angle);
-					}
-				}
-			}
-			// añadir aquellos que se ha visto pero no se han reconocido entre los existentes
-			for(const auto &mo_p : observed_model_people)
-			{
-				if(mo_p.matched == false)
-				{
-					ModelPerson mp;
-					mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
-					mp.angle = mp.angle;
-					mp.tiempo_no_visible = std::chrono::system_clock::now();
-					mp.matched=false;
-					mp.human = new Human(QRectF(0, 0, 100, 100), QColor(Qt::green), QPointF(mo_p.z, mo_p.x), &scene);
-					model_people.push_back(mp);
-				}
-			}
-			//borrado de la lista interna que no se hayan visto en MAX_AUSENTE segundos
-			model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this](auto &mo_p) 
+			//Delete camera people
+			model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this, observed_people](auto &mo_p) 
 				{ 
-					if( std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-mo_p.tiempo_no_visible).count() > MAX_AUSENTE)
+					if( observed_people.cameraId == mo_p.cameraId)
 					{
 						scene.removeItem(mo_p.human);
 						return true;
 					}
 					else return false;
 				}), model_people.end());
+
+			//transformar a coordenadas del mundo y calculo pose
+			auto observed_model_people = transformToWorld(observed_people);
+			// añadir a cámara
+			for(const auto &mo_p : observed_model_people)
+			{
+				QVec::vec3(mo_p.x,mo_p.y,mo_p.z).print("p");
+				qDebug() << observed_people.cameraId;
+				ModelPerson mp;
+				mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
+				mp.angle = mp.angle;
+				mp.cameraId = observed_people.cameraId;
+				QString color;
+				if(observed_people.cameraId==1) color = "Green";
+				if(observed_people.cameraId==2) color = "Blue";
+				if(observed_people.cameraId==3) color = "Red";
+				mp.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(mo_p.x, mo_p.z), &scene);
+				model_people.push_back(mp);
+			}
 		}
 	}
 }
+
+/////////////////////////////////////////////////
+// void SpecificWorker::compute()
+// {
+// 	// match de lo que llega con lo que hay en el estado
+// 	// para cada camara ..
+// 	for(auto &cam : cameraList)
+// 	{
+// 		if( const auto &[success, observed_people] = cam.pop(); success == true )
+// 		{
+// 			//transformo a coordenadas del mundo y calculo pose
+// 			auto observed_model_people = transformToWorld(observed_people);
+// 			//para todas las pers. observadas por esta cámara ...
+// 			for(auto &ob_p : observed_model_people)
+// 			{
+// 				QVec::vec3(ob_p.x,ob_p.y,ob_p.z).print("p");
+// 				//compruebo si ya están en el mundo: identidad
+// 				for(auto &mo_p : model_people)
+// 				{
+// 					//check for maximum distance of 500 mm
+// 					if((QVec::vec3(mo_p.x,mo_p.y,mo_p.z) - QVec::vec3(ob_p.x,ob_p.y,ob_p.z)).norm2() < 900)
+// 					{
+// 						qDebug() << "cool, recognized person!" << model_people.size();
+// 						// mark person from observed_world_people as recognized
+// 						ob_p.matched = true;
+// 						mo_p.tiempo_no_visible = std::chrono::system_clock::now();  //poner timestamp
+// 						mo_p.human->setPos(QPointF(ob_p.z,ob_p.x));
+// 						mo_p.human->setRotation(ob_p.angle);
+// 					}
+// 				}
+// 			}
+// 			// añadir aquellos que se ha visto pero no se han reconocido entre los existentes
+// 			for(const auto &mo_p : observed_model_people)
+// 			{
+// 				if(mo_p.matched == false)
+// 				{
+// 					ModelPerson mp;
+// 					mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
+// 					mp.angle = mp.angle;
+// 					mp.tiempo_no_visible = std::chrono::system_clock::now();
+// 					mp.matched=false;
+// 					mp.human = new Human(QRectF(0, 0, 100, 100), QColor(Qt::green), QPointF(mo_p.z, mo_p.x), &scene);
+// 					model_people.push_back(mp);
+// 				}
+// 			}
+// 			//borrado de la lista interna que no se hayan visto en MAX_AUSENTE segundos
+// 			model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this](auto &mo_p) 
+// 				{ 
+// 					if( std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-mo_p.tiempo_no_visible).count() > MAX_AUSENTE)
+// 					{
+// 						scene.removeItem(mo_p.human);
+// 						return true;
+// 					}
+// 					else return false;
+// 				}), model_people.end());
+// 		}
+// 	}
+// }
 
 std::tuple<bool, float> SpecificWorker::getOrientation(const RoboCompHumanCameraBody::Person &ob_p)
 {
@@ -206,14 +248,16 @@ void SpecificWorker::initializeWorld()
 	//load dimensions
 	QVariantMap dim = mainMap[QString("dimensions")].toMap();
 	dimensions = Dimensions{dim["LEFT"].toFloat(), dim["BOTTOM"].toFloat(), dim["WIDTH"].toFloat(), dim["HEIGHT"].toFloat()};
-	int x_offset = -3200;
-	int y_offset = 1850;
+	//int x_offset = -3200;
+	//int y_offset = 1850;
+	int x_offset = 0;
+	int y_offset = 0;
 	//load roundtables
 	QVariantMap rtables = mainMap[QString("roundTables")].toMap();
 	for (auto &t : rtables)
 	{
 		QVariantList object = t.toList();
-		auto box = scene.addEllipse(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Khaki")), QBrush(QColor("Khaki")));
+		auto box = scene.addEllipse(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Khaki")), QBrush(QColor("Black")));
 		box->setPos(object[4].toFloat(), object[5].toFloat());
 		//box->setPos(object[4].toFloat(), object[5].toFloat());
 		boxes.push_back(box);
@@ -264,6 +308,11 @@ void SpecificWorker::initializeWorld()
 		box->setFlag(QGraphicsItem::ItemIsMovable);
 		boxes.push_back(box);
 	}
+	/////////////
+	//AXIS
+	scene.addLine(0,0,200,0,QPen(QBrush(QColor("red")),20));
+	scene.addLine(0,0,0,200,QPen(QBrush(QColor("blue")),20));
+	
 }
 
 /////////////////////////////////77
