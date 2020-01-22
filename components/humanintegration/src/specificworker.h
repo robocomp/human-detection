@@ -72,6 +72,11 @@ public:
 			peopledata.pop();
 			return std::make_tuple(true, detected_people);
 		}
+		uint size()
+		{
+			std::lock_guard<std::mutex> lock(mymutex);
+			return peopledata.size();
+		}
 	};
 	
 	//data type for people in the model
@@ -110,6 +115,7 @@ private:
 	ModelPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people);
 	RoboCompCommonBehavior::ParameterList params;
 	std::tuple<bool, float> getOrientation(const RoboCompHumanCameraBody::Person &ob_p);
+	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z, const RoboCompHumanCameraBody::Person &ob_p);
 
 	// 2D draw
 	struct Dimensions 		// Size of the world

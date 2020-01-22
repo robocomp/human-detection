@@ -25,7 +25,8 @@ class Human : public QObject, public QGraphicsEllipseItem
 {     
 	Q_OBJECT
 	public:
-		Human(const QRectF &r, QColor color_, QPointF pos, QGraphicsScene *scene);  
+		Human(const QRectF &r, QColor color_, QPointF pos, float angle, QGraphicsScene *scene);  
+		~Human();
 	private:
 		QGraphicsPixmapItem* pixmapItem;
 		Qt::MouseButton mouseButton;
