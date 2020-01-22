@@ -207,20 +207,12 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					print("depth: ", COCO_IDS[pos], pdepth)
-					keypoint.z = pdepth * self.focal / math.sqrt(ki*ki + kj*kj + self.fsquare)
-					
-					keypoint.z = pdepth
-					
-					#keypoint.x = pdepth*ki/math.sqrt(ki*ki+kj*kj+self.fsquare) 
-					#keypoint.y = pdepth*kj/math.sqrt(ki*ki+kj*kj+self.fsquare) 
+					#keypoint.z = pdepth * self.focal / math.sqrt(ki*ki + kj*kj + self.fsquare)
+					keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
 					keypoint.x = ki*keypoint.z/self.focal
 					keypoint.y = kj*keypoint.z/self.focal
-					# if COCO_IDS[pos] == "left_ankle":
-					# 	print(COCO_IDS[pos], keypoint)	
-					
 					person.joints[COCO_IDS[pos]] = keypoint
-			print("-------------------")
+			#print("-------------------")
 			self.peoplelist.append(person)
 
 		# draw
