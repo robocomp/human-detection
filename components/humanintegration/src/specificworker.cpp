@@ -196,19 +196,28 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 	{
 		QVec left_s, right_s, wj;
 		QVec acum = QVec::zeros(3);
-		for(const auto &[name, key] : obs_person.joints)
+		if(obs_person.joints.count("left_shoulder") > 0)   //test with one shoulder
 		{
+			auto key = obs_person.joints.at("left_shoulder");
 			wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
-			acum += wj;
+			wj.print("wj");
+			res.push_back( { obs_person.id, wj.x(), wj.y(), wj.z(), 0.0, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
+			break;
 		}
-		auto [success, angle_degrees] = getOrientation(obs_person);
-		if(obs_person.joints.size() > 0)
-		{
-			//compute mean of projected joints coordinates on the floor
-			acum = acum/(T)obs_person.joints.size();
-			if( acum.x() != 0.0 and acum.z() != 0.0)
-				res.push_back( { obs_person.id, acum.x(), acum.y(), acum.z(), angle_degrees, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
-		}
+
+		// for(const auto &[name, key] : obs_person.joints)
+		// {
+		// 	wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
+		// 	acum += wj;
+		// }
+		// auto [success, angle_degrees] = getOrientation(obs_person);
+		// if(obs_person.joints.size() > 0)   
+		// {
+		// 	compute mean of projected joints coordinates on the floor
+		// 	acum = acum/(T)obs_person.joints.size();
+		// 	if( acum.x() != 0.0 and acum.z() != 0.0)
+		// 	 	res.push_back( { obs_person.id, acum.x(), acum.y(), acum.z(), angle_degrees, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
+		// }
 	}	
 	return res;
 } 
@@ -259,7 +268,6 @@ void SpecificWorker::initializeWorld()
 		QVariantList object = t.toList();
 		auto box = scene.addEllipse(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Khaki")), QBrush(QColor("Black")));
 		box->setPos(object[4].toFloat(), object[5].toFloat());
-		//box->setPos(object[4].toFloat(), object[5].toFloat());
 		boxes.push_back(box);
 	}
 	//load tables
@@ -280,7 +288,7 @@ void SpecificWorker::initializeWorld()
 		QVariantList object = t.toList();
 		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Brown")), QBrush(QColor("Brown")));
 		box->setPos(object[4].toFloat()+x_offset, object[5].toFloat()+y_offset);
-		//box->setPos(object[4].toFloat(), object[5].toFloat());
+	
 		box->setRotation(object[6].toFloat());
 		boxes.push_back(box);
 	}

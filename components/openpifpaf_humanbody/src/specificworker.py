@@ -174,6 +174,7 @@ class SpecificWorker(GenericWorker):
 
 	#return median depth value
 	def getDepth(self, i,j):
+		
 		OFFSET = 3
 		values = []
 		for xi in range(i-OFFSET,i+OFFSET):
@@ -206,13 +207,17 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					
+					print("depth: ", COCO_IDS[pos], pdepth)
 					keypoint.z = pdepth * self.focal / math.sqrt(ki*ki + kj*kj + self.fsquare)
+					
+					keypoint.z = pdepth
+					
 					#keypoint.x = pdepth*ki/math.sqrt(ki*ki+kj*kj+self.fsquare) 
 					#keypoint.y = pdepth*kj/math.sqrt(ki*ki+kj*kj+self.fsquare) 
 					keypoint.x = ki*keypoint.z/self.focal
 					keypoint.y = kj*keypoint.z/self.focal
-					print(COCO_IDS[pos], keypoint)
+					# if COCO_IDS[pos] == "left_ankle":
+					# 	print(COCO_IDS[pos], keypoint)	
 					
 					person.joints[COCO_IDS[pos]] = keypoint
 			print("-------------------")
