@@ -4,7 +4,11 @@
 		<transform id="tag_tf" ty="2" >
 			<plane id="tag" ny="1" size="350,350,10" texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0-flip.png" />
 		</transform>
-		<axes id="axes1"/>
+ 		<transform id="april_0" rx="-1.57079632679">
+                </transform>
+
+
+		<!-- <axes id="axes1"/> -->
 		 <transform id="world_camera_1" tx="-3.70545" ty="1697.6" tz="-3580.56" rx="0.44446" ry="0.00201356" rz="0.00139152" >
 		 	<rgbd id="rgbd_1" focal="462" width="640" height="480" port="11096" noise="0.00" ifconfig="40000,50000" />
 		</transform>		 
@@ -16,3 +20,8 @@
 		</transform>		 
 	</transform>
 </innerModel>
+
+
+
+
+

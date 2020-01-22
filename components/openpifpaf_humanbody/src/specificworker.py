@@ -204,7 +204,7 @@ class SpecificWorker(GenericWorker):
 					keypoint.score = float(joint[2])
 					
 					ki = keypoint.i - 320
-					kj = keypoint.j - 240
+					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
 					
 					keypoint.z = pdepth * self.focal / math.sqrt(ki*ki + kj*kj + self.fsquare)
@@ -212,8 +212,10 @@ class SpecificWorker(GenericWorker):
 					#keypoint.y = pdepth*kj/math.sqrt(ki*ki+kj*kj+self.fsquare) 
 					keypoint.x = ki*keypoint.z/self.focal
 					keypoint.y = kj*keypoint.z/self.focal
+					print(COCO_IDS[pos], keypoint)
 					
 					person.joints[COCO_IDS[pos]] = keypoint
+			print("-------------------")
 			self.peoplelist.append(person)
 
 		# draw

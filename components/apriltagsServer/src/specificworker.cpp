@@ -158,7 +158,7 @@ tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const 
     image_gray.create(frame.frmt.height, frame.frmt.width, CV_8UC1);
     image_color.create(frame.frmt.height, frame.frmt.width, CV_8UC3);
     memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
-    cv::flip(image_color, image_color, 0);
+    //cv::flip(image_color, image_color, 0);
     cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
     cv::cvtColor(image_color, image_color, CV_RGB2BGR);
     vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
