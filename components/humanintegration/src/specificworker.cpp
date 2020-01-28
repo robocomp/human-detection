@@ -47,7 +47,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	catch(const std::exception &e) { qFatal("Error reading config params"); }
 	this->params = params;
 	
-	
 	defaultMachine.start();
 	return true;
 }
@@ -56,28 +55,32 @@ void SpecificWorker::initialize(int period)
 {
 	std::cout << "Initialize worker" << std::endl;
 
-	//Load World
-	initializeWorld();
-
 	resize(QDesktopWidget().availableGeometry(this).size() * 0.6);
 	scene.setSceneRect(dimensions.HMIN, dimensions.VMIN, dimensions.WIDTH, dimensions.HEIGHT);
 	graphicsView->setViewport(new QGLWidget);
 	graphicsView->scale(1, -1);
 	graphicsView->setScene(&scene);
 	graphicsView->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
+
+	//Load World
+	initializeWorld();
+
+	//Create one human
+	human_one.x = human_one.y = human_one.z = 0.0;
+	human_one.angle = 0.0;
+	human_one.cameraId = 1;
+	QString color;
+	if(human_one.cameraId==1) color = "Green";
+	if(human_one.cameraId==2) color = "Blue";
+	if(human_one.cameraId==3) color = "Red";
+	human_one.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(0, 0), 0, &scene);
+	human_one.human->initialize(QPointF(0,0), 0.f);
+	
 	this->Period = period;
 	timer.start(100);
 	emit this->t_initialize_to_compute();
 
 }
-
-// State filter one-person version. The object has been created once with high position uncertainty
-// void SpecificWorker::compute()
-// {
-//	 get_measures;
-//	 update_filter;
-//	 show;
-// }
 
 // delete-create version
 void SpecificWorker::compute()
@@ -88,33 +91,39 @@ void SpecificWorker::compute()
 		if( const auto &[success, observed_people] = cam.pop(); success == true )
 		{
 			//Delete camera people
-			model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this, observed_people](auto &mp) 
-				{ 
-					if( observed_people.cameraId == mp.cameraId)
-					{
-						scene.removeItem(mp.human);
-						delete mp.human;
-						return true;
-					}
-					else return false;
-				}), model_people.end());
+			// model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this, observed_people](auto &mp) 
+			// 	{ 
+			// 		if( observed_people.cameraId == mp.cameraId)
+			// 		{
+			// 			scene.removeItem(mp.human);
+			// 			delete mp.human;
+			// 			return true;
+			// 		}
+			// 		else return false;
+			// 	}), model_people.end());
 
 			//transformar a coordenadas del mundo y calculo pose
 			auto observed_model_people = transformToWorld(observed_people);
-			// añadir a cámara
-			for(const auto &mo_p : observed_model_people)
+			//update human
+			for(const auto &op : observed_model_people)
 			{
-				ModelPerson mp;
-				mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
-				mp.angle = mo_p.angle;
-				mp.cameraId = observed_people.cameraId;
-				QString color;
-				if(observed_people.cameraId==1) color = "Green";
-				if(observed_people.cameraId==2) color = "Blue";
-				if(observed_people.cameraId==3) color = "Red";
-				mp.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(mp.x, mp.z), mp.angle, &scene);
-				model_people.push_back(mp);
+				qDebug() << "sensor:" << op.angle;
+				human_one.human->update(op.x, op.z, op.angle);
 			}
+			// añadir a cámara
+			// for(const auto &mo_p : observed_model_people)
+			// {
+			// 	ModelPerson mp;
+			// 	mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
+			// 	mp.angle = mo_p.angle;
+			// 	mp.cameraId = observed_people.cameraId;
+			// 	QString color;
+			// 	if(observed_people.cameraId==1) color = "Green";
+			// 	if(observed_people.cameraId==2) color = "Blue";
+			// 	if(observed_people.cameraId==3) color = "Red";
+			// 	mp.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(mp.x, mp.z), mp.angle, &scene);
+			// 	model_people.push_back(mp);
+			// }
 		}
 	}
 }
