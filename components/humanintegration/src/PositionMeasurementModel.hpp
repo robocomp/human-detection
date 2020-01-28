@@ -14,19 +14,23 @@ namespace Robot1
  * @param T Numeric scalar type
  */
 template<typename T>
-class PositionMeasurement : public Kalman::Vector<T, 2>
+class PositionMeasurement : public Kalman::Vector<T, 3>
 {
 public:
-    KALMAN_VECTOR(PositionMeasurement, T, 2)
+    KALMAN_VECTOR(PositionMeasurement, T, 3)
     
     static constexpr size_t X = 0;
     static constexpr size_t Y = 1;
+    static constexpr size_t THETA = 2;
     
     T x()       const { return (*this)[ X ]; }
     T y()       const { return (*this)[ Y ]; }
+    T theta()   const { return (*this)[ THETA ]; }
     
     T& x()      { return (*this)[ X ]; }
     T& y()      { return (*this)[ Y ]; }
+    T& theta()  { return (*this)[ THETA ]; }
+    
 };
 
 /**

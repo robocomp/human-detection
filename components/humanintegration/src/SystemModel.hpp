@@ -33,14 +33,26 @@ public:
     static constexpr size_t Y = 1;
     //! Orientation
     static constexpr size_t THETA = 2;
+    // //! X-velocity
+    // static constexpr size_t dX = 3;
+    // //! Y-velocity
+    // static constexpr size_t dY = 4;
+    // //! Orientation velocity
+    // static constexpr size_t dTHETA = 5;
     
-    T x()       const { return (*this)[ X ]; }
-    T y()       const { return (*this)[ Y ]; }
-    T theta()   const { return (*this)[ THETA ]; }
+    T x()        const { return (*this)[ X ]; }
+    T y()        const { return (*this)[ Y ]; }
+    T theta()    const { return (*this)[ THETA ]; }
+    // T dx()       const { return (*this)[ dX ]; }
+    // T dy()       const { return (*this)[ dY ]; }
+    // T dtheta()   const { return (*this)[ dTHETA ]; }
     
     T& x()      { return (*this)[ X ]; }
     T& y()      { return (*this)[ Y ]; }
     T& theta()  { return (*this)[ THETA ]; }
+    // T& dx()     { return (*this)[ dX ]; }
+    // T& dy()     { return (*this)[ dY ]; }
+    // T& dtheta() { return (*this)[ dTHETA ]; }
 
     T xymod()   { return sqrt((*this)[ X ]*(*this)[ X ] + (*this)[ Y ]*(*this)[ Y ]);}
 };
@@ -108,9 +120,9 @@ public:
     {
         static std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now(); 
         static std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count()) ;
-        static std::uniform_real_distribution<float> u_noise(-1,1);
+        //static std::uniform_real_distribution<float> u_noise(-1,1);
         static std::normal_distribution<float> g_noise(0,1);
-        static std::normal_distribution<float> g_angle_noise(0,0.4);
+        static std::normal_distribution<float> g_angle_noise(0, 0.4);
 
         //! Predicted state vector after transition
         S x_;
@@ -120,20 +132,19 @@ public:
         // Re-scale orientation to [-pi/2 to +pi/2]
         //x_.theta() = newOrientation;
        
-        float nx = g_noise(generator);
-        float ny = g_noise(generator);
-        float ntheta = g_angle_noise(generator);
+        float ax = g_noise(generator);
+        float ay = g_noise(generator);
+        float atheta = g_angle_noise(generator);
         
         std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now(); //end of interval
         float t =std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0;
-        
-        x_.x() = x.x() + 0.5*( nx * sqrt(t));
-        x_.y() = x.y() + 0.5*( ny * sqrt(t));
-        //x_.theta() = x.theta() + 0.5*( ntheta * sqrt(t));
-        x_.theta() = x.theta() + (ntheta * t);
-        
-        
-        //std::cout << t*1000 << " ms " << x_.x() << " " << x_.y() << std::endl;
+        //ax = ay = atheta = 0.0;
+        // x_.dx() = x_.dx() + ax * t;
+        // x_.dy() = x_.dy() + ay * t;
+        // x_.dtheta() = x_.dtheta() + atheta * t;
+        x_.x() = x_.x() + ax*t;
+        x_.y() = x_.y() + ay*t;
+        x_.theta() = x_.theta() + atheta * t;
         
         // Return transitioned state vector
         start = std::chrono::high_resolution_clock::now(); 

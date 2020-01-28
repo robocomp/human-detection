@@ -35,37 +35,40 @@ Human::~Human()
 void Human::initialize(const QPointF &pos, float ang)
 {
  	//Initial position
+	x.setZero();
 	x.x() = pos.x();
 	x.y() = pos.y();
 	x.theta() = ang;
-	
+
 	//Covarianza sys
 	Kalman::Covariance<State> sC(3,3);
 	sC.setZero();
-	// sC(0,0) = 0.9;
-	// sC(1,1) = 0.9;
-	// sC(2,2) = 0.9;
 
-	sC(0,0) = 0.00001;
-	sC(1,1) = 0.00001;
-	sC(2,2) = 0.00001;
-	sC(0,0) = 0.0001;
-	sC(1,1) = 0.0001;
-	sC(2,2) = 0.01;
+	// sC(0,0) = 0.0; sC(0,1) = 0.001; sC(1,0) = 0.001;
+	// sC(1,1) = 0.001;
+	// sC(2,2) = 0.0; sC(2,3) = 0.001; sC(3,2) = 0.001;
+	// sC(3,3) = 0.001; 
+	// sC(4,4) = 0.0; sC(4,5) = 0.001; sC(5,4) = 0.001;
+	// sC(5,5) = 0.001;
+	sC(0,0) = 0.1; 
+	sC(1,1) = 0.1;
+	sC(2,2) = 0.1; 
+	// sC(3,3) = 0.0; 
+	// sC(4,4) = 0.01; 
+	// sC(5,5) = 0.01;
+	
+
+	
 	sys.setCovariance(sC);
 	
 	//positionModel
-	Kalman::Covariance<PositionMeasurement> pC(2,2);
+	Kalman::Covariance<PositionMeasurement> pC(3,3);
 	pC.setZero();
-	pC(0,0) = 0.01;
-	pC(1,1) = 0.01;
+	pC(0,0) = 0.1;
+	pC(1,1) = 0.1;
+	pC(2,2) = 0.03;
 	pm.setCovariance(pC);
 	
-	//orientationModel
-	Kalman::Covariance<OrientationMeasurement> oC(1,1);
-	oC(0,0) = 0.01;
-	om.setCovariance(oC);
-
 	// Init filters with true system state
 	//ukf = Kalman::UnscentedKalmanFilter<State>(1);
 	ekf.init(x);
@@ -83,8 +86,8 @@ void Human::update(float x, float y, float ang)
 
     auto x_ekf = ekf.predict(sys);
 	//	auto x_ukf = ukf.predict(sys, u);
-	OrientationMeasurement orientation = om.h(observed_state);
-	x_ekf = ekf.update(om, orientation);
+	//OrientationMeasurement orientation = om.h(observed_state);
+	//x_ekf = ekf.update(om, orientation);
 //	x_ukf = ukf.update(om, orientation);
 	PositionMeasurement position = pm.h(observed_state);
 	x_ekf = ekf.update(pm, position);
@@ -96,7 +99,8 @@ void Human::update(float x, float y, float ang)
 	this->setRotation(qRadiansToDegrees(x_ekf.theta()));
 	//this->setRotation(ang);
 	
-	qDebug()<< "filter:" << qRadiansToDegrees(x_ekf.theta());
+	qDebug()<< "Estimation::" << x_ekf.x() << x_ekf.y() << qRadiansToDegrees(x_ekf.theta());
+			
 	
 	//this->setPos(x,y);
 	

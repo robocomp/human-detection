@@ -105,7 +105,7 @@ class SpecificWorker(GenericWorker):
 			pif_fixed_scale = None
 			profile_decoder = None
 			instance_threshold = 0.05
-			device = torch.device(type="cuda")
+			device = torch.device(type="cpu")
 			disable_cuda = False
 			scale = 1
 			key_point_threshold = 0.05
@@ -187,7 +187,7 @@ class SpecificWorker(GenericWorker):
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
 		image_pil = PIL.Image.fromarray(image)
 		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True) #.cuda()
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)

@@ -107,7 +107,7 @@ void SpecificWorker::compute()
 			//update human
 			for(const auto &op : observed_model_people)
 			{
-				qDebug() << "sensor:" << op.angle;
+				//qDebug() << "rotation sensor:" << qDegreesToRadians(op.angle);
 				human_one.human->update(op.x, op.z, op.angle);
 			}
 			// añadir a cámara
