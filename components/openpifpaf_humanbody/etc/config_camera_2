@@ -4,10 +4,10 @@ CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10179
 
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+TopicManager.Proxy=IceStorm/TopicManager:default -h 10.253.247.234 -p 9999
 
 cameraid=2
-viewimage=true
+viewimage=false
 verticalflip=false
 horizontalflip=true
 
