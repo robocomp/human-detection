@@ -7,7 +7,7 @@ CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10180
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 cameraid=3
-viewimage=true
+viewimage=false
 verticalflip=false
 horizontalflip=true
 

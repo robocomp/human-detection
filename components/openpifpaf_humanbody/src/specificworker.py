@@ -66,8 +66,9 @@ class SpecificWorker(GenericWorker):
 		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
-		self.focal = 462
-		self.fsquare = 462*462
+#		self.focal = 462 #VREP
+		self.focal = 617 #REALSENSE
+		self.fsquare = self.focal * self.focal
 		self.contFPS = 0
 
 	def __del__(self):
@@ -105,8 +106,8 @@ class SpecificWorker(GenericWorker):
 			pif_fixed_scale = None
 			profile_decoder = None
 			instance_threshold = 0.05
-			device = torch.device(type="cuda")
-			disable_cuda = False
+			device = torch.device(type="cpu")
+			disable_cuda = True
 			scale = 1
 			key_point_threshold = 0.05
 			head_dropout = 0.0
@@ -180,14 +181,16 @@ class SpecificWorker(GenericWorker):
 		for xi in range(i-OFFSET,i+OFFSET):
 			for xj in range(j-OFFSET, j+OFFSET):
 				values.append(self.depth[xj, xi])
-		return np.median(values) * 1000 #to mm
+		#return np.median(values) * 1000 # VREP to mm
+		return np.median(values)  #to mm REAL
+	
 
 
 	def processImage(self, scale):
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
 		image_pil = PIL.Image.fromarray(image)
 		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True) #.cuda()
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
