@@ -117,6 +117,8 @@ private:
 	std::tuple<bool, float> getOrientation(const RoboCompHumanCameraBody::Person &ob_p);
 	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z, const RoboCompHumanCameraBody::Person &ob_p);
 
+	ModelPerson human_one;
+
 	// 2D draw
 	struct Dimensions 		// Size of the world
 	{

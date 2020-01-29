@@ -19,22 +19,57 @@
 
 #include <QGraphicsItem>
 #include <QGraphicsScene>
+#include <random>
+#include <chrono>
 
+//kalman
+#include "SystemModel.hpp"
+#include "OrientationMeasurementModel.hpp"
+#include "PositionMeasurementModel.hpp"
+#include <kalman/ExtendedKalmanFilter.hpp>
+#include <kalman/UnscentedKalmanFilter.hpp>
+using namespace KalmanExamples;
+typedef float T;
+// Some type shortcuts
+typedef Robot1::State<T> State;
+typedef Robot1::Control<T> Control;
+typedef Robot1::SystemModel<T> SystemModel;
+typedef Robot1::PositionMeasurement<T> PositionMeasurement;
+typedef Robot1::OrientationMeasurement<T> OrientationMeasurement;
+typedef Robot1::PositionMeasurementModel<T> PositionModel;
+typedef Robot1::OrientationMeasurementModel<T> OrientationModel;
 
 class Human : public QObject, public QGraphicsEllipseItem
 {     
 	Q_OBJECT
 	public:
-		Human(const QRectF &r, QColor color_, QPointF pos, float angle, QGraphicsScene *scene);  
+		Human(const QRectF &r, QColor color_, QPointF pos, float angle, QGraphicsScene *scene_);  
 		~Human();
+		void initialize(const QPointF &pos, float ang);
+		void update(float x, float y, float ang);
+
 	private:
 		QGraphicsPixmapItem* pixmapItem;
-		Qt::MouseButton mouseButton;
 		QGraphicsEllipseItem *ellipseItem;
 		float degreesToRadians(const float angle);
 		QGraphicsPolygonItem *polygon_item = nullptr;
 		QColor color;
+		QGraphicsScene *scene;
+
+		//kalman
+		 Robot1::State<T> x, x_ekf;
+		Control u;
+		SystemModel sys;
+		PositionModel pm;
+		OrientationModel om;
+		Kalman::ExtendedKalmanFilter<State> predictor;
+		Kalman::ExtendedKalmanFilter<State> ekf;
+		Kalman::UnscentedKalmanFilter<State> ukf;
 		
+
+		// Random number generation (for noise simulation)
+    	std::default_random_engine generator;
+		std::normal_distribution<float> noise;
 };
 
 #endif // HUMAN_H
