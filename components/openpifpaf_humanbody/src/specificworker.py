@@ -153,11 +153,11 @@ class SpecificWorker(GenericWorker):
 		
 		self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
 		if self.horizontalflip:
-			self.color = cv2.flip(self.color, 0)
-			self.depth = cv2.flip(self.depth, 0)
-		if self.verticalflip:
 			self.color = cv2.flip(self.color, 1)
 			self.depth = cv2.flip(self.depth, 1)
+		if self.verticalflip:
+			self.color = cv2.flip(self.color, 0)
+			self.depth = cv2.flip(self.depth, 0)
 
 		self.processImage(0.3)
 		self.publishData()
