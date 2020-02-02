@@ -20,6 +20,7 @@
 #include <QGridLayout>
 #include <QDesktopWidget>
 
+
 /**
 * \brief Default constructor
 */
@@ -33,6 +34,8 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
+	outfile << "]}";
+	outfile.close();
 	emit t_compute_to_finalize();
 }
 
@@ -66,7 +69,11 @@ void SpecificWorker::initialize(int period)
 	initializeWorld();
 
 	//Create one human
-	human_one.x = human_one.y = human_one.z = 0.0;
+		//wait for a measure to initialize
+	// auto res = cameraList[0].pop();
+	// while(std::get<bool>(res) == false){ res = cameraList[0].pop(); }
+	// auto pe = transformToWorld(std::get<1>(res))[0];
+	human_one.x = 0; human_one.y = 0; human_one.z = 0;
 	human_one.angle = 0.0;
 	human_one.cameraId = 1;
 	QString color;
@@ -75,11 +82,13 @@ void SpecificWorker::initialize(int period)
 	if(human_one.cameraId==3) color = "Red";
 	human_one.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(0, 0), 0, &scene);
 	human_one.human->initialize(QPointF(0,0), 0.f);
-	
+
+	outfile.open("human_data.txt", std::ios_base::out); // append instead of overwrite
+	outfile << "{  " << std::endl << "\"data_set\"" << ":[";
+
 	this->Period = period;
 	timer.start(100);
 	emit this->t_initialize_to_compute();
-
 }
 
 // delete-create version
@@ -90,40 +99,40 @@ void SpecificWorker::compute()
 	{
 		if( const auto &[success, observed_people] = cam.pop(); success == true )
 		{
-			//Delete camera people
-			// model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this, observed_people](auto &mp) 
-			// 	{ 
-			// 		if( observed_people.cameraId == mp.cameraId)
-			// 		{
-			// 			scene.removeItem(mp.human);
-			// 			delete mp.human;
-			// 			return true;
-			// 		}
-			// 		else return false;
-			// 	}), model_people.end());
-
 			//transformar a coordenadas del mundo y calculo pose
 			auto observed_model_people = transformToWorld(observed_people);
 			//update human
 			for(const auto &op : observed_model_people)
 			{
+				// write to file
+				if(observed_people.cameraId == 1)
+				{
+					json_spirit::Object reading;
+					reading.push_back( json_spirit::Pair("cameraId",observed_people.cameraId));
+					const json_spirit::Array gval{ -op.gtruth_y * 1000.f, op.gtruth_z * 1000.f, op.gtruth_x * 1000.f, op.gtruth_angle };
+					if(fabs(-op.gtruth_y * 1000.f)< 0.1 and fabs(op.gtruth_z * 1000.f)<0.1 and fabs(op.gtruth_x * 1000.f)<0.1)
+					{	
+						qDebug() << "SHIT";
+						break;
+					}
+					
+					reading.push_back( json_spirit::Pair("ground_truth", gval));
+					const json_spirit::Array wval{ op.x, op.y, op.z, qDegreesToRadians(op.angle) };
+					reading.push_back( json_spirit::Pair("world", wval));
+					
+					json_spirit::Object joints;
+					for(const auto &[name, key] : op.joints)
+					{			
+						const json_spirit::Array jval{ key.x, key.y, key.z, key.i, key.j, key.score }; 
+						joints.push_back(json_spirit::Pair(name, jval));
+					}
+					reading.push_back( json_spirit::Pair("joints", joints) );
+					write( reading, outfile, json_spirit::pretty_print, 4);
+					outfile << ",\n";
+				}
 				//qDebug() << "rotation sensor:" << qDegreesToRadians(op.angle);
 				human_one.human->update(op.x, op.z, op.angle);
 			}
-			// añadir a cámara
-			// for(const auto &mo_p : observed_model_people)
-			// {
-			// 	ModelPerson mp;
-			// 	mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
-			// 	mp.angle = mo_p.angle;
-			// 	mp.cameraId = observed_people.cameraId;
-			// 	QString color;
-			// 	if(observed_people.cameraId==1) color = "Green";
-			// 	if(observed_people.cameraId==2) color = "Blue";
-			// 	if(observed_people.cameraId==3) color = "Red";
-			// 	mp.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(mp.x, mp.z), mp.angle, &scene);
-			// 	model_people.push_back(mp);
-			// }
 		}
 	}
 }
@@ -169,22 +178,16 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 	{
 		//QVec left_s, right_s, wj;
 		
-		// Only left_shoulder
-		// if(obs_person.joints.count("left_shoulder") > 0)   //test with one shoulder
-		// {
-		// 	auto key = obs_person.joints.at("left_shoulder");
-		// 	wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
-		// 	wj.print("wj");
-		// 	res.push_back( { obs_person.id, wj.x(), wj.y(), wj.z(), 0.0, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
-		// 	break;
-		// }
+	
 		std::vector<float> acum_x, acum_z;
 		QVec wj;
+		ModelPerson person;
 		for(const auto &[name, key] : obs_person.joints)
 		{
 			wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
 			acum_x.push_back(wj.x());
 			acum_z.push_back(wj.z());
+			person.joints[name] = { wj.x(), wj.y(), wj.z(), key.i, key.j, key.score};
 		}
 	
 		if(obs_person.joints.size() > 0)   
@@ -194,9 +197,23 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			// compute position
 			auto [success_p, median_x, median_z] = getPosition(acum_x, acum_z, obs_person);
 
-			res.push_back( { obs_person.id, median_x, 0, median_z, angle_degrees, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
+			person.id = obs_person.id;
+			person.x = median_x;
+			person.y = 0; 
+			person.z = median_z;
+			person.angle = angle_degrees; 
+			person.tiempo_no_visible = std::chrono::time_point<std::chrono::system_clock>();
+			person.matched = false; 
+			person.human = nullptr; 
+			person.to_delete = false;
+			person.cameraId = observed_people.cameraId;
+			person.gtruth_x = obs_person.x;
+			person.gtruth_y = obs_person.y;
+			person.gtruth_z = obs_person.z;
+			person.gtruth_angle = obs_person.rz;
 		}
-	}	
+		res.push_back( person ); 
+	}
 	return res;
 } 
 
@@ -316,6 +333,10 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 	if(people.cameraId +1 > (int)cameraList.size())
 		cameraList.resize(people.cameraId + 1);
 	cameraList[people.cameraId].push(people);
+	const auto &p = people.peoplelist[0];
+	if(fabs(p.x< 0.1) and fabs(p.y<0.1) and fabs(p.z<0.1))
+		qDebug() << "SHIT ABAJO";
+				
 }
 
 
@@ -399,3 +420,43 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 // 		}
 // 	}
 // }
+
+
+	//Delete camera people
+			// model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this, observed_people](auto &mp) 
+			// 	{ 
+			// 		if( observed_people.cameraId == mp.cameraId)
+			// 		{
+			// 			scene.removeItem(mp.human);
+			// 			delete mp.human;
+			// 			return true;
+			// 		}
+			// 		else return false;
+			// 	}), model_people.end());
+
+
+			// añadir a cámara
+			// for(const auto &mo_p : observed_model_people)
+			// {
+			// 	ModelPerson mp;
+			// 	mp.x=mo_p.x; mp.y=mo_p.y; mp.z=mo_p.z;
+			// 	mp.angle = mo_p.angle;
+			// 	mp.cameraId = observed_people.cameraId;
+			// 	QString color;
+			// 	if(observed_people.cameraId==1) color = "Green";
+			// 	if(observed_people.cameraId==2) color = "Blue";
+			// 	if(observed_people.cameraId==3) color = "Red";
+			// 	mp.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(mp.x, mp.z), mp.angle, &scene);
+			// 	model_people.push_back(mp);
+			// }
+
+
+				// Only left_shoulder
+		// if(obs_person.joints.count("left_shoulder") > 0)   //test with one shoulder
+		// {
+		// 	auto key = obs_person.joints.at("left_shoulder");
+		// 	wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
+		// 	wj.print("wj");
+		// 	res.push_back( { obs_person.id, wj.x(), wj.y(), wj.z(), 0.0, std::chrono::time_point<std::chrono::system_clock>(), false, nullptr, false} );
+		// 	break;
+		// }

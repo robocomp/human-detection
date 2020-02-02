@@ -41,6 +41,10 @@
 #include <QGLWidget>
 #include "human.h"
 
+#include "json_spirit.h"
+#include <cassert>
+#include <fstream>
+
 #define NCAMERAS 2
 class SpecificWorker : public GenericWorker
 {
@@ -82,6 +86,15 @@ public:
 	//data type for people in the model
 	struct ModelPerson
 	{
+		struct KeyPoint
+		{
+			float x;
+			float y;
+			float z;
+			int i;
+			int j;
+			float score;
+		};
 		int id;
 		float x,y,z;
 		float angle;
@@ -90,6 +103,9 @@ public:
 		Human *human;
 		bool to_delete = false;
 		int cameraId;
+		float gtruth_x, gtruth_y, gtruth_z, gtruth_angle;  // ground truth
+		std::map<std::string, KeyPoint> joints; 
+
 	};
 
 
@@ -128,6 +144,9 @@ private:
 	QGraphicsScene scene;
 	Dimensions dimensions;
 	std::vector<QGraphicsItem *> boxes; //Obstacles
+
+	// JSON text
+	std::ofstream outfile;
 
 };
 

@@ -15,4 +15,6 @@ SET ( HEADERS
 
 set(CMAKE_CXX_STANDARD 17)
 
-SET (LIBS ${LIBS}  )
+ADD_LIBRARY(json_spirit STATIC IMPORTED)
+SET_TARGET_PROPERTIES(json_spirit PROPERTIES IMPORTED_LOCATION /home/pbustos/robocomp/components/human-detection/components/humanintegration/src/libjson_spirit.a)
+SET (LIBS ${LIBS} json_spirit )

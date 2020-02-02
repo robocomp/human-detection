@@ -30,6 +30,7 @@ import time
 import PIL
 from PySide2.QtCore import QMutexLocker
 import math 
+import b0RemoteApi
 
 COCO_IDS = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
             "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
@@ -132,6 +133,9 @@ class SpecificWorker(GenericWorker):
 		model = model.to(self.args.device)
 		self.processor = decoder.factory_from_args(self.args, model)
 
+		self.client = b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApiAddOn')
+		self.bill = self.client.simxGetObjectHandle('Bill_base#1', self.client.simxServiceCall())
+
 		self.start = time.time()
 
 	@QtCore.Slot()
@@ -145,9 +149,17 @@ class SpecificWorker(GenericWorker):
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
+
+		p_success, self.bill_pos = self.client.simxGetObjectPosition(self.bill[1], -1, self.client.simxServiceCall())
+		o_success, self.bill_ori = self.client.simxGetObjectOrientation(self.bill[1], -1, self.client.simxServiceCall())
+		if p_success == False or o_success == False or all(np.abs(x) < 0.1 for x in self.bill_pos):
+			print("Error reading pose")
+			return
+		#print("pose", self.bill_pos, self.bill_ori)
 		
 		self.width = color_.width
-		self.depth = np.array(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
+		# self.depth = np.array(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
+		self.depth = np.frombuffer(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
 		self.color = np.frombuffer(color_.image, np.uint8).reshape(color_.height, color_.width, color_.depth)
 		
 		self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
@@ -158,7 +170,7 @@ class SpecificWorker(GenericWorker):
 			self.color = cv2.flip(self.color, 1)
 			self.depth = cv2.flip(self.depth, 1)
 
-		self.processImage(0.3)
+		self.processImage(0.5)
 		self.publishData()
 
 		if self.viewimage:
@@ -187,7 +199,7 @@ class SpecificWorker(GenericWorker):
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
 		image_pil = PIL.Image.fromarray(image)
 		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True) #.cuda()
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)#.cuda()
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
@@ -239,8 +251,21 @@ class SpecificWorker(GenericWorker):
 		people.cameraId = self.cameraid
 		people.timestamp = time.time()
 		people.peoplelist = self.peoplelist
-#		print(people)
-		try:
-			self.humancamerabody_proxy.newPeopleData(people)
-		except:
-			print("Error on camerabody data publication")
+		
+		if len(people.peoplelist) >  0: 
+				#and any(x != float("inf") for x in self.bill_pos) 
+				#and any(x != float("inf") for x in self.bill_ori)
+			people.peoplelist[0].x = self.bill_pos[0]
+			people.peoplelist[0].y = self.bill_pos[1]
+			people.peoplelist[0].z = self.bill_pos[2]
+			people.peoplelist[0].rx = self.bill_ori[0]
+			people.peoplelist[0].ry = self.bill_ori[1]
+			people.peoplelist[0].rz = self.bill_ori[2]
+		
+			if all(np.abs(x) < 0.1 for x in self.bill_pos):
+				print("SHIT")
+
+			try:
+				self.humancamerabody_proxy.newPeopleData(people)
+			except:
+				print("Error on camerabody data publication")

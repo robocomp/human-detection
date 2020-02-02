@@ -99,7 +99,7 @@ void Human::update(float x, float y, float ang)
 	this->setRotation(qRadiansToDegrees(x_ekf.theta()));
 	//this->setRotation(ang);
 	
-	qDebug()<< "Estimation::" << x_ekf.x() << x_ekf.y() << qRadiansToDegrees(x_ekf.theta());
+	//qDebug()<< "Estimation::" << x_ekf.x() << x_ekf.y() << qRadiansToDegrees(x_ekf.theta());
 			
 	
 	//this->setPos(x,y);
