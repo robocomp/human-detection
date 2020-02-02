@@ -67,8 +67,9 @@ class SpecificWorker(GenericWorker):
 		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
-		self.focal = 462
-		self.fsquare = 462*462
+#		self.focal = 462 #VREP
+		self.focal = 617 #REALSENSE
+		self.fsquare = self.focal * self.focal
 		self.contFPS = 0
 
 	def __del__(self):
@@ -107,7 +108,7 @@ class SpecificWorker(GenericWorker):
 			profile_decoder = None
 			instance_threshold = 0.05
 			device = torch.device(type="cpu")
-			disable_cuda = False
+			disable_cuda = True
 			scale = 1
 			key_point_threshold = 0.05
 			head_dropout = 0.0
@@ -164,11 +165,11 @@ class SpecificWorker(GenericWorker):
 		
 		self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
 		if self.horizontalflip:
-			self.color = cv2.flip(self.color, 0)
-			self.depth = cv2.flip(self.depth, 0)
-		if self.verticalflip:
 			self.color = cv2.flip(self.color, 1)
 			self.depth = cv2.flip(self.depth, 1)
+		if self.verticalflip:
+			self.color = cv2.flip(self.color, 0)
+			self.depth = cv2.flip(self.depth, 0)
 
 		self.processImage(0.5)
 		self.publishData()
@@ -192,7 +193,9 @@ class SpecificWorker(GenericWorker):
 		for xi in range(i-OFFSET,i+OFFSET):
 			for xj in range(j-OFFSET, j+OFFSET):
 				values.append(self.depth[xj, xi])
-		return np.median(values) * 1000 #to mm
+		#return np.median(values) * 1000 # VREP to mm
+		return np.median(values)  #to mm REAL
+	
 
 
 	def processImage(self, scale):
@@ -251,6 +254,7 @@ class SpecificWorker(GenericWorker):
 		people.cameraId = self.cameraid
 		people.timestamp = time.time()
 		people.peoplelist = self.peoplelist
+<<<<<<< HEAD
 		
 		if len(people.peoplelist) >  0: 
 				#and any(x != float("inf") for x in self.bill_pos) 
@@ -269,3 +273,10 @@ class SpecificWorker(GenericWorker):
 				self.humancamerabody_proxy.newPeopleData(people)
 			except:
 				print("Error on camerabody data publication")
+=======
+#		print(people)
+		try:
+			self.humancamerabody_proxy.newPeopleData(people)
+		except:
+			print("Error on camerabody data publication")
+>>>>>>> fee66a69613f302fd75879413204163053dfaedb
