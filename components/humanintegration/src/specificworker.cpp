@@ -132,6 +132,7 @@ void SpecificWorker::compute()
 
 				//qDebug() << "rotation sensor:" << qDegreesToRadians(op.angle);
 				human_one.human->update(op.x, op.z, op.angle);
+				//human_one.human->update(-op.gtruth_y * 1000.f, op.gtruth_x * 1000.f, op.angle);
 
 			}
 		}
@@ -185,8 +186,8 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 		for(const auto &[name, key] : obs_person.joints)
 		{
 			//qDebug() << "Trans [" << key.x << key.y << key.z << "]";
-			//wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
-			wj = innerModel->transform("world", QVec::vec3(-key.y*1000.f, key.z*1000.f, key.x*1000.f), "world_camera_" + QString::number(observed_people.cameraId));
+			wj = innerModel->transform("world", QVec::vec3(key.x*1000, key.y*1000, key.z*1000), "world_camera_" + QString::number(observed_people.cameraId));
+			//wj = innerModel->transform("world", QVec::vec3(-key.y*1000.f, key.z*1000.f, key.x*1000.f), "world_camera_" + QString::number(observed_people.cameraId));
 			
 			acum_x.push_back(wj.x());
 			acum_z.push_back(wj.z());
