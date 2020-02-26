@@ -105,33 +105,34 @@ void SpecificWorker::compute()
 			for(const auto &op : observed_model_people)
 			{
 				// write to file
-				if(observed_people.cameraId == 1)
-				{
-					json_spirit::Object reading;
-					reading.push_back( json_spirit::Pair("cameraId",observed_people.cameraId));
-					const json_spirit::Array gval{ -op.gtruth_y * 1000.f, op.gtruth_z * 1000.f, op.gtruth_x * 1000.f, op.gtruth_angle };
-					if(fabs(-op.gtruth_y * 1000.f)< 0.1 and fabs(op.gtruth_z * 1000.f)<0.1 and fabs(op.gtruth_x * 1000.f)<0.1)
-					{	
-						qDebug() << "SHIT";
-						break;
-					}
-					
-					reading.push_back( json_spirit::Pair("ground_truth", gval));
-					const json_spirit::Array wval{ op.x, op.y, op.z, qDegreesToRadians(op.angle) };
-					reading.push_back( json_spirit::Pair("world", wval));
-					
-					json_spirit::Object joints;
-					for(const auto &[name, key] : op.joints)
-					{			
-						const json_spirit::Array jval{ key.x, key.y, key.z, key.i, key.j, key.score }; 
-						joints.push_back(json_spirit::Pair(name, jval));
-					}
-					reading.push_back( json_spirit::Pair("joints", joints) );
-					write( reading, outfile, json_spirit::pretty_print, 4);
-					outfile << ",\n";
+				json_spirit::Object reading;
+				reading.push_back( json_spirit::Pair("cameraId",observed_people.cameraId));
+				
+				const json_spirit::Array gval{ -op.gtruth_y * 1000.f, op.gtruth_z * 1000.f, op.gtruth_x * 1000.f, op.gtruth_angle };
+				
+				if(fabs(-op.gtruth_y)< 0.1 and fabs(op.gtruth_z)<0.1 and fabs(op.gtruth_x)<0.1)
+				{	
+					qDebug() << "SHIT";
+					continue;
 				}
+				
+				reading.push_back( json_spirit::Pair("ground_truth", gval));
+				const json_spirit::Array wval{ op.x, op.y, op.z, qDegreesToRadians(op.angle) };
+				reading.push_back( json_spirit::Pair("world", wval));
+				
+				json_spirit::Object joints;
+				for(const auto &[name, key] : op.joints)
+				{			
+					const json_spirit::Array jval{ key.x, key.y, key.z, key.i, key.j, key.score }; 
+					joints.push_back(json_spirit::Pair(name, jval));
+				}
+				reading.push_back( json_spirit::Pair("joints", joints) );
+				write( reading, outfile, json_spirit::pretty_print, 4);
+				outfile << ",\n";
+
 				//qDebug() << "rotation sensor:" << qDegreesToRadians(op.angle);
 				human_one.human->update(op.x, op.z, op.angle);
+
 			}
 		}
 	}
@@ -177,14 +178,16 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 	for(const auto &obs_person : observed_people.peoplelist)
 	{
 		//QVec left_s, right_s, wj;
-		
 	
 		std::vector<float> acum_x, acum_z;
 		QVec wj;
 		ModelPerson person;
 		for(const auto &[name, key] : obs_person.joints)
 		{
-			wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
+			//qDebug() << "Trans [" << key.x << key.y << key.z << "]";
+			//wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
+			wj = innerModel->transform("world", QVec::vec3(-key.y*1000.f, key.z*1000.f, key.x*1000.f), "world_camera_" + QString::number(observed_people.cameraId));
+			
 			acum_x.push_back(wj.x());
 			acum_z.push_back(wj.z());
 			person.joints[name] = { wj.x(), wj.y(), wj.z(), key.i, key.j, key.score};
@@ -277,7 +280,7 @@ void SpecificWorker::initializeWorld()
 	}
 	//load walls
 	QVariantMap walls = mainMap[QString("walls")].toMap();
-	for (auto &t : walls)
+	for (auto &t : walls)   
 	{
 		QVariantList object = t.toList();
 		auto box = scene.addRect(QRectF(-object[2].toFloat() / 2, -object[3].toFloat() / 2, object[2].toFloat(), object[3].toFloat()), QPen(QColor("Brown")), QBrush(QColor("Brown")));
@@ -334,6 +337,7 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 		cameraList.resize(people.cameraId + 1);
 	cameraList[people.cameraId].push(people);
 	const auto &p = people.peoplelist[0];
+	//qDebug() << " sub [" << p.x << p.y << p.z << "]";
 	if(fabs(p.x< 0.1) and fabs(p.y<0.1) and fabs(p.z<0.1))
 		qDebug() << "SHIT ABAJO";
 				

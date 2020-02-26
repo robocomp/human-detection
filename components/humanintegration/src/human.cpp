@@ -79,24 +79,32 @@ void Human::update(float x, float y, float ang)
 {
 	static QPointF pos_antEKF;
 
-	State observed_state;
-	observed_state.x() = x;
-	observed_state.y() = y;
-	observed_state.theta() = qDegreesToRadians(ang);
+// 	State observed_state;
+// 	observed_state.x() = x;
+// 	observed_state.y() = y;
+// 	observed_state.theta() = qDegreesToRadians(ang);
 
-    auto x_ekf = ekf.predict(sys);
-	//	auto x_ukf = ukf.predict(sys, u);
-	//OrientationMeasurement orientation = om.h(observed_state);
-	//x_ekf = ekf.update(om, orientation);
-//	x_ukf = ukf.update(om, orientation);
-	PositionMeasurement position = pm.h(observed_state);
-	x_ekf = ekf.update(pm, position);
-//	x_ukf = ukf.update(pm, position);
+//     auto x_ekf = ekf.predict(sys);
+// 	//	auto x_ukf = ukf.predict(sys, u);
+// 	//OrientationMeasurement orientation = om.h(observed_state);
+// 	//x_ekf = ekf.update(om, orientation);
+// //	x_ukf = ukf.update(om, orientation);
+// 	PositionMeasurement position = pm.h(observed_state);
+// 	x_ekf = ekf.update(pm, position);
+// //	x_ukf = ukf.update(pm, position);
 
-	scene->addLine(QLineF(pos_antEKF, QPointF(x_ekf.x(),x_ekf.y())), QPen(QColor("Blue"), 50));
-	pos_antEKF = QPointF(x_ekf.x(),x_ekf.y());
-	this->setPos(QPointF(x_ekf.x(),x_ekf.y()));
-	this->setRotation(qRadiansToDegrees(x_ekf.theta()));
+// 	scene->addLine(QLineF(pos_antEKF, QPointF(x_ekf.x(),x_ekf.y())), QPen(QColor("Blue"), 50));
+// 	pos_antEKF = QPointF(x_ekf.x(),x_ekf.y());
+
+// 	//qDebug() << "human ["  << x << y << "]" ;
+
+// 	//this->setPos(QPointF(x_ekf.x(),x_ekf.y()));
+// 	//this->setRotation(qRadiansToDegrees(x_ekf.theta()));
+
+	this->setPos(QPointF(x,y));
+	this->setRotation(qRadiansToDegrees(ang));
+	
+
 	//this->setRotation(ang);
 	
 	//qDebug()<< "Estimation::" << x_ekf.x() << x_ekf.y() << qRadiansToDegrees(x_ekf.theta());

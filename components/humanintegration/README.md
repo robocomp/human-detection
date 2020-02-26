@@ -3,7 +3,8 @@
 #
 ``` humanintegration
 ```
-Intro to component here
+This code has to be installed. Include files and static lib have to be copied to component's src directory
+https://www.codeproject.com/Articles/20027/JSON-Spirit-A-C-JSON-Parser-Generator-Implemented
 
 
 ## Configuration parameters

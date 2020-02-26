@@ -107,7 +107,7 @@ class SpecificWorker(GenericWorker):
 			pif_fixed_scale = None
 			profile_decoder = None
 			instance_threshold = 0.05
-			device = torch.device(type="cpu")
+			device = torch.device(type="cuda")
 			disable_cuda = True
 			scale = 1
 			key_point_threshold = 0.05
@@ -153,6 +153,7 @@ class SpecificWorker(GenericWorker):
 
 		p_success, self.bill_pos = self.client.simxGetObjectPosition(self.bill[1], -1, self.client.simxServiceCall())
 		o_success, self.bill_ori = self.client.simxGetObjectOrientation(self.bill[1], -1, self.client.simxServiceCall())
+		# CHECK rot order: http://www.coppeliarobotics.com/helpFiles/en/eulerAngles.htm
 		if p_success == False or o_success == False or all(np.abs(x) < 0.1 for x in self.bill_pos):
 			print("Error reading pose")
 			return
@@ -202,7 +203,7 @@ class SpecificWorker(GenericWorker):
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
 		image_pil = PIL.Image.fromarray(image)
 		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)#.cuda()
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
 		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
 
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
@@ -254,7 +255,6 @@ class SpecificWorker(GenericWorker):
 		people.cameraId = self.cameraid
 		people.timestamp = time.time()
 		people.peoplelist = self.peoplelist
-<<<<<<< HEAD
 		
 		if len(people.peoplelist) >  0: 
 				#and any(x != float("inf") for x in self.bill_pos) 
@@ -273,10 +273,3 @@ class SpecificWorker(GenericWorker):
 				self.humancamerabody_proxy.newPeopleData(people)
 			except:
 				print("Error on camerabody data publication")
-=======
-#		print(people)
-		try:
-			self.humancamerabody_proxy.newPeopleData(people)
-		except:
-			print("Error on camerabody data publication")
->>>>>>> fee66a69613f302fd75879413204163053dfaedb
