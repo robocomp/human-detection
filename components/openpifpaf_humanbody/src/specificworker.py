@@ -67,8 +67,8 @@ class SpecificWorker(GenericWorker):
 		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
-#		self.focal = 462 #VREP
-		self.focal = 617 #REALSENSE
+		self.focal = 462 #VREP
+#		self.focal = 617 #REALSENSE
 		self.fsquare = self.focal * self.focal
 		self.contFPS = 0
 
@@ -108,7 +108,7 @@ class SpecificWorker(GenericWorker):
 			profile_decoder = None
 			instance_threshold = 0.05
 			device = torch.device(type="cuda")
-			disable_cuda = True
+			disable_cuda = False
 			scale = 1
 			key_point_threshold = 0.05
 			head_dropout = 0.0
@@ -153,7 +153,6 @@ class SpecificWorker(GenericWorker):
 
 		p_success, self.bill_pos = self.client.simxGetObjectPosition(self.bill[1], -1, self.client.simxServiceCall())
 		o_success, self.bill_ori = self.client.simxGetObjectOrientation(self.bill[1], -1, self.client.simxServiceCall())
-		# CHECK rot order: http://www.coppeliarobotics.com/helpFiles/en/eulerAngles.htm
 		if p_success == False or o_success == False or all(np.abs(x) < 0.1 for x in self.bill_pos):
 			print("Error reading pose")
 			return
@@ -253,8 +252,9 @@ class SpecificWorker(GenericWorker):
 	def publishData(self):
 		people = PeopleData()
 		people.cameraId = self.cameraid
-		people.timestamp = time.time()
+		people.timestamp = int(round(time.time() * 1000))
 		people.peoplelist = self.peoplelist
+
 		
 		if len(people.peoplelist) >  0: 
 				#and any(x != float("inf") for x in self.bill_pos) 

@@ -9,7 +9,7 @@ TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 cameraid=3
 viewimage=false
 verticalflip=true
-horizontalflip=true
+horizontalflip=false
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
