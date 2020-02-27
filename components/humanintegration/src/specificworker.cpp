@@ -91,6 +91,7 @@ void SpecificWorker::initialize(int period)
 	emit this->t_initialize_to_compute();
 }
 
+
 // delete-create version
 void SpecificWorker::compute()
 {
@@ -105,35 +106,35 @@ void SpecificWorker::compute()
 			for(const auto &op : observed_model_people)
 			{
 				// write to file
-				json_spirit::Object reading;
-				reading.push_back( json_spirit::Pair("cameraId",observed_people.cameraId));
-				
-				const json_spirit::Array gval{ -op.gtruth_y * 1000.f, op.gtruth_z * 1000.f, op.gtruth_x * 1000.f, op.gtruth_angle };
-				
+				QJsonObject jsonObject;
+				jsonObject["cameraId"] = observed_people.cameraId;
+				jsonObject["timestamp"] = observed_people.timestamp;
+				QJsonArray gval{ -op.gtruth_y * 1000.f, op.gtruth_z * 1000.f, op.gtruth_x * 1000.f, op.gtruth_angle };
 				if(fabs(-op.gtruth_y)< 0.1 and fabs(op.gtruth_z)<0.1 and fabs(op.gtruth_x)<0.1)
 				{	
 					qDebug() << "SHIT";
 					continue;
 				}
-				
-				reading.push_back( json_spirit::Pair("ground_truth", gval));
-				const json_spirit::Array wval{ op.x, op.y, op.z, qDegreesToRadians(op.angle) };
-				reading.push_back( json_spirit::Pair("world", wval));
-				
-				json_spirit::Object joints;
+				jsonObject["ground_truth"] = gval;
+				QJsonArray wval{ op.x, op.y, op.z, qDegreesToRadians(op.angle) };
+				jsonObject["world"] = wval;
+
+				QJsonObject jsonJoints;
 				for(const auto &[name, key] : op.joints)
 				{			
-					const json_spirit::Array jval{ key.x, key.y, key.z, key.i, key.j, key.score }; 
-					joints.push_back(json_spirit::Pair(name, jval));
+					QJsonArray jval{ key.x, key.y, key.z, key.i, key.j, key.score }; 
+					jsonJoints[QString::fromStdString(name)] = jval;
 				}
-				reading.push_back( json_spirit::Pair("joints", joints) );
-				write( reading, outfile, json_spirit::pretty_print, 4);
+				jsonObject["joints"] = jsonJoints;
+				QJsonDocument jsonDoc(jsonObject);
+				QString strJson(jsonDoc.toJson(QJsonDocument::Compact));
+				outfile << strJson.toStdString();
 				outfile << ",\n";
 
-				//qDebug() << "rotation sensor:" << qDegreesToRadians(op.angle);
-				human_one.human->update(op.x, op.z, op.angle);
+				//update view
+				std::cout<<"calculado "<<degreesToRadians(op.angle)<<" simulador "<<op.gtruth_angle<<std::endl;
+				human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
 				//human_one.human->update(-op.gtruth_y * 1000.f, op.gtruth_x * 1000.f, op.angle);
-
 			}
 		}
 	}
@@ -155,6 +156,16 @@ std::tuple<bool, float> SpecificWorker::getOrientation(const RoboCompHumanCamera
 		}
 	}
 	return std::make_tuple(false, 0.0);
+}
+
+float SpecificWorker::degreesToRadians(const float angle_)
+{	
+	float angle = angle_ * 2*M_PI / 360;
+	if(angle > M_PI)
+   		return angle - M_PI*2;
+	else if(angle < -M_PI)
+   		return angle + M_PI*2;
+	else return angle;
 }
 
 std::tuple<bool, float, float> SpecificWorker::getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z, const RoboCompHumanCameraBody::Person &ob_p)

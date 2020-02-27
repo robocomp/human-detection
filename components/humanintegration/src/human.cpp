@@ -10,15 +10,16 @@ Human::Human(const QRectF &r, QColor color_, QPointF pos, float angle, QGraphics
     setFlag(QGraphicsItem::ItemIsFocusable);
     setCacheMode(DeviceCoordinateCache);
     setAcceptHoverEvents(true);
-	//QPixmap pixmap = QPixmap::fromImage(QImage("/home/robocomp/robocomp/components/robocomp-tests/elasticpath/src/person.png")).scaled(800,400);
-    //pixmapItem = new QGraphicsPixmapItem( pixmap);
+	QPixmap pixmap = QPixmap::fromImage(QImage("/home/robocomp/robocomp/components/robocomp-tests/elasticpath/src/person.png")).scaled(800,400);
+    pixmapItem = new QGraphicsPixmapItem( pixmap);
 	ellipseItem = new QGraphicsEllipseItem(r);
 	ellipseItem->setParentItem(this);
 	ellipseItem->setPen(QPen(QBrush(QColor(color)),20));  //transparent
 	ellipseItem->setBrush(QColor(color));  //transparent
-	//pixmapItem->setParentItem(ellipseItem);
+	pixmapItem->setParentItem(ellipseItem);
+	pixmapItem->setPos(pos.x()-pixmap.width()/2, pos.y()-pixmap.height()/2);
 	//pixmapItem->setPos(ellipseItem->rect().center().x(), pos.y()-ellipseItem->rect().center().y());
-	ellipseItem->setPos(-ellipseItem->rect().center().x(), -ellipseItem->rect().center().y());
+	//ellipseItem->setPos(-ellipseItem->rect().center().x(), -ellipseItem->rect().center().y());
 	this->setPos(pos);
 	this->setRotation(angle);
 	this->color.setAlpha(80);
@@ -102,7 +103,7 @@ void Human::update(float x, float y, float ang)
 // 	//this->setRotation(qRadiansToDegrees(x_ekf.theta()));
 
 	this->setPos(QPointF(x,y));
-	this->setRotation(qRadiansToDegrees(ang));
+	this->setRotation(qRadiansToDegrees(ang)+180);
 	
 
 	//this->setRotation(ang);

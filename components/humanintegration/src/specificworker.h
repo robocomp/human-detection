@@ -41,7 +41,8 @@
 #include <QGLWidget>
 #include "human.h"
 
-#include "json_spirit.h"
+#include <QJsonObject>
+#include <QJsonArray>
 #include <cassert>
 #include <fstream>
 
@@ -132,7 +133,7 @@ private:
 	RoboCompCommonBehavior::ParameterList params;
 	std::tuple<bool, float> getOrientation(const RoboCompHumanCameraBody::Person &ob_p);
 	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z, const RoboCompHumanCameraBody::Person &ob_p);
-
+	float degreesToRadians(const float angle_);
 	ModelPerson human_one;
 
 	// 2D draw
