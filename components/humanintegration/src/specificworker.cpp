@@ -82,6 +82,9 @@ void SpecificWorker::initialize(int period)
 	if(human_one.cameraId==3) color = "Red";
 	human_one.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(0, 0), 0, &scene);
 	human_one.human->initialize(QPointF(0,0), 0.f);
+	last_computed_angle[1] = 0.0;
+	last_computed_angle[2] = 0.0;
+	last_computed_angle[3] = 0.0;
 
 	outfile.open("human_data.txt", std::ios_base::out); // append instead of overwrite
 	outfile << "{  " << std::endl << "\"data_set\"" << ":[";
@@ -116,7 +119,7 @@ void SpecificWorker::compute()
 					continue;
 				}
 				jsonObject["ground_truth"] = gval;
-				QJsonArray wval{ op.x, op.y, op.z, qDegreesToRadians(op.angle) };
+				QJsonArray wval{ op.x, op.y, op.z, degreesToRadians(op.angle) };
 				jsonObject["world"] = wval;
 
 				QJsonObject jsonJoints;
@@ -132,7 +135,8 @@ void SpecificWorker::compute()
 				outfile << ",\n";
 
 				//update view
-				std::cout<<"calculado "<<degreesToRadians(op.angle)<<" simulador "<<op.gtruth_angle<<std::endl;
+				//if(observed_people.cameraId == 1)
+					std::cout<<"calculado "<<degreesToRadians(op.angle)<<" simulador "<<op.gtruth_angle<<std::endl;
 				human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
 				//human_one.human->update(-op.gtruth_y * 1000.f, op.gtruth_x * 1000.f, op.angle);
 			}
@@ -140,7 +144,7 @@ void SpecificWorker::compute()
 	}
 }
 
-std::tuple<bool, float> SpecificWorker::getOrientation(const RoboCompHumanCameraBody::Person &ob_p)
+std::tuple<bool, float> SpecificWorker::getOrientation(const ModelPerson &ob_p)
 {
 	std::pair<std::string, std::string> sh_pair{"left_shoulder", "right_shoulder"};
 	std::pair<std::string, std::string> hip_pair{"left_hip", "right_hip"};
@@ -152,14 +156,16 @@ std::tuple<bool, float> SpecificWorker::getOrientation(const RoboCompHumanCamera
 			auto first = QPointF(ob_p.joints.at(pair.first).x, ob_p.joints.at(pair.first).z);
 			auto second = QPointF(ob_p.joints.at(pair.second).x, ob_p.joints.at(pair.second).z);
 			auto line =QLineF(first, second).normalVector();	
-			return std::make_tuple(true, line.angle()+90);
+			return std::make_tuple(true, 90-line.angle());
 		}
 	}
-	return std::make_tuple(false, 0.0);
+	return std::make_tuple(false, 99999);
 }
 
 float SpecificWorker::degreesToRadians(const float angle_)
 {	
+	if (angle_ == 99999)
+		return 99999;
 	float angle = angle_ * 2*M_PI / 360;
 	if(angle > M_PI)
    		return angle - M_PI*2;
@@ -168,7 +174,7 @@ float SpecificWorker::degreesToRadians(const float angle_)
 	else return angle;
 }
 
-std::tuple<bool, float, float> SpecificWorker::getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z, const RoboCompHumanCameraBody::Person &ob_p)
+std::tuple<bool, float, float> SpecificWorker::getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z)
 {
 	//QVec acum = QVec::zeros(3);
 	// compute position as the median of projected joints coordinates on the floor
@@ -205,12 +211,19 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			person.joints[name] = { wj.x(), wj.y(), wj.z(), key.i, key.j, key.score};
 		}
 	
-		if(obs_person.joints.size() > 0)   
+		if(person.joints.size() > 0)   
 		{
 			// compute orientation
-			auto [success_r, angle_degrees] = getOrientation(obs_person);
+			auto [success_r, angle_degrees] = getOrientation(person);
+			if (not success_r) //using last computed angle
+			{
+				angle_degrees = last_computed_angle[observed_people.cameraId];
+			}
+			else{
+				last_computed_angle[observed_people.cameraId] = angle_degrees;
+			}
 			// compute position
-			auto [success_p, median_x, median_z] = getPosition(acum_x, acum_z, obs_person);
+			auto [success_p, median_x, median_z] = getPosition(acum_x, acum_z);
 
 			person.id = obs_person.id;
 			person.x = median_x;

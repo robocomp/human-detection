@@ -131,10 +131,11 @@ private:
 	ModelPeople model_people;										// people in the model
 	ModelPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people);
 	RoboCompCommonBehavior::ParameterList params;
-	std::tuple<bool, float> getOrientation(const RoboCompHumanCameraBody::Person &ob_p);
-	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z, const RoboCompHumanCameraBody::Person &ob_p);
+	std::tuple<bool, float> getOrientation(const ModelPerson &ob_p);
+	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z);
 	float degreesToRadians(const float angle_);
 	ModelPerson human_one;
+	std::map<int, float> last_computed_angle;
 
 	// 2D draw
 	struct Dimensions 		// Size of the world
