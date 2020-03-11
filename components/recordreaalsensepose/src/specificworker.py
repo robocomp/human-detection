@@ -23,6 +23,8 @@ from genericworker import *
 
 import pyrealsense2 as rs
 import json
+import time
+import math
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
@@ -79,8 +81,27 @@ class SpecificWorker(GenericWorker):
 			print("Frame #{}".format(pose.frame_number))
 			print("Position: {}".format(data.translation))
 			print("Velocity: {}".format(data.velocity))
-			print("Acceleration: {}\n".format(data.acceleration))
-			self.outfile.write('{"cameraId":0,"world":['+str(data.translation.x*1000)+','+str(data.translation.y*1000)+','+str(data.translation.z*1000)+","+str(data.rotation.y)+"]}")
+			print("Acceleration: {}".format(data.acceleration))
+			print("Rotation yaw: ",self.quaternion2euler(data),"\n")
+			self.outfile.write('{"cameraId":0,"timestamp":'
+				+str(time.time()*1000) 
+				+',"ground_truth":['
+				+str(data.translation.x*1000)+','
+				+str(data.translation.y*1000)+','
+				+str(data.translation.z*1000)+","
+				+str(self.quaternion2euler(data))+"]}")
 			self.outfile.write(",\n")
 		return True
 
+
+	def quaternion2euler(self, data):
+		w = data.rotation.w
+		x = -data.rotation.z
+		y = data.rotation.x
+		z = -data.rotation.y
+
+		pitch =  -math.asin(2.0 * (x*z - w*y))
+		roll  =  math.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
+		yaw   =  math.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
+		
+		return yaw
