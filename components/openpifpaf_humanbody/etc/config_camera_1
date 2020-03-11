@@ -1,5 +1,5 @@
 # Proxies for required interfaces
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10178
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10178 -h 10.253.247.80
 
 
 
@@ -7,9 +7,10 @@ CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10178
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
 cameraid=1
-viewimage=false
+viewimage=true
 verticalflip=true
 horizontalflip=false
+simulation=false
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

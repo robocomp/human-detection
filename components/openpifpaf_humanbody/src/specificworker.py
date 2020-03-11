@@ -67,10 +67,9 @@ class SpecificWorker(GenericWorker):
 		self.peoplelist = []
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
-		self.focal = 462 #VREP
-#		self.focal = 617 #REALSENSE
-		self.fsquare = self.focal * self.focal
 		self.contFPS = 0
+		self.bill_pos =[99999, 99999, 99999]
+		self.bill_ori =[0.0,0.0,0.0]
 
 	def __del__(self):
 		print('SpecificWorker destructor')
@@ -81,6 +80,11 @@ class SpecificWorker(GenericWorker):
 		self.verticalflip = "true" in self.params["verticalflip"]
 		self.horizontalflip = "true" in self.params["horizontalflip"]
 		self.viewimage = "true" in self.params["viewimage"]
+		self.simulation = "true" in self.params["simulation"]
+		if self.simulation:
+			self.focal = 462 #VREP
+		else:
+			self.focal = 617 #REALSENSE
 		self.initialize()
 		self.timer.start(self.Period)
 		return True
@@ -134,8 +138,9 @@ class SpecificWorker(GenericWorker):
 		model = model.to(self.args.device)
 		self.processor = decoder.factory_from_args(self.args, model)
 
-		self.client = b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApiAddOn')
-		self.bill = self.client.simxGetObjectHandle('Bill_base#1', self.client.simxServiceCall())
+		if self.simulation:
+			self.client = b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApiAddOn')
+			self.bill = self.client.simxGetObjectHandle('Bill_base#1', self.client.simxServiceCall())
 
 		self.start = time.time()
 
@@ -150,12 +155,12 @@ class SpecificWorker(GenericWorker):
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
-
-		p_success, self.bill_pos = self.client.simxGetObjectPosition(self.bill[1], -1, self.client.simxServiceCall())
-		o_success, self.bill_ori = self.client.simxGetObjectOrientation(self.bill[1], -1, self.client.simxServiceCall())
-		if p_success == False or o_success == False or all(np.abs(x) < 0.1 for x in self.bill_pos):
-			print("Error reading pose")
-			return
+		if self.simulation:
+			p_success, self.bill_pos = self.client.simxGetObjectPosition(self.bill[1], -1, self.client.simxServiceCall())
+			o_success, self.bill_ori = self.client.simxGetObjectOrientation(self.bill[1], -1, self.client.simxServiceCall())
+			if p_success == False or o_success == False or all(np.abs(x) < 0.1 for x in self.bill_pos):
+				print("Error reading pose")
+				return
 		#print("pose", self.bill_pos, self.bill_ori)
 		
 		self.width = color_.width
@@ -163,7 +168,7 @@ class SpecificWorker(GenericWorker):
 		self.depth = np.frombuffer(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
 		self.color = np.frombuffer(color_.image, np.uint8).reshape(color_.height, color_.width, color_.depth)
 		
-		self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
+		#self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
 		if self.horizontalflip:
 			self.color = cv2.flip(self.color, 1)
 			self.depth = cv2.flip(self.depth, 1)
@@ -186,14 +191,15 @@ class SpecificWorker(GenericWorker):
 		return True
 
 	#return median depth value
-	def getDepth(self, i,j):
+	def getDepth(self, i, j):
 		
 		OFFSET = 3
 		values = []
-		for xi in range(i-OFFSET,i+OFFSET):
+		for xi in range(i-OFFSET, i+OFFSET):
 			for xj in range(j-OFFSET, j+OFFSET):
 				values.append(self.depth[xj, xi])
-		#return np.median(values) * 1000 # VREP to mm
+		if self.simulation:
+			return np.median(values) * 1000  # VREP to mm
 		return np.median(values)  #to mm REAL
 	
 
@@ -222,7 +228,7 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					#keypoint.z = pdepth * self.focal / math.sqrt(ki*ki + kj*kj + self.fsquare)
+					print("ZZZZZZZZ",pdepth)
 					keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
 					keypoint.x = ki*keypoint.z/self.focal
 					keypoint.y = kj*keypoint.z/self.focal
@@ -259,9 +265,9 @@ class SpecificWorker(GenericWorker):
 		if len(people.peoplelist) >  0: 
 				#and any(x != float("inf") for x in self.bill_pos) 
 				#and any(x != float("inf") for x in self.bill_ori)
-			people.peoplelist[0].x = self.bill_pos[0]
-			people.peoplelist[0].y = self.bill_pos[1]
-			people.peoplelist[0].z = self.bill_pos[2]
+			people.peoplelist[0].x = self.bill_pos[0] *1000.0
+			people.peoplelist[0].y = self.bill_pos[1] *1000.0
+			people.peoplelist[0].z = self.bill_pos[2] *1000.0
 			people.peoplelist[0].rx = self.bill_ori[0]
 			people.peoplelist[0].ry = self.bill_ori[1]
 			people.peoplelist[0].rz = self.bill_ori[2]
