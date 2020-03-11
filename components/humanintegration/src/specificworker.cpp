@@ -112,7 +112,7 @@ void SpecificWorker::compute()
 				QJsonObject jsonObject;
 				jsonObject["cameraId"] = observed_people.cameraId;
 				jsonObject["timestamp"] = observed_people.timestamp;
-				QJsonArray gval{ -op.gtruth_y * 1000.f, op.gtruth_z * 1000.f, op.gtruth_x * 1000.f, op.gtruth_angle };
+				QJsonArray gval{ -op.gtruth_y, op.gtruth_z, op.gtruth_x, op.gtruth_angle };
 				if(fabs(-op.gtruth_y)< 0.1 and fabs(op.gtruth_z)<0.1 and fabs(op.gtruth_x)<0.1)
 				{	
 					qDebug() << "SHIT";
@@ -138,7 +138,6 @@ void SpecificWorker::compute()
 				//if(observed_people.cameraId == 1)
 					std::cout<<"calculado "<<degreesToRadians(op.angle)<<" simulador "<<op.gtruth_angle<<std::endl;
 				human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
-				//human_one.human->update(-op.gtruth_y * 1000.f, op.gtruth_x * 1000.f, op.angle);
 			}
 		}
 	}
@@ -203,8 +202,7 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 		for(const auto &[name, key] : obs_person.joints)
 		{
 			//qDebug() << "Trans [" << key.x << key.y << key.z << "]";
-			wj = innerModel->transform("world", QVec::vec3(key.x*1000, key.y*1000, key.z*1000), "world_camera_" + QString::number(observed_people.cameraId));
-			//wj = innerModel->transform("world", QVec::vec3(-key.y*1000.f, key.z*1000.f, key.x*1000.f), "world_camera_" + QString::number(observed_people.cameraId));
+			wj = innerModel->transform("world", QVec::vec3(key.x, key.y, key.z), "world_camera_" + QString::number(observed_people.cameraId));
 			
 			acum_x.push_back(wj.x());
 			acum_z.push_back(wj.z());
@@ -358,11 +356,12 @@ void SpecificWorker::initializeWorld()
 
 void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 {
+	qDebug()<<"newPeople"<<people.cameraId;
 	if(people.cameraId +1 > (int)cameraList.size())
 		cameraList.resize(people.cameraId + 1);
 	cameraList[people.cameraId].push(people);
 	const auto &p = people.peoplelist[0];
-	//qDebug() << " sub [" << p.x << p.y << p.z << "]";
+	qDebug() << " sub [" << p.x << p.y << p.z << "]";
 	if(fabs(p.x< 0.1) and fabs(p.y<0.1) and fabs(p.z<0.1))
 		qDebug() << "SHIT ABAJO";
 				
