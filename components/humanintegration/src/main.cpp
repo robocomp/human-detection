@@ -18,11 +18,11 @@
  */
 
 
-/** \mainpage RoboComp::AprilTagsServer
+/** \mainpage RoboComp::HumanIntegration
  *
  * \section intro_sec Introduction
  *
- * The AprilTagsServer component...
+ * The HumanIntegration component...
  *
  * \section interface_sec Interface
  *
@@ -34,7 +34,7 @@
  * ...
  *
  * \subsection install2_ssec Compile and install
- * cd AprilTagsServer
+ * cd HumanIntegration
  * <br>
  * cmake . && make
  * <br>
@@ -52,7 +52,7 @@
  *
  * \subsection execution_ssec Execution
  *
- * Just: "${PATH_TO_BINARY}/AprilTagsServer --Ice.Config=${PATH_TO_CONFIG_FILE}"
+ * Just: "${PATH_TO_BINARY}/HumanIntegration --Ice.Config=${PATH_TO_CONFIG_FILE}"
  *
  * \subsection running_ssec Once running
  *
@@ -81,7 +81,7 @@
 #include "specificmonitor.h"
 #include "commonbehaviorI.h"
 
-#include <apriltagsserverI.h>
+#include <humancamerabodyI.h>
 
 
 
@@ -91,29 +91,33 @@
 using namespace std;
 using namespace RoboCompCommonBehavior;
 
-class AprilTagsServer : public RoboComp::Application
+class HumanIntegration : public RoboComp::Application
 {
 public:
-	AprilTagsServer (QString prfx) { prefix = prfx.toStdString(); }
+	HumanIntegration (QString prfx) { prefix = prfx.toStdString(); }
 private:
 	void initialize();
 	std::string prefix;
-	MapPrx mprx;
+	TuplePrx tprx;
 
 public:
 	virtual int run(int, char*[]);
 };
 
-void ::AprilTagsServer::initialize()
+void ::HumanIntegration::initialize()
 {
 	// Config file properties read example
 	// configGetString( PROPERTY_NAME_1, property1_holder, PROPERTY_1_DEFAULT_VALUE );
 	// configGetInt( PROPERTY_NAME_2, property1_holder, PROPERTY_2_DEFAULT_VALUE );
 }
 
-int ::AprilTagsServer::run(int argc, char* argv[])
+int ::HumanIntegration::run(int argc, char* argv[])
 {
+#ifdef USE_QTGUI
+	QApplication a(argc, argv);  // GUI application
+#else
 	QCoreApplication a(argc, argv);  // NON-GUI application
+#endif
 
 
 	sigset_t sigs;
@@ -134,8 +138,19 @@ int ::AprilTagsServer::run(int argc, char* argv[])
 	string proxy, tmp;
 	initialize();
 
+	IceStorm::TopicManagerPrxPtr topicManager;
+	try
+	{
+		topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
+	}
+	catch (const Ice::Exception &ex)
+	{
+		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		return EXIT_FAILURE;
+	}
 
-	SpecificWorker *worker = new SpecificWorker(mprx);
+	tprx = std::tuple<>();
+	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
 	QObject::connect(monitor, SIGNAL(kill()), &a, SLOT(quit()));
@@ -158,7 +173,7 @@ int ::AprilTagsServer::run(int argc, char* argv[])
 				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy CommonBehavior\n";
 			}
 			Ice::ObjectAdapterPtr adapterCommonBehavior = communicator()->createObjectAdapterWithEndpoints("commonbehavior", tmp);
-			CommonBehaviorI *commonbehaviorI = new CommonBehaviorI(monitor);
+			auto commonbehaviorI = std::make_shared<CommonBehaviorI>(monitor);
 			adapterCommonBehavior->add(commonbehaviorI, Ice::stringToIdentity("commonbehavior"));
 			adapterCommonBehavior->activate();
 		}
@@ -173,24 +188,46 @@ int ::AprilTagsServer::run(int argc, char* argv[])
 
 
 
+
+		// Server adapter creation and publication
+		std::shared_ptr<IceStorm::TopicPrx> humancamerabody_topic;
+		Ice::ObjectPrxPtr humancamerabody;
 		try
 		{
-			// Server adapter creation and publication
-			if (not GenericMonitor::configGetString(communicator(), prefix, "AprilTagsServer.Endpoints", tmp, ""))
+			if (not GenericMonitor::configGetString(communicator(), prefix, "HumanCameraBodyTopic.Endpoints", tmp, ""))
 			{
-				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy AprilTagsServer";
+				cout << "[" << PROGRAM_NAME << "]: Can't read configuration for proxy HumanCameraBodyProxy";
 			}
-			Ice::ObjectAdapterPtr adapterAprilTagsServer = communicator()->createObjectAdapterWithEndpoints("AprilTagsServer", tmp);
-			AprilTagsServerI *apriltagsserver = new AprilTagsServerI(worker);
-			adapterAprilTagsServer->add(apriltagsserver, Ice::stringToIdentity("apriltagsserver"));
-			adapterAprilTagsServer->activate();
-			cout << "[" << PROGRAM_NAME << "]: AprilTagsServer adapter created in port " << tmp << endl;
+			Ice::ObjectAdapterPtr HumanCameraBody_adapter = communicator()->createObjectAdapterWithEndpoints("humancamerabody", tmp);
+			HumanCameraBodyPtr humancamerabodyI_ =  std::make_shared <HumanCameraBodyI>(worker);
+			auto humancamerabody = HumanCameraBody_adapter->addWithUUID(humancamerabodyI_)->ice_oneway();
+			if(!humancamerabody_topic)
+			{
+				try {
+					humancamerabody_topic = topicManager->create("HumanCameraBody");
+				}
+				catch (const IceStorm::TopicExists&) {
+					//Another client created the topic
+					try{
+						cout << "[" << PROGRAM_NAME << "]: Probably other client already opened the topic. Trying to connect.\n";
+						humancamerabody_topic = topicManager->retrieve("HumanCameraBody");
+					}
+					catch(const IceStorm::NoSuchTopic&)
+					{
+						cout << "[" << PROGRAM_NAME << "]: Topic doesn't exists and couldn't be created.\n";
+						//Error. Topic does not exist
+					}
+				}
+				IceStorm::QoS qos;
+				humancamerabody_topic->subscribeAndGetPublisher(qos, humancamerabody);
 			}
-			catch (const IceStorm::TopicExists&){
-				cout << "[" << PROGRAM_NAME << "]: ERROR creating or activating adapter for AprilTagsServer\n";
-			}
-
-
+			HumanCameraBody_adapter->activate();
+		}
+		catch(const IceStorm::NoSuchTopic&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: Error creating HumanCameraBody topic.\n";
+			//Error. Topic does not exist
+		}
 
 		// Server adapter creation and publication
 		cout << SERVER_FULL_NAME " started" << endl;
@@ -204,6 +241,15 @@ int ::AprilTagsServer::run(int argc, char* argv[])
 		// Run QT Application Event Loop
 		a.exec();
 
+		try
+		{
+			std::cout << "Unsubscribing topic: humancamerabody " <<std::endl;
+			humancamerabody_topic->unsubscribe( humancamerabody );
+		}
+		catch(const Ice::Exception& ex)
+		{
+			std::cout << "ERROR Unsubscribing topic: humancamerabody " <<std::endl;
+		}
 
 		status = EXIT_SUCCESS;
 	}
@@ -261,7 +307,7 @@ int main(int argc, char* argv[])
 			printf("Configuration prefix: <%s>\n", prefix.toStdString().c_str());
 		}
 	}
-	::AprilTagsServer app(prefix);
+	::HumanIntegration app(prefix);
 
 	return app.main(argc, argv, configFile.c_str());
 }

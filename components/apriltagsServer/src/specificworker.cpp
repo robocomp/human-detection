@@ -44,47 +44,25 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h9);
 //    m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes16h5);
     m_tagDetector = new ::AprilTags::TagDetector(::AprilTags::tagCodes36h11);
-//    image_gray.create(240,320,CV_8UC1);
-//    image_color.create(240,320,CV_8UC3);
-    image_gray.create(1080,1920,CV_8UC1);
-    image_color.create(1080,1920,CV_8UC3);
     return true;
 }
 
 void SpecificWorker::initialize(int period)
 {
     std::cout << "Initialize worker" << std::endl;
-    this->Period = 5;
+    this->Period = 100;
     timer.start(Period);
 }
 
 void SpecificWorker::compute()
 {
-    QMutexLocker locker(mutex);
-    imshow("TagDetections", image_color);
-    cv::waitKey(1);
-}
-
-tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy)
-{
- //   cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<" resolution: ("<<frame.frmt.width<<","<<frame.frmt.height<<")"<<endl;
-    RoboCompAprilTagsServer::tagsList tagsList1;
-    try
+    //std::cout << "Compute" << std::endl;
+    //QMutexLocker locker(mutex);
+    if (image_color.size().height > 0)
     {
-        memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
-        cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
-        vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
-        std::cout << detections.size() << " tags detected:" << std::endl;
-        if (detections.size() > 0)
-            for (auto &d : detections)
-                tagsList1.push_back(send_detection(d, tagsize, mfx, mfy, frame.frmt.width/2, frame.frmt.height/2));
+        imshow("TagDetections", image_color);
+        cv::waitKey(1);
     }
-    catch(const Ice::Exception &e)
-    {
-        std::cout << "Error reading from Camera" << e << std::endl;
-    }
-    return(tagsList1);
-
 }
 
 void SpecificWorker::rotationFromMatrix(const Eigen::Matrix3d &R, double &rx, double &ry, double &rz) {
@@ -130,7 +108,11 @@ RoboCompAprilTagsServer::tag SpecificWorker::send_detection(::AprilTags::TagDete
     Eigen::Vector3d translation;
     Eigen::Matrix3d rotation;
     detection.getRelativeTranslationRotation(tagsize, mfx, mfy, mpx, mpy, translation, rotation);
-cout <<rotation <<endl;
+    std::cout << translation << std::endl;
+    std::cout << rotation << std::endl;
+    std::cout << "----------------------------" << std::endl;
+    
+    
     QVec T(3);
     T(0) = -translation(1);//*0.65;
     T(1) =  translation(2);//*0.65;
@@ -142,13 +124,13 @@ cout <<rotation <<endl;
     double rx, ry, rz;
     rotationFromMatrix(fixed_rot, rx, ry, rz);
 //    cout << "ORIGINAL ROTATION"<<endl;
-    cout << mfx << "  " << mfy << endl;
-    cout << "ORI  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
     
 //    cout << "NEW ROTATION"<<endl;
-    rotationFromMatrix2(fixed_rot, rz, ry, rx);
-    cout << mfx << "  " << mfy << endl;
-    cout << "NEW  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+//    rotationFromMatrix2(fixed_rot, rz, ry, rx);
+//    cout << mfx << "  " << mfy << endl;
+//    cout << "NEW  distance=" <<", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+ cout << "Id=" << detection.id << " Distance=" << T.norm2() << ", x=" << T(0) << ", y=" << T(1) << ", z=" << T(2) << ", rx=" << rx << ", ry=" << ry << ", rz=" << rz << endl;
+    
 
     RoboCompAprilTagsServer::tag t;
     t.id=detection.id;
@@ -158,7 +140,32 @@ cout <<rotation <<endl;
     t.rx=rx;
     t.ry=ry;
     t.rz=rz;
+    t.cx=detection.cxy.first;
+    t.cy=detection.cxy.second;
 
     return t;
 }
 
+///////////////////////////////////////////////////
+/// STUB
+///////////////////////////////////////////////////
+
+tagsList SpecificWorker::AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy)
+{
+    cout << "AprilTagsServer_getAprilTags: " <<tagsize<<", "<<mfx<<", "<<mfy<<" resolution ("<<frame.frmt.width<<","<<frame.frmt.height<<")"<<endl;
+    RoboCompAprilTagsServer::tagsList tagsList1;
+   
+    image_gray.create(frame.frmt.height, frame.frmt.width, CV_8UC1);
+    image_color.create(frame.frmt.height, frame.frmt.width, CV_8UC3);
+    memcpy(image_color.data, &frame.data[0], frame.frmt.width*frame.frmt.height*sizeof(uchar)*3);
+    //cv::flip(image_color, image_color, 0);
+    cv::cvtColor(image_color, image_gray, CV_RGB2GRAY);
+    cv::cvtColor(image_color, image_color, CV_RGB2BGR);
+    vector< ::AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
+    std::cout << detections.size() << " tags detected:" << std::endl;
+    if (detections.size() > 0)
+        for (auto &d : detections)
+            tagsList1.push_back(send_detection(d, tagsize, mfx, mfy, frame.frmt.width/2, frame.frmt.height/2));
+    return(tagsList1);
+
+}

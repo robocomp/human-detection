@@ -1,0 +1,17 @@
+
+# Sources set
+SET ( SOURCES
+  specificworker.cpp
+  specificmonitor.cpp
+  human.cpp
+)
+
+# Headers set
+SET ( HEADERS
+  specificworker.h
+  specificmonitor.h
+  human.h
+)
+
+set(CMAKE_CXX_STANDARD 17)
+

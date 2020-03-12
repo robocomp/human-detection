@@ -23,25 +23,38 @@
 #include <stdint.h>
 #include <qlog/qlog.h>
 
+#if Qt5_FOUND
+	#include <QtWidgets>
+#else
+	#include <QtGui>
+#endif
+#include <ui_mainUI.h>
+#include <QStateMachine>
+#include <QState>
 #include <CommonBehavior.h>
 
-#include <AprilTagsServer.h>
+#include <HumanCameraBody.h>
+
 
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
 using namespace std;
-using namespace RoboCompAprilTagsServer;
+using namespace RoboCompHumanCameraBody;
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
+using TuplePrx = std::tuple<>;
 
 
 class GenericWorker :
-public QObject
+#ifdef USE_QTGUI
+	public QWidget, public Ui_guiDlg
+#else
+	public QObject
+ #endif
 {
 Q_OBJECT
 public:
-	GenericWorker(MapPrx& mprx);
+	GenericWorker(TuplePrx tprx);
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
@@ -51,9 +64,17 @@ public:
 
 
 
-	virtual tagsList AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy) = 0;
+	virtual void HumanCameraBody_newPeopleData(PeopleData people) = 0;
 
 protected:
+//State Machine
+	QStateMachine defaultMachine;
+
+	QState *computeState;
+	QState *initializeState;
+	QFinalState *finalizeState;
+
+//-------------------------
 
 	QTimer timer;
 	int Period;
@@ -62,11 +83,23 @@ private:
 
 
 public slots:
+//Slots funtion State Machine
+	virtual void sm_compute() = 0;
+	virtual void sm_initialize() = 0;
+	virtual void sm_finalize() = 0;
+
+//-------------------------
 	virtual void compute() = 0;
     virtual void initialize(int period) = 0;
 	
 signals:
 	void kill();
+//Signals for State Machine
+	void t_initialize_to_compute();
+	void t_compute_to_compute();
+	void t_compute_to_finalize();
+
+//-------------------------
 };
 
 #endif

@@ -1,0 +1,13 @@
+import "CameraRGBDSimple.idsl";
+import "HumanCameraBody.idsl";
+
+Component openpifpaf_humanbody
+{
+    Communications
+    {
+        requires CameraRGBDSimple;
+        publishes HumanCameraBody;
+    };
+	language python;
+};
+

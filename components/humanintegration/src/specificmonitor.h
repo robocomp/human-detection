@@ -1,5 +1,6 @@
+
 /*
- *    Copyright (C) 2020 by YOUR NAME HERE
+ *    Copyright (C) 2010 by RoboLab - University of Extremadura
  *
  *    This file is part of RoboComp
  *
@@ -16,20 +17,31 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "apriltagsserverI.h"
+#ifndef SPECIFICMONITOR_H
+#define SPECIFICMONITOR_H
 
-AprilTagsServerI::AprilTagsServerI(GenericWorker *_worker)
+#include "genericmonitor.h"
+
+/**
+       \brief
+       @author authorname
+*/
+class SpecificMonitor : public GenericMonitor
 {
-	worker = _worker;
-}
+  Q_OBJECT
+  
+  public:
+	SpecificMonitor(GenericWorker *_worker, Ice::CommunicatorPtr _communicator);
+	~SpecificMonitor();
+	
+	void readConfig(RoboCompCommonBehavior::ParameterList &params );
+	void run();
+	void initialize();
+    
+	bool sendParamsToWorker(RoboCompCommonBehavior::ParameterList params);
+	bool checkParams(RoboCompCommonBehavior::ParameterList l);
+	
+	bool ready;
+};
 
-
-AprilTagsServerI::~AprilTagsServerI()
-{
-}
-
-tagsList AprilTagsServerI::getAprilTags(const Image  &frame, const double  tagsize, const double  mfx, const double  mfy, const Ice::Current&)
-{
-	return worker->AprilTagsServer_getAprilTags(frame, tagsize, mfx, mfy);
-}
-
+#endif // GENERICMONITOR_H

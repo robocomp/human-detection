@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2020 by YOUR NAME HERE
+ *    Copyright (C)2020 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -16,20 +16,30 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "apriltagsserverI.h"
+#ifndef HUMANCAMERABODY_H
+#define HUMANCAMERABODY_H
 
-AprilTagsServerI::AprilTagsServerI(GenericWorker *_worker)
+// Ice includes
+#include <Ice/Ice.h>
+#include <HumanCameraBody.h>
+
+#include <config.h>
+#include "genericworker.h"
+
+using namespace RoboCompHumanCameraBody;
+
+class HumanCameraBodyI : public virtual RoboCompHumanCameraBody::HumanCameraBody
 {
-	worker = _worker;
-}
+public:
+HumanCameraBodyI(GenericWorker *_worker);
+	~HumanCameraBodyI();
 
+	void newPeopleData(PeopleData people, const Ice::Current&);
 
-AprilTagsServerI::~AprilTagsServerI()
-{
-}
+private:
 
-tagsList AprilTagsServerI::getAprilTags(const Image  &frame, const double  tagsize, const double  mfx, const double  mfy, const Ice::Current&)
-{
-	return worker->AprilTagsServer_getAprilTags(frame, tagsize, mfx, mfy);
-}
+	GenericWorker *worker;
 
+};
+
+#endif

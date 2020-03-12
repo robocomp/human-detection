@@ -16,20 +16,20 @@
  *    You should have received a copy of the GNU General Public License
  *    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "apriltagsserverI.h"
+#include "humancamerabodyI.h"
 
-AprilTagsServerI::AprilTagsServerI(GenericWorker *_worker)
+HumanCameraBodyI::HumanCameraBodyI(GenericWorker *_worker)
 {
 	worker = _worker;
 }
 
 
-AprilTagsServerI::~AprilTagsServerI()
+HumanCameraBodyI::~HumanCameraBodyI()
 {
 }
 
-tagsList AprilTagsServerI::getAprilTags(const Image  &frame, const double  tagsize, const double  mfx, const double  mfy, const Ice::Current&)
+void HumanCameraBodyI::newPeopleData(PeopleData people, const Ice::Current&)
 {
-	return worker->AprilTagsServer_getAprilTags(frame, tagsize, mfx, mfy);
+	worker->HumanCameraBody_newPeopleData(people);
 }
 

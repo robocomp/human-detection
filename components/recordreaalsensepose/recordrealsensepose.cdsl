@@ -1,0 +1,10 @@
+
+Component recordrealsensepose
+{
+    Communications
+    {
+
+    };
+	language python;
+};
+
