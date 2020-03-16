@@ -2,13 +2,15 @@ CommonBehavior.Endpoints=tcp -p 10000
 
 
 # Endpoints for subscriptions
-HumanCameraBodyTopic.Endpoints=tcp -p 0
+HumanCameraBodyTopic.Endpoints=tcp -p 12457
 
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-InnerModelPath = innermodel.xml
+InnerModelPath = autonomyLab.xml
+World = room5.json
+
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

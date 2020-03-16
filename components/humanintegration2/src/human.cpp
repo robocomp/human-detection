@@ -33,14 +33,10 @@ Human::~Human()
 
 void Human::initialize(const QPointF &pos, float ang)
 {
- 	//Initial position
-	x.setZero();
-	x.x() = pos.x();
-	x.y() = pos.y();
-	x.theta() = ang;
-
 	this->setPos(pos);
+	this->setRotation(qRadiansToDegrees(ang)+180);
 }
+
 void Human::update(float x, float y, float ang)
 {
 	this->setPos(QPointF(x,y));

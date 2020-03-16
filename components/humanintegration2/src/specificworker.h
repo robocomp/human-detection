@@ -29,6 +29,23 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <queue>
+// 2D drawing
+#include <QGridLayout>
+#include <QDesktopWidget>
+#include <QGraphicsScene>
+#include <QMainWindow>
+#include <QGraphicsView>
+#include <QGraphicsEllipseItem>
+#include <QGraphicsLineItem>
+#include <QGraphicsRectItem>
+#include <QGraphicsPolygonItem>
+#include <QGLWidget>
+#include "human.h"
+
+#include <QJsonObject>
+#include <QJsonArray>
+#include <cassert>
 
 class SpecificWorker : public GenericWorker
 {
@@ -40,11 +57,89 @@ public:
 
 	void HumanCameraBody_newPeopleData(PeopleData people);
 
+	//Interchange thread safe buffer
+	struct SafeBuffer
+	{
+		std::queue<RoboCompHumanCameraBody::PeopleData> peopledata;
+		mutable std::mutex mymutex; 
+
+		void push(const PeopleData &detected_people)
+		{
+			std::lock_guard<std::mutex> lock(mymutex);
+			peopledata.push(detected_people);
+		}
+		std::tuple<bool,PeopleData> pop()
+		{
+			std::lock_guard<std::mutex> lock(mymutex);
+			if(peopledata.empty() == true)
+				return std::make_tuple(false, PeopleData());
+			auto detected_people = peopledata.front();
+			peopledata.pop();
+			return std::make_tuple(true, detected_people);
+		}
+		uint size()
+		{
+			std::lock_guard<std::mutex> lock(mymutex);
+			return peopledata.size();
+		}
+	};
+	
+	//data type for people in the model
+	struct ModelPerson
+	{
+		struct KeyPoint
+		{
+			float x;
+			float y;
+			float z;
+			int i;
+			int j;
+			float score;
+		};
+		int id;
+		float x,y,z;
+		float angle;
+		std::chrono::time_point<std::chrono::system_clock> tiempo_no_visible;
+		bool matched = false;
+		Human *human;
+		bool to_delete = false;
+		int cameraId;
+		float gtruth_x, gtruth_y, gtruth_z, gtruth_angle;  // ground truth
+		std::map<std::string, KeyPoint> joints; 
+
+	};
+
 public slots:
 	void compute();
 	void initialize(int period);
 private:
+	const int MAX_AUSENTE = 2; //secs
+	std::vector<std::string> COCO_IDS{"nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
+            "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
+            "left_ankle", "right_ankle"};
+
 	std::shared_ptr<InnerModel> innerModel;
+	std::deque<SafeBuffer> cameraList;
+	using ModelPeople = std::vector<ModelPerson>;
+	ModelPeople model_people;										// people in the model
+	ModelPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people);
+	RoboCompCommonBehavior::ParameterList params;
+	std::tuple<bool, float> getOrientation(const ModelPerson &ob_p);
+	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z);
+	float degreesToRadians(const float angle_);
+	ModelPerson human_one;
+	std::map<int, float> last_computed_angle;
+
+	// 2D draw
+	struct Dimensions 		// Size of the world
+	{
+		float HMIN = -3000, VMIN = -3000, WIDTH = 6000, HEIGHT = 6000;
+	};
+	void initializeWorld();
+	QGraphicsScene scene;
+	Dimensions dimensions;
+	std::vector<QGraphicsItem *> boxes; //Obstacles
+
 
 };
 

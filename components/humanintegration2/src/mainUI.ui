@@ -11,8 +11,13 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>humanIntegration2</string>
+   <string>HumanIntegration</string>
   </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGraphicsView" name="graphicsView"/>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

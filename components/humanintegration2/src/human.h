@@ -19,6 +19,7 @@
 
 #include <QGraphicsItem>
 #include <QGraphicsScene>
+#include <QtCore>
 #include <random>
 #include <chrono>
 

@@ -1,0 +1,30 @@
+<innerModel>
+	<transform id="world">
+	    <plane id="suelo" ny="1"  px="-0" py="0" pz="0" size="5000,5000,10" texture="/home/robocomp/robocomp/files/osgModels/textures/wood.jpg" /> 
+		<transform id="tag_tf" ty="2" >
+			<plane id="tag" ny="1" size="350,350,10" texture="/home/robocomp/robocomp/files/innermodel/tar36h11-0-flip.png" />
+		</transform>
+ 		<transform id="april_0" rx="-1.57079632679">
+                </transform>
+
+
+		<!-- <axes id="axes1"/> -->
+		 <transform id="world_camera_1" tx="-3.70545" ty="1697.6" tz="-3580.56" rx="0.44446" ry="0.00201356" rz="0.00139152" >
+		 	<rgbd id="rgbd_1" focal="462" width="640" height="480" port="11096" noise="0.00" ifconfig="40000,50000" />
+		</transform>		 
+ 		 <transform id="world_camera_2" tx="-1922.62" ty="2345.68" tz= "-0.969282" rx="1.57178" ry="0.685558" rz="-1.57161" >
+		  		 	<rgbd id="rgbd_2" focal="462" width="640" height="480" port="11097" noise="0.00" ifconfig="40000,50000" />
+		</transform>		 
+  		 <transform id="world_camera_3"  tx="-20.3382" ty="1918.08" tz="2968.82" rx="-0.573259" ry="3.13708" rz="0.000430945">
+		   		 	<rgbd id="rgbd_3" focal="462" width="640" height="480" port="11098" noise="0.00" ifconfig="40000,50000" />
+		</transform>		 
+	</transform>
+</innerModel>
+
+<!-- VREP
+tx= -5.10449 ty= 1696.63 tz= -3581.03 rx= 0.444186 ry= 0.00236663 rz= 0.0014362
+tx= -1925 ty= 2340.6 tz= 0.42852 rx= 1.57238 ry= 0.687224 rz= -1.57184
+tx= -25.0698 ty= 1915.02 tz= 2969.19 rx= -0.572453 ry= 3.1357 rz= -0.000325078 -->
+
+
+
