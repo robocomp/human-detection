@@ -200,10 +200,10 @@ class SpecificWorker(GenericWorker):
 				if math.isnan(self.depth[xj, xi]):
 					print("NAN value")
 				else:
-					if self.depth[xj, xi] > 100.0:
+					if self.depth[xj, xi] > 0.0:
 						values.append(self.depth[xj, xi])
 		if self.simulation:
-			return np.median(values) * 1000  # VREP to mm
+			return np.min(values) * 1000  # VREP to mm
 		#return np.median(values)  #to mm REAL
 		if not values:
 			print("Not values")
@@ -237,7 +237,8 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					if pdepth < 6000 and pdepth > 0:
+					print(pdepth)
+					if pdepth < 10000 and pdepth > 0:
 
 						keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
 						keypoint.x = ki*keypoint.z/self.focal
