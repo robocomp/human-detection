@@ -193,14 +193,23 @@ class SpecificWorker(GenericWorker):
 	#return median depth value
 	def getDepth(self, i, j):
 		
-		OFFSET = 3
+		OFFSET = 19
 		values = []
 		for xi in range(i-OFFSET, i+OFFSET):
 			for xj in range(j-OFFSET, j+OFFSET):
-				values.append(self.depth[xj, xi])
+				if math.isnan(self.depth[xj, xi]):
+					print("NAN value")
+				else:
+					if self.depth[xj, xi] > 100.0:
+						values.append(self.depth[xj, xi])
 		if self.simulation:
 			return np.median(values) * 1000  # VREP to mm
-		return np.median(values)  #to mm REAL
+		#return np.median(values)  #to mm REAL
+		if not values:
+			print("Not values")
+			return 0
+		else:
+			return np.min(values)
 	
 
 
@@ -228,11 +237,14 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					print("ZZZZZZZZ",pdepth)
-					keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
-					keypoint.x = ki*keypoint.z/self.focal
-					keypoint.y = kj*keypoint.z/self.focal
-					person.joints[COCO_IDS[pos]] = keypoint
+					if pdepth < 6000 and pdepth > 0:
+
+						keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
+						keypoint.x = ki*keypoint.z/self.focal
+						keypoint.y = kj*keypoint.z/self.focal
+						person.joints[COCO_IDS[pos]] = keypoint
+					else:
+						print("Incorrect depth")
 			#print("-------------------")
 			self.peoplelist.append(person)
 
