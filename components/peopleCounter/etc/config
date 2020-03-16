@@ -19,4 +19,3 @@ model = /home/robolab/robocomp/components/human-detection/components/peopleCount
 prototxt = /home/robolab/robocomp/components/human-detection/components/peopleCounter/resources/mobilenet_ssd/MobileNetSSD_deploy.prototxt
 
 PeopleServerProxy = peopleserver:tcp -h localhost -p 11222
-

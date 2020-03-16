@@ -1,3 +1,4 @@
+
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
@@ -9,7 +10,12 @@ Ice.Trace.Protocol=0
 #trackers: dlib, mosse, csrt, kcf, medianflow
 tracker = kcf
 save_results = False
-video_input = http://127.0.0.1:8000/crowd.mjpeg.avi
+
+#Put the url of the video as video_input
+video_input =  http://127.0.0.1:8000/crowd.mjpeg.avi
+
+#Change the path to the robocomp directory according to your username
 model = /home/caradmin/robocomp/components/human-detection/components/peopleCounter/resources/mobilenet_ssd/MobileNetSSD_deploy.caffemodel
 prototxt = /home/caradmin/robocomp/components/human-detection/components/peopleCounter/resources/mobilenet_ssd/MobileNetSSD_deploy.prototxt
+
 PeopleServerProxy = peopleserver:tcp -h localhost -p 11222
