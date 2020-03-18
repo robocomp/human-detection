@@ -30,8 +30,10 @@ import numpy as np
 import requests
 from imutils.video import FPS
 
-from resources.centroidtracker import CentroidTracker
-from resources.trackableobject import TrackableObject
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) +"/../resources/")
+from centroidtracker import CentroidTracker
+from trackableobject import TrackableObject
 
 from genericworker import *
 from RoboCompPeopleServer import TImage
