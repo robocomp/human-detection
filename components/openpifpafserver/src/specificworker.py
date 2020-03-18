@@ -77,6 +77,15 @@ class SpecificWorker(GenericWorker):
 			head_kernel_size = 1
 			head_padding = 0
 			head_dilation = 0
+			cross_talk = 0 
+			two_scale = 0
+			multi_scale = 0
+			multi_scale_hflip = 0
+			paf_th = 0
+			pif_th = 0
+			decoder_workers = 0
+			experimental_decoder = 0
+			extra_coupling = 0
 
 
 		self.args = Args()
