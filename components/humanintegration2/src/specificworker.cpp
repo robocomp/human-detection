@@ -32,6 +32,12 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
+	while (!model_people.empty())
+  	{
+    	SpecificWorker::ModelPerson p = model_people.back();
+		model_people.pop_back();
+		delete p.human;
+  	}
 }
 
 bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
@@ -62,17 +68,6 @@ void SpecificWorker::initialize(int period)
 	//Load World
 	initializeWorld();
 
-	//Create one human
-	human_one.x = 0; human_one.y = 0; human_one.z = 0;
-	human_one.angle = 0.0;
-	human_one.cameraId = 1;
-	QString color;
-	if(human_one.cameraId==1) color = "Green";
-	if(human_one.cameraId==2) color = "Blue";
-	if(human_one.cameraId==3) color = "Red";
-	human_one.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(0, 0), 0, &scene);
-	human_one.human->initialize(QPointF(0,0), 0.f);
-
 	this->Period = period;
 	timer.start(Period);
 
@@ -80,7 +75,7 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-
+	ModelPeople new_people;	
 	//add one per camera
 	for(auto &cam : cameraList)
 	{
@@ -88,14 +83,88 @@ void SpecificWorker::compute()
 		{
 			//transformar a coordenadas del mundo y calculo pose
 			auto observed_model_people = transformToWorld(observed_people);
+			//update people
 			for(const auto &op : observed_model_people)
 			{
-
-				//update view
-				human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
+				std::vector<ModelPerson>::iterator itmin;
+				int minimum = 999999;
+				//get minimum
+				for (std::vector<ModelPerson>::iterator it = model_people.begin(); it != model_people.end(); it++)
+				{
+					int distance = computeDistance(*it, op);
+qDebug()<<"Distance"<<distance;					
+					if (distance < minimum)
+					{
+						minimum = distance;
+						itmin = it;
+					}
+				}
+				// check if it is the same person
+				if (minimum < MINDISTANCE)
+				{
+					update_person(&(*itmin), op);
+				}
+				else
+				{
+					new_people.push_back(op);
+				}
 			}
+			//add people
+			if(new_people.size() > 0)
+				add_people(new_people);
 		}
 	}
+	//Check if some people must be removed
+	auto now = std::chrono::steady_clock::now();
+	for (std::vector<ModelPerson>::iterator it = model_people.begin(); it != model_people.end();)
+	{
+		std::chrono::steady_clock::duration time_span = now - it->tiempo_no_visible;
+		double last_view = double(time_span.count()) * std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
+//		auto last_view = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->tiempo_no_visible).count();
+	
+
+qDebug()<<"last view time"<<last_view;
+		if(last_view > MAXTIME)
+		{
+			qDebug()<<"remove person"<<it->id <<"("<<it->x<<","<<it->z<<")";
+			delete it->human;
+			model_people.erase(it);  
+		}
+		else //reset matched 
+		{
+			it->matched = false;
+			++it;
+		}
+	}
+}
+
+int SpecificWorker::computeDistance(const ModelPerson &p_old, const ModelPerson &p_new)
+{
+	return sqrt( pow(p_old.x - p_new.x, 2) + pow(p_old.z - p_new.z, 2) );
+}
+
+void SpecificWorker::add_people(SpecificWorker::ModelPeople plist)
+{
+	qDebug()<<"Add people"<<plist.size();
+	for (std::vector<ModelPerson>::iterator it = plist.begin(); it != plist.end(); it++)
+	{
+		it->id = newId;
+		newId++;
+		it->human = new Human(0, QRectF(0, 0, 200, 200), QPointF(it->x, it->z), it->angle, &scene);
+		model_people.push_back(*it);
+		qDebug()<<"add person"<<it->id <<"("<<it->x<<","<<it->z<<")";
+	}
+}
+
+void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
+{
+	qDebug()<<"update people"<<p_old->x<<p_old->y;
+	p_old->matched = true;
+	p_old->x = p_new.x;
+	p_old->z = p_new.z;
+	p_old->angle = p_new.angle;
+	p_old->tiempo_no_visible = p_new.tiempo_no_visible;
+	p_old->human->update(p_new.cameraId, p_old->x, p_old->z, degreesToRadians(p_old->angle));
 }
 
 float SpecificWorker::degreesToRadians(const float angle_)
@@ -183,7 +252,7 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			person.y = 0; 
 			person.z = median_z;
 			person.angle = angle_degrees; 
-			person.tiempo_no_visible = std::chrono::time_point<std::chrono::system_clock>();
+			person.tiempo_no_visible = std::chrono::steady_clock::now();
 			person.matched = false; 
 			person.human = nullptr; 
 			person.to_delete = false;
@@ -297,11 +366,6 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 	if(people.cameraId +1 > (int)cameraList.size())
 		cameraList.resize(people.cameraId + 1);
 	cameraList[people.cameraId].push(people);
-	const auto &p = people.peoplelist[0];
-	qDebug() << " sub [" << p.x << p.y << p.z << "]";
-	if(fabs(p.x< 0.1) and fabs(p.y<0.1) and fabs(p.z<0.1))
-		qDebug() << "SHIT ABAJO";
-
 }
 
 

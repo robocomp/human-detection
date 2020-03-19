@@ -30,8 +30,9 @@
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <queue>
+#include<cmath>
 // 2D drawing
-#include <QGridLayout>
+
 #include <QDesktopWidget>
 #include <QGraphicsScene>
 #include <QMainWindow>
@@ -51,11 +52,6 @@ class SpecificWorker : public GenericWorker
 {
 Q_OBJECT
 public:
-	SpecificWorker(TuplePrx tprx);
-	~SpecificWorker();
-	bool setParams(RoboCompCommonBehavior::ParameterList params);
-
-	void HumanCameraBody_newPeopleData(PeopleData people);
 
 	//Interchange thread safe buffer
 	struct SafeBuffer
@@ -99,7 +95,7 @@ public:
 		int id;
 		float x,y,z;
 		float angle;
-		std::chrono::time_point<std::chrono::system_clock> tiempo_no_visible;
+		std::chrono::steady_clock::time_point tiempo_no_visible;
 		bool matched = false;
 		Human *human;
 		bool to_delete = false;
@@ -108,26 +104,34 @@ public:
 		std::map<std::string, KeyPoint> joints; 
 
 	};
+	using ModelPeople = std::vector<ModelPerson>;
+
+	SpecificWorker(TuplePrx tprx);
+	~SpecificWorker();
+	bool setParams(RoboCompCommonBehavior::ParameterList params);
+
+	void update_person(ModelPerson *p_old, ModelPerson p_new);
+	void add_people(ModelPeople plist);
+	int computeDistance(const ModelPerson &p_old, const ModelPerson &p_new);
+	void HumanCameraBody_newPeopleData(PeopleData people);
+
 
 public slots:
 	void compute();
 	void initialize(int period);
 private:
-	const int MAX_AUSENTE = 2; //secs
 	std::vector<std::string> COCO_IDS{"nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
             "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
             "left_ankle", "right_ankle"};
 
 	std::shared_ptr<InnerModel> innerModel;
 	std::deque<SafeBuffer> cameraList;
-	using ModelPeople = std::vector<ModelPerson>;
 	ModelPeople model_people;										// people in the model
 	ModelPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people);
 	RoboCompCommonBehavior::ParameterList params;
 	std::tuple<bool, float> getOrientation(const ModelPerson &ob_p);
 	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z);
 	float degreesToRadians(const float angle_);
-	ModelPerson human_one;
 	std::map<int, float> last_computed_angle;
 
 	// 2D draw
@@ -139,8 +143,9 @@ private:
 	QGraphicsScene scene;
 	Dimensions dimensions;
 	std::vector<QGraphicsItem *> boxes; //Obstacles
-
-
+	int newId = 1;
+	const int MINDISTANCE = 500;  //Distance to assume to person data are the same 
+	const float MAXTIME = 2.000; //Maximum time elapsed without seen a person before deleted
 };
 
 #endif

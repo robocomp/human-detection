@@ -28,18 +28,17 @@ class Human : public QObject, public QGraphicsEllipseItem
 {     
 	Q_OBJECT
 	public:
-		Human(const QRectF &r, QColor color_, QPointF pos, float angle, QGraphicsScene *scene_);  
+		Human(int ncameras, const QRectF &r, QPointF pos, float angle, QGraphicsScene *scene_);  
 		~Human();
-		void initialize(const QPointF &pos, float ang);
-		void update(float x, float y, float ang);
+		void update(int cameraID, float x, float y, float ang);
 
 	private:
+	    QList<QString> colors = {"red", "green", "blue", "yellow", "orange"};
 		QGraphicsPixmapItem* pixmapItem;
-		QGraphicsEllipseItem *ellipseItem;
+		QList<QGraphicsEllipseItem *> cameraPose_list;
 		QGraphicsPolygonItem *polygon_item = nullptr;
 		QColor color;
 		QGraphicsScene *scene;
-
 };
 
 #endif // HUMAN_H
