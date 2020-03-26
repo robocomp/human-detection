@@ -35,7 +35,7 @@
 
 
 #define CHECK_PERIOD 5000
-#define BASIC_PERIOD 100
+#define BASIC_PERIOD 30
 
 using namespace std;
 using namespace RoboCompHumanCameraBody;

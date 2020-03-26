@@ -95,14 +95,14 @@ public:
 		int id;
 		float x,y,z;
 		float angle;
-		std::chrono::steady_clock::time_point tiempo_no_visible;
+		std::chrono::system_clock::time_point tiempo_no_visible;
+		int viewedTimes = 0;
 		bool matched = false;
 		Human *human;
 		bool to_delete = false;
 		int cameraId;
 		float gtruth_x, gtruth_y, gtruth_z, gtruth_angle;  // ground truth
 		std::map<std::string, KeyPoint> joints; 
-
 	};
 	using ModelPeople = std::vector<ModelPerson>;
 
@@ -112,9 +112,11 @@ public:
 
 	void update_person(ModelPerson *p_old, ModelPerson p_new);
 	void add_people(ModelPeople plist);
+	void removePeople();
 	int computeDistance(const ModelPerson &p_old, const ModelPerson &p_new);
+	void clearMatchedPeople();	
 	void HumanCameraBody_newPeopleData(PeopleData people);
-
+	void joinPeople();
 
 public slots:
 	void compute();
@@ -144,8 +146,9 @@ private:
 	Dimensions dimensions;
 	std::vector<QGraphicsItem *> boxes; //Obstacles
 	int newId = 1;
-	const int MINDISTANCE = 500;  //Distance to assume to person data are the same 
-	const float MAXTIME = 2.000; //Maximum time elapsed without seen a person before deleted
+	const int MINDISTANCE = 750;  //Distance to assume to person data are the same 
+	const int MAXTIME = 2000; //Maximum time elapsed without seen a person before deleted
+	const int MINFRAMES = 10;
 };
 
 #endif
