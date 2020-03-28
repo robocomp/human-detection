@@ -75,6 +75,13 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
+	static bool firstTime=true;
+	if (firstTime) //clear camera queue to aovid old data use
+	{
+		firstTime = false;
+		cameraList.clear();
+	}
+
 	ModelPeople new_people;	
 	//add one per camera
 	for(auto &cam : cameraList)
@@ -132,13 +139,13 @@ void SpecificWorker::joinPeople()
 		for (std::vector<ModelPerson>::iterator it2 = it +1; it2 != model_people.end(); )
 		{
 			int distance = computeDistance(*it, *it2);
-			if(distance < MINDISTANCE) //join
+			if(distance < 0.7*MINDISTANCE) //join
 			{
 				//use median position
 				it->x = (it->x + it2->x)/2;
 				it->z = (it->z + it2->z)/2;
 				it->angle = (it->angle + it2->angle)/2;
-				qDebug()<<"JOINT PERSON"<<it->id<<it2->id;
+				qDebug()<<"JOIN PERSON"<<it->id<<it2->id;
 				delete it2->human;
 				model_people.erase(it2); 
 			}

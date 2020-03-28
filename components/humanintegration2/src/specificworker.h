@@ -146,7 +146,7 @@ private:
 	Dimensions dimensions;
 	std::vector<QGraphicsItem *> boxes; //Obstacles
 	int newId = 1;
-	const int MINDISTANCE = 750;  //Distance to assume to person data are the same 
+	const int MINDISTANCE = 1000;  //Distance to assume to person data are the same 
 	const int MAXTIME = 2000; //Maximum time elapsed without seen a person before deleted
 	const int MINFRAMES = 10;
 };

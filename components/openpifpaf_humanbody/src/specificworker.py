@@ -237,7 +237,6 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					print(pdepth)
 					if pdepth < 10000 and pdepth > 0:
 
 						keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
@@ -247,8 +246,10 @@ class SpecificWorker(GenericWorker):
 					else:
 						print("Incorrect depth")
 			#print("-------------------")
-			self.peoplelist.append(person)
-
+			if len(person.joints) > 5:
+				self.peoplelist.append(person)
+#		if len(self.peoplelist) > 1:
+#			print("people",len(self.peoplelist), self.peoplelist)
 		# draw
 		if self.viewimage:
 			for name1, name2 in SKELETON_CONNECTIONS:
