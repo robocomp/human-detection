@@ -251,7 +251,8 @@ class SpecificWorker(GenericWorker):
 						desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
 						kp, des = orb_extractor.compute(grey, [desKeypoint])
 						cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
-						keypoint.floatdesclist = des.tolist()
+						if type(des).__module__ == np.__name__:
+							keypoint.floatdesclist = des.tolist()
 
 						person.joints[COCO_IDS[pos]] = keypoint
 					else:
