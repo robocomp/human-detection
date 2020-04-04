@@ -27,10 +27,11 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
+
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <queue>
-#include<cmath>
+#include <cmath>
 // 2D drawing
 
 #include <QDesktopWidget>
@@ -42,11 +43,16 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsPolygonItem>
 #include <QGLWidget>
-#include "human.h"
 
 #include <QJsonObject>
 #include <QJsonArray>
 #include <cassert>
+
+
+#include "human.h"
+
+class PythonCall;
+
 
 class SpecificWorker : public GenericWorker
 {
@@ -79,7 +85,7 @@ public:
 			return peopledata.size();
 		}
 	};
-	
+
 	//data type for people in the model
 	struct ModelPerson
 	{
@@ -93,6 +99,7 @@ public:
 			float score;
 		};
 		int id;
+		qint64 timestamp;
 		float x,y,z;
 		float angle;
 		std::chrono::system_clock::time_point tiempo_no_visible;
@@ -105,6 +112,16 @@ public:
 		std::map<std::string, KeyPoint> joints; 
 	};
 	using ModelPeople = std::vector<ModelPerson>;
+	//data for GNN access
+	struct GNNData
+	{
+		qint64 timestamp;
+		int cameraId;
+		std::map<std::string, ModelPerson::KeyPoint> joints; 
+	};
+	using ModelGNN = std::vector<GNNData>;
+	std::map<int, ModelGNN> gnnData;
+	PythonCall *pythonCall;
 
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
@@ -117,6 +134,7 @@ public:
 	void clearMatchedPeople();	
 	void HumanCameraBody_newPeopleData(PeopleData people);
 	void joinPeople();
+	void writeGNNFile(ModelGNN model);
 
 public slots:
 	void compute();
@@ -150,5 +168,7 @@ private:
 	const int MAXTIME = 2000; //Maximum time elapsed without seen a person before deleted
 	const int MINFRAMES = 10;
 };
+
+#include "pythonCall.h"
 
 #endif

@@ -32,6 +32,8 @@ SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
 SpecificWorker::~SpecificWorker()
 {
 	std::cout << "Destroying SpecificWorker" << std::endl;
+	pythonCall->finalize();
+	delete pythonCall;
 	while (!model_people.empty())
   	{
     	SpecificWorker::ModelPerson p = model_people.back();
@@ -65,9 +67,11 @@ void SpecificWorker::initialize(int period)
 	graphicsView->setScene(&scene);
 	graphicsView->fitInView(scene.sceneRect(), Qt::KeepAspectRatio);
 
+	pythonCall = new PythonCall();
+
 	//Load World
 	initializeWorld();
-
+	pythonCall->initialize();
 	this->Period = period;
 	timer.start(Period);
 
@@ -177,6 +181,7 @@ void SpecificWorker::removePeople()
 		if(last_view > MAXTIME)
 		{
 			qDebug()<<"REMOVE PERSON"<<it->id <<"("<<it->x<<","<<it->z<<")";
+			gnnData.erase(it->id);
 			delete it->human;
 			model_people.erase(it);  
 		}
@@ -202,6 +207,7 @@ void SpecificWorker::add_people(SpecificWorker::ModelPeople plist)
 		newId++;
 		
 		model_people.push_back(*it);
+		gnnData[newId] = ModelGNN();
 		qDebug()<<"add person"<<it->id <<"("<<it->x<<","<<it->z<<")";
 	}
 }
@@ -218,13 +224,42 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 	{ 
 		if(p_old->viewedTimes > MINFRAMES){
 			qDebug()<<"MAKE VISIBLE";
-			p_old->human = new Human(p_old->id, 3, QRectF(0, 0, 200, 200), QPointF(p_old->x, p_old->z), p_old->angle, &scene);
+			p_old->human = new Human(p_old->id, 4, QRectF(0, 0, 200, 200), QPointF(p_old->x, p_old->z), p_old->angle, &scene);
 		}
 	}
 	else
 	{
 		p_old->human->update(p_new.cameraId, p_old->x, p_old->z, degreesToRadians(p_old->angle));
 	}
+	//gnn related
+	GNNData tempData;
+	tempData.timestamp = p_new.timestamp;
+	tempData.cameraId = p_new.cameraId;
+	tempData.joints = p_new.joints;
+	bool found = false;
+	for (auto data: gnnData[p_old->id])
+	{
+		if (data.cameraId == tempData.cameraId)
+		{
+			found = true;
+			data.joints = tempData.joints;
+		}
+	}
+	if(not found)
+	{
+		gnnData[p_old->id].push_back(tempData); 
+	}
+	
+	//check if gnn have to be updated
+	if(gnnData[p_old->id].size() >= 3 or (p_new.timestamp - gnnData[p_old->id][0].timestamp) > 250)
+	{
+		qDebug()<<"C*****************\n***************\nCALL GNN";
+		qDebug()<<"ID: "<<p_old->id<<"size"<<gnnData[p_old->id].size();
+		writeGNNFile(gnnData[p_old->id]);
+		gnnData[p_old->id].clear();
+		pythonCall->callPythonGNN(p_old);
+	}
+
 }
 
 float SpecificWorker::degreesToRadians(const float angle_)
@@ -305,6 +340,7 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			auto [success_p, median_x, median_z] = getPosition(acum_x, acum_z);
 
 			person.id = obs_person.id;
+			person.timestamp = observed_people.timestamp;
 			person.x = median_x;
 			person.y = 0; 
 			person.z = median_z;
@@ -415,8 +451,6 @@ void SpecificWorker::initializeWorld()
 }
 
 
-
-
 void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 {
 //qDebug()<<"newPeople"<<people.cameraId;
@@ -425,4 +459,33 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 	cameraList[people.cameraId].push(people);
 }
 
+void SpecificWorker::writeGNNFile(ModelGNN model)
+{
+	std::ofstream outfile;
+	outfile.open("dataGNN.json", std::ios_base::trunc); 
+	outfile << "{\"data_set\":[{\"superbody\":[\n";
+	
+	for (unsigned i=0; i<model.size(); i++)
+	{
+		QJsonObject jsonObject;
+		jsonObject["cameraId"] = model[i].cameraId;
+		jsonObject["timestamp"] = model[i].timestamp;
+		QJsonArray gval{ 0,0,0,0 };
+		jsonObject["ground_truth"] = gval;
 
+		QJsonObject jsonJoints;
+		for(const auto &[name, key] : model[i].joints)
+		{			
+			QJsonArray jval{ key.x, key.y, key.z, key.i, key.j, key.score }; 
+			jsonJoints[QString::fromStdString(name)] = jval;
+		}
+		jsonObject["joints"] = jsonJoints;
+		QJsonDocument jsonDoc(jsonObject);
+		QString strJson(jsonDoc.toJson(QJsonDocument::Compact));
+		outfile << strJson.toStdString();
+		if(i < model.size()-1)
+			outfile <<",\n";
+	}
+	outfile << "\n]}]}";
+	outfile.close();
+}
