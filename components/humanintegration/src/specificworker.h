@@ -95,6 +95,7 @@ public:
 			int i;
 			int j;
 			float score;
+			std::vector<std::vector<float>> descriptor_list;
 		};
 		int id;
 		float x,y,z;
@@ -135,7 +136,7 @@ private:
 	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z);
 	float degreesToRadians(const float angle_);
 	ModelPerson human_one;
-	std::map<int, float> last_computed_angle;
+	std::map<int, KeyPoint> last_computed_angle;
 
 	// 2D draw
 	struct Dimensions 		// Size of the world
