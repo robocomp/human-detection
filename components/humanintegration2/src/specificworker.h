@@ -117,6 +117,8 @@ public:
 	{
 		qint64 timestamp;
 		int cameraId;
+		float x,y,z;
+		float angle;
 		std::map<std::string, ModelPerson::KeyPoint> joints; 
 	};
 	using ModelGNN = std::vector<GNNData>;
@@ -135,6 +137,7 @@ public:
 	void HumanCameraBody_newPeopleData(PeopleData people);
 	void joinPeople();
 	void writeGNNFile(ModelGNN model);
+	void updateHumanModel(ModelGNN model, ModelPerson *person);
 
 public slots:
 	void compute();

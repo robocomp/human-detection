@@ -224,18 +224,22 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 	{ 
 		if(p_old->viewedTimes > MINFRAMES){
 			qDebug()<<"MAKE VISIBLE";
-			p_old->human = new Human(p_old->id, 4, QRectF(0, 0, 200, 200), QPointF(p_old->x, p_old->z), p_old->angle, &scene);
+			p_old->human = new Human(p_old->id, 5, QRectF(0, 0, 150, 150), QPointF(p_old->x, p_old->z), p_old->angle, &scene);
 		}
 	}
 	else
 	{
 		p_old->human->update(p_new.cameraId, p_old->x, p_old->z, degreesToRadians(p_old->angle));
+		p_old->human->update(5, -p_new.gtruth_y, p_new.gtruth_x, degreesToRadians(p_new.gtruth_angle));
 	}
 	//gnn related
 	GNNData tempData;
 	tempData.timestamp = p_new.timestamp;
 	tempData.cameraId = p_new.cameraId;
 	tempData.joints = p_new.joints;
+	tempData.x = p_new.x;
+	tempData.z = p_new.z;
+	tempData.angle = p_new.angle;
 	bool found = false;
 	for (auto data: gnnData[p_old->id])
 	{
@@ -256,11 +260,48 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 		qDebug()<<"C*****************\n***************\nCALL GNN";
 		qDebug()<<"ID: "<<p_old->id<<"size"<<gnnData[p_old->id].size();
 		writeGNNFile(gnnData[p_old->id]);
+		updateHumanModel(gnnData[p_old->id], p_old);
 		gnnData[p_old->id].clear();
 		pythonCall->callPythonGNN(p_old);
+
 	}
 
 }
+
+void SpecificWorker::updateHumanModel(ModelGNN model, ModelPerson *person)
+{
+	float x = 0;
+	float z = 0;
+	float sin_angle = 0;
+	float cos_angle = 0;
+	float angle =  0.0 / 0.0;
+	float angle_orig;
+	int cont =0;
+	for(const auto &data : model)
+	{
+		x += data.x;
+		z += data.z;
+		bool angle_shoulder = (data.joints.find( "right_shoulder" ) != data.joints.end()) and (data.joints.find( "left_shoulder" ) != data.joints.end());
+		bool angle_hip = (data.joints.find( "right_hip" ) != data.joints.end()) and (data.joints.find( "left_hip" ) != data.joints.end());
+		if (angle_shoulder or angle_hip)
+		{
+			sin_angle += sin(degreesToRadians(data.angle));
+            cos_angle += cos(degreesToRadians(data.angle));
+			cont++;
+			angle_orig = data.angle;
+		}
+	}
+	x = x / model.size();
+	z = z / model.size();
+	if (cont > 0)
+	{
+	 	angle = atan2(sin_angle/cont, cos_angle/cont);
+qDebug()<<"PERSON"<<x<<z<<angle_orig<<sin_angle<<cos_angle<<cont<<angle;	
+	}
+	if (person->human != NULL)
+		person->human->updateHuman(x, z, angle);
+}
+
 
 float SpecificWorker::degreesToRadians(const float angle_)
 {	

@@ -22,7 +22,7 @@
 #include <QtCore>
 #include <random>
 #include <chrono>
-
+#include <math.h>  
 
 class Human : public QObject, public QGraphicsEllipseItem
 {     
@@ -37,8 +37,9 @@ class Human : public QObject, public QGraphicsEllipseItem
 		Human(int id, int ncameras, const QRectF &r, QPointF pos, float angle, QGraphicsScene *scene_);  
 		~Human();
 		void update(int cameraID, float x, float y, float ang);
+		void updateHuman(float x, float y, float ang);
 	private:
-	    QList<QString> colors = {"red", "green", "blue", "yellow", "orange"};
+	    QList<QString> colors = {"red", "green", "blue", "yellow", "black"};
 		QGraphicsPixmapItem* pixmapItem;
 		QList<cameraPose> cameraPose_list;
 		QGraphicsPolygonItem *polygon_item = nullptr;

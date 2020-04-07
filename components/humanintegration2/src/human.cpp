@@ -34,7 +34,7 @@ Human::Human(int id_, int ncameras, const QRectF &r, QPointF pos, float angle, Q
 		cPose.text = new QGraphicsTextItem(QString::number(id));
 		cPose.text->setTransformOriginPoint(cPose.text->boundingRect().center());
 		cPose.text->setDefaultTextColor("black");
-		cPose.text->setFont(QFont("Times", 150));
+		cPose.text->setFont(QFont("Times", 120));
 		cPose.text->setZValue(30);
 		scene->addItem(cPose.text);
 		cameraPose_list.append(cPose);
@@ -60,8 +60,12 @@ void Human::update(int cameraId, float x, float y, float ang)
 //	qDebug()<<"update"<<cameraId<<x<<y<<ang<<cameraPose_list.size();
 	cameraPose_list[cameraId-1].ellipse->setPos(x-ellipseHalfSizeX, y - ellipseHalfSizeY);
 	cameraPose_list[cameraId-1].text->setPos(x-ellipseHalfSizeX/2, y - ellipseHalfSizeY);
-
-	pixmapItem->setPos(x-pixmapHalfSizeX, y-pixmapHalfSizeY);
-	pixmapItem->setRotation(qRadiansToDegrees(ang)+180);
 }
 
+void Human::updateHuman(float x, float y, float ang)
+{
+qDebug()<<"PERSONUPDATE"<<x<<y<<ang;
+	pixmapItem->setPos(x-pixmapHalfSizeX, y-pixmapHalfSizeY);
+	if (not isnan(ang))
+		pixmapItem->setRotation(qRadiansToDegrees(ang)+180);
+}
