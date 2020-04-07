@@ -229,8 +229,8 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 	}
 	else
 	{
-		p_old->human->update(p_new.cameraId, p_old->x, p_old->z, degreesToRadians(p_old->angle));
-		p_old->human->update(5, -p_new.gtruth_y, p_new.gtruth_x, degreesToRadians(p_new.gtruth_angle));
+//		p_old->human->update(p_new.cameraId, p_old->x, p_old->z, degreesToRadians(p_old->angle));
+		p_old->human->updateGroundTruth(-p_new.gtruth_y, p_new.gtruth_x, p_new.gtruth_angle);
 	}
 	//gnn related
 	GNNData tempData;
@@ -299,7 +299,7 @@ void SpecificWorker::updateHumanModel(ModelGNN model, ModelPerson *person)
 qDebug()<<"PERSON"<<x<<z<<angle_orig<<sin_angle<<cos_angle<<cont<<angle;	
 	}
 	if (person->human != NULL)
-		person->human->updateHuman(x, z, angle);
+		person->human->updateCameraMedian(x, z, angle);
 }
 
 

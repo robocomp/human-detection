@@ -64,7 +64,7 @@ void PythonCall::callPythonGNN(SpecificWorker::ModelPerson *p_old)
 		std::cout<<"Result (x,z,angle): ("<<x<<", "<<z<<", "<<angle<<")"<<std::endl;
 		//update model
 		if(p_old->human != NULL)
-			p_old->human->update(4, x, z, degreesToRadians(angle));
+			p_old->human->updateGNN(x, z, degreesToRadians(angle));
 	
 	}catch(...){
 		PyErr_Print();
