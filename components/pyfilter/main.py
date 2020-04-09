@@ -6,8 +6,10 @@ from filterpy.common import Q_discrete_white_noise
 import matplotlib.pyplot as plt
 from filterpy.stats import plot_covariance_ellipse
 
-with open('human_data.txt', 'r') as f:
+FILE = 'human_data_3C_R-V_19x19_L_L.txt'
+with open(FILE, 'r') as f:
     raw = f.read()
+
 raw = list(raw)
 if raw[-4] == ",":
     raw[-4] = ""
