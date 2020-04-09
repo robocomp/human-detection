@@ -22,23 +22,50 @@
 #include <QtCore>
 #include <random>
 #include <chrono>
-
+#include <math.h>  
 
 class Human : public QObject, public QGraphicsEllipseItem
 {     
+	struct cameraPose
+	{
+		QGraphicsEllipseItem *ellipse;
+		QGraphicsTextItem *text;
+	};
+
+	struct humanModel
+	{
+		QGraphicsEllipseItem *ellipse;
+		QGraphicsPixmapItem* pixmap;
+	};
+
 	Q_OBJECT
 	public:
-		Human(int ncameras, const QRectF &r, QPointF pos, float angle, QGraphicsScene *scene_);  
+		Human(int id, int ncameras, const QRectF &r, QPointF pos, float angle, QGraphicsScene *scene_);  
 		~Human();
 		void update(int cameraID, float x, float y, float ang);
+		void updateHuman(float x, float y, float ang);
+		
+		//new methods
+		void updateGroundTruth(float x, float y, float ang);
+		void updateGNN(float x, float y, float ang);
+		void updateCameraMedian(float x, float y, float ang);
+		void updateN(int n, float x, float y, float ang);
 
 	private:
-	    QList<QString> colors = {"red", "green", "blue", "yellow", "orange"};
+	    QList<QString> colors = {"red", "green", "blue", "yellow", "black"};
+		QList<humanModel> models;
 		QGraphicsPixmapItem* pixmapItem;
-		QList<QGraphicsEllipseItem *> cameraPose_list;
+		QList<cameraPose> cameraPose_list;
 		QGraphicsPolygonItem *polygon_item = nullptr;
 		QColor color;
 		QGraphicsScene *scene;
+		QGraphicsEllipseItem *ellipseItem;
+		QPixmap pixmap;
+		int ellipseHalfSizeX;
+		int ellipseHalfSizeY;
+		int pixmapHalfSizeX;
+		int pixmapHalfSizeY;
+		int id;
 };
 
 #endif // HUMAN_H

@@ -20,6 +20,7 @@
 #
 
 from genericworker import *
+import traceback
 import torch
 import numpy as np
 import cv2
@@ -68,6 +69,7 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
 		self.contFPS = 0
+		self.descriptor_size = 10
 		self.bill_pos =[99999, 99999, 99999]
 		self.bill_ori =[0.0,0.0,0.0]
 
@@ -202,18 +204,21 @@ class SpecificWorker(GenericWorker):
 				else:
 					if self.depth[xj, xi] > 0.0:
 						values.append(self.depth[xj, xi])
-		if self.simulation:
-			return np.min(values) * 1000  # VREP to mm
-		#return np.median(values)  #to mm REAL
 		if not values:
 			print("Not values")
 			return 0
 		else:
+			if self.simulation:
+				return np.min(values) * 1000  # VREP to mm
 			return np.min(values)
 	
 
 
 	def processImage(self, scale):
+		#image descriptors
+		grey = cv2.cvtColor(self.color, cv2.COLOR_BGR2GRAY)
+		orb_extractor = cv2.ORB_create()
+
 		image = cv2.resize(self.color, None, fx=scale, fy=scale)
 		image_pil = PIL.Image.fromarray(image)
 		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
@@ -237,18 +242,26 @@ class SpecificWorker(GenericWorker):
 					ki = keypoint.i - 320
 					kj = 240 - keypoint.j
 					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					print(pdepth)
 					if pdepth < 10000 and pdepth > 0:
-
 						keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
 						keypoint.x = ki*keypoint.z/self.focal
 						keypoint.y = kj*keypoint.z/self.focal
+
+						#descriptors
+						desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
+						kp, des = orb_extractor.compute(grey, [desKeypoint])
+						cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
+						if type(des).__module__ == np.__name__:
+							keypoint.floatdesclist = des.tolist()
+
 						person.joints[COCO_IDS[pos]] = keypoint
 					else:
 						print("Incorrect depth")
 			#print("-------------------")
-			self.peoplelist.append(person)
-
+			if len(person.joints) > 5:
+				self.peoplelist.append(person)
+#		if len(self.peoplelist) > 1:
+#			print("people",len(self.peoplelist), self.peoplelist)
 		# draw
 		if self.viewimage:
 			for name1, name2 in SKELETON_CONNECTIONS:
@@ -292,3 +305,4 @@ class SpecificWorker(GenericWorker):
 				self.humancamerabody_proxy.newPeopleData(people)
 			except:
 				print("Error on camerabody data publication")
+				traceback.print_exc()

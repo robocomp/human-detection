@@ -82,10 +82,12 @@ void SpecificWorker::initialize(int period)
 	if(human_one.cameraId==3) color = "Red";
 	human_one.human = new Human(QRectF(0, 0, 200, 200), QColor(color), QPointF(0, 0), 0, &scene);
 	human_one.human->initialize(QPointF(0,0), 0.f);
-	last_computed_angle[1] = 0.0;
-	last_computed_angle[2] = 0.0;
-	last_computed_angle[3] = 0.0;
-
+	for(int i=1;i<4;i++)
+	{
+		last_computed_angle[i].x = 0.0;
+		last_computed_angle[i].y = 0.0;
+		last_computed_angle[i].z = 0.0;
+	}
 	outfile.open("human_data.txt", std::ios_base::out); // append instead of overwrite
 	outfile << "{  " << std::endl << "\"data_set\"" << ":[";
 
@@ -124,8 +126,15 @@ void SpecificWorker::compute()
 
 				QJsonObject jsonJoints;
 				for(const auto &[name, key] : op.joints)
-				{			
-					QJsonArray jval{ key.x, key.y, key.z, key.i, key.j, key.score }; 
+				{	
+					QJsonArray descriptor_list;
+					QJsonArray descriptor;
+					for (const auto &list_values: key.descriptor_list)
+					{
+						std::copy(list_values.begin(), list_values.end(), std::back_inserter(descriptor)); 		
+						descriptor_list.push_back(descriptor);
+					}
+					QJsonArray jval{ key.x, key.y, key.z, key.i, key.j, key.score, descriptor_list}; 
 					jsonJoints[QString::fromStdString(name)] = jval;
 				}
 				jsonObject["joints"] = jsonJoints;
@@ -135,9 +144,10 @@ void SpecificWorker::compute()
 				outfile << ",\n";
 
 				//update view
-				//if(observed_people.cameraId == 1)
+//				if(observed_people.cameraId == 1){
 					std::cout<<"calculado "<<degreesToRadians(op.angle)<<" simulador "<<op.gtruth_angle<<std::endl;
 				human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
+
 			}
 		}
 	}
@@ -206,7 +216,7 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			
 			acum_x.push_back(wj.x());
 			acum_z.push_back(wj.z());
-			person.joints[name] = { wj.x(), wj.y(), wj.z(), key.i, key.j, key.score};
+			person.joints[name] = { wj.x(), wj.y(), wj.z(), key.i, key.j, key.score, key.floatdesclist};
 		}
 	
 		if(person.joints.size() > 0)   
@@ -215,18 +225,27 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			auto [success_r, angle_degrees] = getOrientation(person);
 			if (not success_r) //using last computed angle
 			{
-				angle_degrees = last_computed_angle[observed_people.cameraId];
+				angle_degrees = last_computed_angle[observed_people.cameraId].y;
 			}
 			else{
-				last_computed_angle[observed_people.cameraId] = angle_degrees;
+				last_computed_angle[observed_people.cameraId].y = angle_degrees;
 			}
 			// compute position
 			auto [success_p, median_x, median_z] = getPosition(acum_x, acum_z);
 
 			person.id = obs_person.id;
-			person.x = median_x;
+			if(person.joints.size() > 5)
+			{
+				person.x = median_x;
+				person.z = median_z;
+				last_computed_angle[observed_people.cameraId].x = median_x;
+				last_computed_angle[observed_people.cameraId].z = median_z;
+			}else{
+				person.x = last_computed_angle[observed_people.cameraId].x;
+				person.z = last_computed_angle[observed_people.cameraId].z;
+			}
+			
 			person.y = 0; 
-			person.z = median_z;
 			person.angle = angle_degrees; 
 			person.tiempo_no_visible = std::chrono::time_point<std::chrono::system_clock>();
 			person.matched = false; 

@@ -27,10 +27,11 @@
 #ifndef SPECIFICWORKER_H
 #define SPECIFICWORKER_H
 
+
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
 #include <queue>
-#include<cmath>
+#include <cmath>
 // 2D drawing
 
 #include <QDesktopWidget>
@@ -42,11 +43,16 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsPolygonItem>
 #include <QGLWidget>
-#include "human.h"
 
 #include <QJsonObject>
 #include <QJsonArray>
 #include <cassert>
+
+
+#include "human.h"
+
+class PythonCall;
+
 
 class SpecificWorker : public GenericWorker
 {
@@ -79,7 +85,7 @@ public:
 			return peopledata.size();
 		}
 	};
-	
+
 	//data type for people in the model
 	struct ModelPerson
 	{
@@ -93,18 +99,31 @@ public:
 			float score;
 		};
 		int id;
+		qint64 timestamp;
 		float x,y,z;
 		float angle;
-		std::chrono::steady_clock::time_point tiempo_no_visible;
+		std::chrono::system_clock::time_point tiempo_no_visible;
+		int viewedTimes = 0;
 		bool matched = false;
 		Human *human;
 		bool to_delete = false;
 		int cameraId;
 		float gtruth_x, gtruth_y, gtruth_z, gtruth_angle;  // ground truth
 		std::map<std::string, KeyPoint> joints; 
-
 	};
 	using ModelPeople = std::vector<ModelPerson>;
+	//data for GNN access
+	struct GNNData
+	{
+		qint64 timestamp;
+		int cameraId;
+		float x,y,z;
+		float angle;
+		std::map<std::string, ModelPerson::KeyPoint> joints; 
+	};
+	using ModelGNN = std::vector<GNNData>;
+	std::map<int, ModelGNN> gnnData;
+	PythonCall *pythonCall;
 
 	SpecificWorker(TuplePrx tprx);
 	~SpecificWorker();
@@ -112,9 +131,13 @@ public:
 
 	void update_person(ModelPerson *p_old, ModelPerson p_new);
 	void add_people(ModelPeople plist);
+	void removePeople();
 	int computeDistance(const ModelPerson &p_old, const ModelPerson &p_new);
+	void clearMatchedPeople();	
 	void HumanCameraBody_newPeopleData(PeopleData people);
-
+	void joinPeople();
+	void writeGNNFile(ModelGNN model);
+	void updateHumanModel(ModelGNN model, ModelPerson *person);
 
 public slots:
 	void compute();
@@ -144,8 +167,11 @@ private:
 	Dimensions dimensions;
 	std::vector<QGraphicsItem *> boxes; //Obstacles
 	int newId = 1;
-	const int MINDISTANCE = 500;  //Distance to assume to person data are the same 
-	const float MAXTIME = 2.000; //Maximum time elapsed without seen a person before deleted
+	const int MINDISTANCE = 1000;  //Distance to assume to person data are the same 
+	const int MAXTIME = 2000; //Maximum time elapsed without seen a person before deleted
+	const int MINFRAMES = 10;
 };
+
+#include "pythonCall.h"
 
 #endif

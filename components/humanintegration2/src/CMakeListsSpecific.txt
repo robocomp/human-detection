@@ -4,6 +4,7 @@ SET ( SOURCES
   specificworker.cpp
   specificmonitor.cpp
   human.cpp
+  pythonCall.cpp
 )
 
 # Headers set
@@ -11,6 +12,7 @@ SET ( HEADERS
   specificworker.h
   specificmonitor.h
   human.h
+  pythonCall.h
 )
 
 set(CMAKE_CXX_STANDARD 17)
