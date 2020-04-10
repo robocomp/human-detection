@@ -7,10 +7,13 @@ import vg
 import gurobipy as gp
 from gurobipy import GRB
 from PySide2.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QWidget, QDesktopWidget
-from PySide2.QtCore import QSizeF, QPointF
+from PySide2.QtCore import QSizeF, QPointF, SIGNAL, QObject, QTimer
 from PySide2.QtGui import QPolygonF, QPen, QColor, QBrush
 from PySide2 import QtCore, QtGui
-import cv2
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.cluster import hierarchy
+from matplotlib import pyplot as plt
+from sklearn.cluster import DBSCAN
 
 FILE = 'human_data_2p_descriptores.txt'
 FILE = 'human_data_3C_2P_I_L3.txt'
@@ -19,7 +22,6 @@ def readData(size=30, offset=50):
     pp = pprint.PrettyPrinter(indent=4)
     with open(FILE, 'r') as f:
         raw = f.read()
-
     data = json.loads(raw)
 
     #pp.pprint(data["data_set"][0]["world"])
@@ -55,13 +57,26 @@ def removeDuplicates(sample):
         print("Duplicates removed: ", len(sample)-len(result))
     return sample
 
+def makeSpaceTimeGroups(sample):
+    # estimate number of clusters
+    # shuld be the mean number of people detected in all frames of the sample 
+
+    X = [[s['world'][0],s['world'][2]] for s in sample]
+    Z = linkage(X, 'median', 'euclidean')
+    root = hierarchy.to_tree(Z)
+    ids = root.left.pre_order(lambda x: x.id)
+
+    # initialize and fit DBSCAN
+    res = DBSCAN(eps=300, min_samples=3, metric='euclidean').fit(X)
+    print("------------", len(set(res.labels_)))
+
+    return [s for i,s in enumerate(sample) if i in ids]
+
 def dataIter(init=0, size=40, end=-1):
-    #pp = pprint.PrettyPrinter(indent=4)
     with open(FILE, 'r') as f:
         raw = f.read()
     data = json.loads(raw)["data_set"]
     #data = removeDuplicates(data)
-    #pp.pprint(data["data_set"][0]["world"])
     total = len(data)
     # remove duplicates
     print("Total evidences: ", total)
@@ -71,8 +86,10 @@ def dataIter(init=0, size=40, end=-1):
     while init+size < end:
         init = init + size//2
         sample = data[init:init+size]
+        sample = makeSpaceTimeGroups(sample)
         addVelocity(sample)
-        print("Sample elapsed time (ms): ", sample[-1]['timestamp']-sample[0]['timestamp'])
+        
+        print("Sample elapsed time (ms): ", sample[-1]['timestamp']-sample[0]['timestamp'], " Initial: ", size)
         print("Sample size:", len(sample))
          # compute combination of N samples taken as 2
         comb = list(itertools.combinations(sample, 2))      # could be permutations
@@ -88,14 +105,14 @@ def spaceTimeAffinitiy(d1, d2):
     # max[1 - B(e(D1,D2) + e(D2,D1)), 0]
     # e(D1,D2) = ||q_1 - p_2|| , q_1 = p_1 + v_1(t2-t1) of D1
     # return stA
-    BETA = 1.0
+    BETA = 0.5
     dist = np.linalg.norm
     q1 = np.array(d1['world'][0:3]) + np.array(d1['l_velocity']) * np.abs(d2['timestamp']-d1['timestamp'])
     e12 = dist(q1 - np.array(d2['world'][0:3]))
     q2 = np.array(d2['world'][0:3]) + np.array(d2['l_velocity']) * np.abs(d2['timestamp']-d1['timestamp'])
     e21 = dist(q2 - np.array(d1['world'][0:3]))
     #print(e12,)
-    return max(1 - BETA*(e12 + e21)/1000, 0)
+    return max(1 - BETA*(e12 + e21)/1000, 0) # to meters
     
 def appearanceAffinity(d1, d2):
     # max[1 - a d(f_1, f_2), 0]
@@ -122,7 +139,7 @@ def totalAffinity(spatial, aspect):
     # tA = -1 + 2/(1+exp(-l(aA*stA-mu))))
     LANDA = 1.0
     MU = 0.25
-    p = aspect*spatial
+    p = spatial*aspect
     if p == 0:
         return -1000
     if p == 1:
@@ -188,7 +205,7 @@ def optimize(corr, comb, n_comb, d_comb):
                     # print("(", n, ") + (", s, i, ") - (", f, i, ")" )
                     # print(d_comb[n], d_comb[s,i], d_comb[f,i])
                     m.addConstr(x[d_comb[f,s]] + x[d_comb[s,i]] - x[d_comb[f,i]] <= 1)
-
+                    
         m.optimize()
 
         # convert results to list  
@@ -203,7 +220,7 @@ def optimize(corr, comb, n_comb, d_comb):
 def partitionGraph(l_vars, n_comb, d_comb, sample):            
     # construct a graph and compute connected components
     graph = {node: set(s for f,s in n_comb if f==node and l_vars[d_comb[f,s]].x == 1) 
-                                                    for node in range(len(sample)) }
+                         for node in range(len(sample)) }
     components = list()
     for component in connected_components(graph):
         components.append(list(component))
@@ -218,12 +235,12 @@ class Escena(QWidget):
         self.scene = QGraphicsScene()
         self.scene.setSceneRect(-3000, -4000, 6000, 8000)
         self.view = QGraphicsView(self.scene)
-        self.view.scale(1, -1)
         self.view.resize(self.size())
         self.view.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
         self.view.setParent(self)
         self.view.setTransformationAnchor(QGraphicsView.NoAnchor)
         self.view.setResizeAnchor(QGraphicsView.NoAnchor)
+        self.view.scale(3, -3)
         self.show()
 
     def wheelEvent(self, event):
@@ -240,49 +257,67 @@ class Escena(QWidget):
         self.view.resize(self.size())
     
     def draw(self, comps, sample):
-        colors = ["red","blue","green","brown","cyan","black","darkRed","darkBlue","darkCyan"]
+        #colors = ["red","blue","green","brown","cyan","black","darkRed","darkBlue","darkCyan"]
         colors = QColor.colorNames()
 
         for co in sample:
             pol = QPolygonF()
             x, _, z, _ = co['world'] 
             pol.append(QPointF(x,z))
-            self.scene.addEllipse(x,z,50,50, pen=QPen(QColor('orange'), 100), brush=QBrush(QColor('orange')))
+            self.scene.addEllipse(x-50,z-50,100,100, pen=QPen(QColor('orange'), 5))
         
-        x,_,z,_ = sample[-1]['world']
-        self.scene.addRect(x,z,60,60, pen=QPen(QColor('red'), 100))        
-        x,_,z,_ = sample[0]['world']
-        self.scene.addRect(x,z,60,60, pen=QPen(QColor('green'), 100))        
+        # x,_,z,_ = sample[-1]['world']
+        # self.scene.addRect(x,z,60,60, pen=QPen(QColor('red'), 100))        
+        # x,_,z,_ = sample[0]['world']
+        # self.scene.addRect(x,z,60,60, pen=QPen(QColor('green'), 100))        
 
         for co in comps:
-            if len(co)>4:
-                color = colors[random.randint(0, len(comps))]
+            if sample[co[-1]]['timestamp']-sample[co[0]]['timestamp'] > 200 and len(co)> 4:
+                color = colors[random.randint(0, len(colors)-1)]
                 for c in co:   
                     x, _, z, _ = sample[c]['world'] 
-                    self.scene.addEllipse(x,z,30,30, pen=QPen(QColor(color), 10), brush=QBrush(style=QtCore.Qt.SolidPattern, color=QColor(color)))
+                    self.scene.addEllipse(x-15,z-15,30,30, pen=QPen(QColor(color), 100), brush=QBrush(color=QColor(color)))
+
+
+@QtCore.Slot()
+def work():
+    try:
+        sample, comb, n_comb, d_comb = next(data_generator)
+        corr = correlations(comb)
+        l_vars = optimize(corr, comb, n_comb, d_comb)
+        components =partitionGraph(l_vars, n_comb, d_comb, sample)
+        escena.draw(components, sample)
+        print(components)        
+    except StopIteration:
+        print("End iterator")
+        pass
 
 ###########################################
 app = QApplication(sys.argv)
+timer = QTimer()
 escena = Escena()
 
-OFFSET_FROM_END=2000
-SIZE=30
+INICIO = 0
+SIZE = 50
+FIN = -1
 
 #data, sample, comb, n_comb, d_comb = readData(SIZE, OFFSET_FROM_END)
 m = gp.Model("people")
-data_generator = dataIter(0, 40, -1)
+data_generator = dataIter(INICIO, SIZE, FIN)
+timer.timeout.connect(work)
+timer.start(1)
 
 # corr = correlations(comb)
 # l_vars = optimize(corr, comb, n_comb, d_comb)
 # components = partitionGraph(l_vars, n_comb, d_comb, sample)
 
-for sample, comb, n_comb, d_comb in data_generator:
-    corr = correlations(comb)
-    l_vars = optimize(corr, comb, n_comb, d_comb)
-    components =partitionGraph(l_vars, n_comb, d_comb, sample)
-    escena.draw(components, sample)
-    app.processEvents()
-    print(components)
+# for sample, comb, n_comb, d_comb in data_generator:
+#     corr = correlations(comb)
+#     l_vars = optimize(corr, comb, n_comb, d_comb)
+#     components =partitionGraph(l_vars, n_comb, d_comb, sample)
+#     escena.draw(components, sample)
+#     app.processEvents()
+#     print(components)
 
 # with open(FILE + '_' + str(SIZE) + '.pa',mode = 'rb') as f:
 #     components = pickle.load(f)
