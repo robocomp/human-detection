@@ -1,5 +1,5 @@
 import json, sys, pickle
-import random
+import random, time
 import numpy as np
 import pprint
 import itertools
@@ -14,6 +14,9 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster import hierarchy
 from matplotlib import pyplot as plt
 from sklearn.cluster import DBSCAN
+import hdbscan
+from multiprocessing import Pool, TimeoutError, Queue, Manager
+from collections import deque
 
 FILE = 'human_data_2p_descriptores.txt'
 FILE = 'human_data_3C_2P_I_L3.txt'
@@ -36,12 +39,8 @@ def readData(size=30, offset=50):
     # compute combination of N samples taken as 2
     n_comb = list(itertools.combinations(range(len(sample)), 2))
     comb = list(itertools.combinations(sample, 2))
-    d_comb = dict()
-    for i,c in enumerate(n_comb):
-        d_comb[c] = i
-    #comb = list(itertools.permutations(sample, 2))
     print("Number of combinations:", len(comb))
-    return data['data_set'], sample, comb, n_comb, d_comb
+    return data['data_set'], sample, comb, n_comb
 
 def removeDuplicates(sample):
     result = []
@@ -61,16 +60,17 @@ def makeSpaceTimeGroups(sample):
     # estimate number of clusters
     # shuld be the mean number of people detected in all frames of the sample 
 
-    X = [[s['world'][0],s['world'][2]] for s in sample]
-    Z = linkage(X, 'median', 'euclidean')
-    root = hierarchy.to_tree(Z)
-    ids = root.left.pre_order(lambda x: x.id)
+    X = [[s['world'][0], s['world'][2]] for s in sample]
+    hdb = hdbscan.HDBSCAN(min_cluster_size=5)
+    hdb.fit(X)
+    print("HDBScan num clusters: ", len(set(hdb.labels_)))
+    # create a list o lists
+    clusters = [[] for i in range(len(set(hdb.labels_)))]
+    for i,l in enumerate(sample):
+        clusters[hdb.labels_[i]].append(l)
 
-    # initialize and fit DBSCAN
-    res = DBSCAN(eps=300, min_samples=3, metric='euclidean').fit(X)
-    print("------------", len(set(res.labels_)))
-
-    return [s for i,s in enumerate(sample) if i in ids]
+    return clusters
+    #return [s for i,s in enumerate(sample) if i in cluster1]
 
 def dataIter(init=0, size=40, end=-1):
     with open(FILE, 'r') as f:
@@ -86,19 +86,16 @@ def dataIter(init=0, size=40, end=-1):
     while init+size < end:
         init = init + size//2
         sample = data[init:init+size]
-        sample = makeSpaceTimeGroups(sample)
-        addVelocity(sample)
-        
         print("Sample elapsed time (ms): ", sample[-1]['timestamp']-sample[0]['timestamp'], " Initial: ", size)
-        print("Sample size:", len(sample))
-         # compute combination of N samples taken as 2
-        comb = list(itertools.combinations(sample, 2))      # could be permutations
-        n_comb = list(itertools.combinations(range(len(sample)), 2))
-        d_comb = dict()  # d_comb = { c:i for i,c in enumerate(n_comb) }
-        for i,c in enumerate(n_comb):
-            d_comb[c] = i
-        print("Number of combinations:", len(comb))
-        yield sample, comb, n_comb, d_comb
+        samples = makeSpaceTimeGroups(sample)
+        combs = list()
+        n_combs = list()
+        for i in range(len(samples)):
+            samples[i] = addVelocity(samples[i])
+            combs.append(list(itertools.combinations(samples[i], 2)))      # could be permutations
+            n_combs.append(list(itertools.combinations(range(len(samples[i])), 2)))
+            print("Cluster ",i,", size:", len(samples[i]), " Combinations: ", len(combs[i]))
+        yield samples, combs, n_combs
 
 
 def spaceTimeAffinitiy(d1, d2):
@@ -188,39 +185,42 @@ def connected_components(neighbors):
         if node not in seen:
             yield component(node)
 
-def optimize(corr, comb, n_comb, d_comb):
+def optimize(queue, corr, comb, n_comb):
     try:
-        x = m.addMVar(shape=len(comb), vtype= GRB.BINARY, name="x")
+        env = gp.Env()
+        m = gp.Model("m", env=env)
+        m.Params.OutputFlag = 0
 
+        x = m.addMVar(shape=len(comb), vtype= GRB.BINARY, name="x")
         # # set goal
         m.setObjective( corr @ x, GRB.MAXIMIZE)
-
         # # add constraints
         # # x_u_v + x_v_t - x_u_t <= 1
-
         for n in n_comb:
             f,s = n
             for i in range(len(comb)):
                 if (s,i) in n_comb and (f,i) in n_comb:
                     # print("(", n, ") + (", s, i, ") - (", f, i, ")" )
-                    # print(d_comb[n], d_comb[s,i], d_comb[f,i])
-                    m.addConstr(x[d_comb[f,s]] + x[d_comb[s,i]] - x[d_comb[f,i]] <= 1)
-                    
+                    m.addConstr(x[n_comb.index(n)] + x[n_comb.index((s,i))] - x[n_comb.index((f,i))] <= 1)
         m.optimize()
 
         # convert results to list  
-        print('Obj: %g' % m.objVal)   
-        return list(m.getVars())
+        #print('Obj: %g' % m.objVal) 
+        res = [1 if v.x==1 else 0 for v in m.getVars()]
+        queue.put(res)
+        m.dispose()
+        env.dispose()
+        gp.disposeDefaultEnv() 
+        #return list(m.getVars()), m, env
 
     except gp.GurobiError as e:
         print('Error code ' + str(e.errno) + ': ' + str(e))
     except AttributeError:
         print('Encountered an attribute error')
 
-def partitionGraph(l_vars, n_comb, d_comb, sample):            
+def partitionGraph(l_vars, n_comb, sample):            
     # construct a graph and compute connected components
-    graph = {node: set(s for f,s in n_comb if f==node and l_vars[d_comb[f,s]].x == 1) 
-                         for node in range(len(sample)) }
+    graph = {node: set(s for f,s in n_comb if f==node and l_vars[n_comb.index((f,s))] == 1) for node in range(len(sample)) }
     components = list()
     for component in connected_components(graph):
         components.append(list(component))
@@ -278,18 +278,54 @@ class Escena(QWidget):
                     x, _, z, _ = sample[c]['world'] 
                     self.scene.addEllipse(x-15,z-15,30,30, pen=QPen(QColor(color), 100), brush=QBrush(color=QColor(color)))
 
-
 @QtCore.Slot()
 def work():
+    now = time.time()
     try:
-        sample, comb, n_comb, d_comb = next(data_generator)
-        corr = correlations(comb)
-        l_vars = optimize(corr, comb, n_comb, d_comb)
-        components =partitionGraph(l_vars, n_comb, d_comb, sample)
-        escena.draw(components, sample)
-        print(components)        
+        samples, combs, n_combs  = next(data_generator)
+        corrs = [correlations(c) for c in combs]
+        
+        # we use queues to get the results back
+        m = Manager()
+        qs = [m.Queue() for i in range(len(samples))]
+      
+        with Pool(processes=len(samples)) as pool:
+            pool.starmap(optimize, itertools.zip_longest(qs, corrs, combs, n_combs))
+
+        local_tracklets = []
+        local_tracklets_app = []
+        for q, n_comb, sample in itertools.zip_longest(qs, n_combs, samples):
+            component = partitionGraph(q.get(), n_comb, sample)
+            escena.draw(component, sample)
+            local_tracklets.append(component)
+
+        # compute appearence of the tracklets
+        flatten = itertools.chain.from_iterable
+        for tracklet in local_tracklets:
+            ta = np.array()
+            for point in tracklet:
+                ta.append(vg.normalize(np.array(list(flatten([v[6] for [k,v] in p['joints'].items()])))))
+            local_tracklets_app.append(np.median(ta, axis=0))
+
+        # cluster the whole thing
+        tracklets.append(flatten(local_tracklets))
+        tracklets_app.append(flatten(local_tracklets_app))
+    
+        hdb = hdbscan.HDBSCAN(min_cluster_size=5)
+        hdb.fit(tracklets_app)
+        print("Second stage HDBScan num clusters: ", len(set(hdb.labels_)))
+        # create a list og lists
+        clusters = [[] for i in range(len(set(hdb.labels_)))]
+        for i,l in enumerate(tracklets):
+            clusters[hdb.labels_[i]].append(l)
+
+        # draw the track
+        for cluster in clusters:
+            escena.draw(cluster, tracklets)
+
+        print("real elapsed", (time.time() - now)*1000, " computed: " , samples[0][-1]['timestamp']-samples[0][0]['timestamp'])        
     except StopIteration:
-        print("End iterator")
+        #print("End iterator")
         pass
 
 ###########################################
@@ -298,26 +334,16 @@ timer = QTimer()
 escena = Escena()
 
 INICIO = 0
-SIZE = 50
+SIZE = 35
 FIN = -1
 
 #data, sample, comb, n_comb, d_comb = readData(SIZE, OFFSET_FROM_END)
-m = gp.Model("people")
+start = time.time()
+tracklets = deque(50)
 data_generator = dataIter(INICIO, SIZE, FIN)
 timer.timeout.connect(work)
+#timer.setSingleShot(True)
 timer.start(1)
-
-# corr = correlations(comb)
-# l_vars = optimize(corr, comb, n_comb, d_comb)
-# components = partitionGraph(l_vars, n_comb, d_comb, sample)
-
-# for sample, comb, n_comb, d_comb in data_generator:
-#     corr = correlations(comb)
-#     l_vars = optimize(corr, comb, n_comb, d_comb)
-#     components =partitionGraph(l_vars, n_comb, d_comb, sample)
-#     escena.draw(components, sample)
-#     app.processEvents()
-#     print(components)
 
 # with open(FILE + '_' + str(SIZE) + '.pa',mode = 'rb') as f:
 #     components = pickle.load(f)
