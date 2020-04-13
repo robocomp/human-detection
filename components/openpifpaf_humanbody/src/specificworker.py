@@ -149,7 +149,7 @@ class SpecificWorker(GenericWorker):
 	@QtCore.Slot()
 	def compute(self):
 		start = time.time()
-		
+		print("Timer intialization")
 		try:
 			color_, depth_ = self.camerargbdsimple_proxy.getAll()
 			if (len(color_.image) == 0) or (len(depth_.depth) == 0):
@@ -157,6 +157,8 @@ class SpecificWorker(GenericWorker):
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
+		t1 = time.time()
+		print("Receive images:", ((t1 - start)*1000 ))
 		if self.simulation:
 			p_success, self.bill_pos = self.client.simxGetObjectPosition(self.bill[1], -1, self.client.simxServiceCall())
 			o_success, self.bill_ori = self.client.simxGetObjectOrientation(self.bill[1], -1, self.client.simxServiceCall())
@@ -164,12 +166,14 @@ class SpecificWorker(GenericWorker):
 				print("Error reading pose")
 				return
 		#print("pose", self.bill_pos, self.bill_ori)
-		
+		t2 = time.time()
+		print("Read bill vrep:", ((t2 - t1) * 1000))
 		self.width = color_.width
 		# self.depth = np.array(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
 		self.depth = np.frombuffer(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
 		self.color = np.frombuffer(color_.image, np.uint8).reshape(color_.height, color_.width, color_.depth)
-		
+		t3 = time.time()
+		print("Convert images:", ((t3 - t2) * 1000))
 		#self.color = cv2.cvtColor(self.color, cv2.COLOR_BGR2RGB)
 		if self.horizontalflip:
 			self.color = cv2.flip(self.color, 1)
@@ -177,11 +181,18 @@ class SpecificWorker(GenericWorker):
 		if self.verticalflip:
 			self.color = cv2.flip(self.color, 0)
 			self.depth = cv2.flip(self.depth, 0)
-
-		self.processImage(0.5)
+		t4 = time.time()
+		print("Flip images:", ((t4 - t3)) * 1000)
+		scale = 0.5
+		keypoint_sets = self.processPifPaf(self.color, scale)
+		self.peoplelist = self.processDescriptor(self.color, scale, keypoint_sets)
+		t5 = time.time()
+		print("OpenPifPaf completo:", ((t5 - t4)) * 1000)
 		self.publishData()
-
+		t6 = time.time()
+		print("Publish:", ((t6 - t5)) * 1000)
 		if self.viewimage:
+			self.drawImage(self.peoplelist)
 			cv2.imshow("Color frame", self.color)
 			cv2.waitKey(1)
 
@@ -190,11 +201,12 @@ class SpecificWorker(GenericWorker):
 			self.start = time.time()
 			self.contFPS = 0
 		self.contFPS += 1
+
+		print("Total time:", ((time.time() - start) * 1000), "\n\n")
 		return True
 
 	#return median depth value
 	def getDepth(self, i, j):
-		
 		OFFSET = 19
 		values = []
 		for xi in range(i-OFFSET, i+OFFSET):
@@ -211,59 +223,11 @@ class SpecificWorker(GenericWorker):
 			if self.simulation:
 				return np.min(values) * 1000  # VREP to mm
 			return np.min(values)
-	
 
 
-	def processImage(self, scale):
-		#image descriptors
-		grey = cv2.cvtColor(self.color, cv2.COLOR_BGR2GRAY)
-		orb_extractor = cv2.ORB_create()
-
-		image = cv2.resize(self.color, None, fx=scale, fy=scale)
-		image_pil = PIL.Image.fromarray(image)
-		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
-		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
-
-		keypoint_sets, _ = self.processor.keypoint_sets(fields)
-		self.peoplelist = []
-		# create joint dictionary
-		for id, p in enumerate(keypoint_sets):
-			person = Person()
-			person.id = id
-			person.joints = dict()
-			for pos, joint in enumerate(p):
-				if float(joint[2]) > 0.5:
-					keypoint = KeyPoint()
-					keypoint.i = int(joint[0] / scale)
-					keypoint.j = int(joint[1] / scale)
-					keypoint.score = float(joint[2])
-					
-					ki = keypoint.i - 320
-					kj = 240 - keypoint.j
-					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
-					if pdepth < 10000 and pdepth > 0:
-						keypoint.z = pdepth   ## camara returns Z directly. If depth use equation above
-						keypoint.x = ki*keypoint.z/self.focal
-						keypoint.y = kj*keypoint.z/self.focal
-
-						#descriptors
-						desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
-						kp, des = orb_extractor.compute(grey, [desKeypoint])
-						cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
-						if type(des).__module__ == np.__name__:
-							keypoint.floatdesclist = des.tolist()
-
-						person.joints[COCO_IDS[pos]] = keypoint
-					else:
-						print("Incorrect depth")
-			#print("-------------------")
-			if len(person.joints) > 5:
-				self.peoplelist.append(person)
-#		if len(self.peoplelist) > 1:
-#			print("people",len(self.peoplelist), self.peoplelist)
+	def drawImage(self, peoplelist):
 		# draw
-		if self.viewimage:
+		for person in peoplelist:
 			for name1, name2 in SKELETON_CONNECTIONS:
 				try:
 					joint1 = person.joints[name1]
@@ -276,6 +240,55 @@ class SpecificWorker(GenericWorker):
 						cv2.line(self.color, (joint1.i, joint1.j), (joint2.i, joint2.j), (0, 255, 0), 2)
 				except:
 					pass
+
+	def processDescriptor(self, image, scale, keypoint_sets):
+		#image descriptors
+		grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+		orb_extractor = cv2.ORB_create()
+		peoplelist = []
+		# create joint dictionary
+		for id, p in enumerate(keypoint_sets):
+			person = Person()
+			person.id = id
+			person.joints = dict()
+			for pos, joint in enumerate(p):
+				if float(joint[2]) > 0.5:
+					keypoint = KeyPoint()
+					keypoint.i = int(joint[0] / scale)
+					keypoint.j = int(joint[1] / scale)
+					keypoint.score = float(joint[2])
+
+					ki = keypoint.i - 320
+					kj = 240 - keypoint.j
+					pdepth = float(self.getDepth(keypoint.i, keypoint.j))
+					if pdepth < 10000 and pdepth > 0:
+						keypoint.z = pdepth  ## camara returns Z directly. If depth use equation above
+						keypoint.x = ki * keypoint.z / self.focal
+						keypoint.y = kj * keypoint.z / self.focal
+
+						# descriptors
+						desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
+						kp, des = orb_extractor.compute(grey, [desKeypoint])
+						cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
+						if type(des).__module__ == np.__name__:
+							keypoint.floatdesclist = des.tolist()
+
+						person.joints[COCO_IDS[pos]] = keypoint
+					else:
+						print("Incorrect depth")
+			if len(person.joints) > 5:
+				peoplelist.append(person)
+		return peoplelist
+
+
+	def processPifPaf(self, img, scale):
+		image = cv2.resize(img, None, fx=scale, fy=scale)
+		image_pil = PIL.Image.fromarray(image)
+		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
+		fields = self.processor.fields(torch.unsqueeze(processed_image, 0))[0]
+		keypoint_sets, _ = self.processor.keypoint_sets(fields)
+		return keypoint_sets
 
 ######################################
 ##### PUBLISHER
