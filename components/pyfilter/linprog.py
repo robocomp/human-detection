@@ -6,7 +6,7 @@ import itertools
 import vg
 import gurobipy as gp
 from gurobipy import GRB
-from PySide2.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QWidget, QDesktopWidget
+from PySide2.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QWidget, QDesktopWidget, QGraphicsLineItem
 from PySide2.QtCore import QSizeF, QPointF, SIGNAL, QObject, QTimer
 from PySide2.QtGui import QPolygonF, QPen, QColor, QBrush
 from PySide2 import QtCore, QtGui
@@ -241,6 +241,7 @@ class Escena(QWidget):
         self.view.setTransformationAnchor(QGraphicsView.NoAnchor)
         self.view.setResizeAnchor(QGraphicsView.NoAnchor)
         self.view.scale(3, -3)
+        self.lines = []
         self.show()
 
     def wheelEvent(self, event):
@@ -278,6 +279,16 @@ class Escena(QWidget):
                     x, _, z, _ = sample[c]['world'] 
                     self.scene.addEllipse(x-15,z-15,30,30, pen=QPen(QColor(color), 100), brush=QBrush(color=QColor(color)))
 
+    def drawTrack(self, clusters):
+            colors = QColor.colorNames()
+            # for line in self.lines:
+            #     self.scene.removeItem(line)    
+            self.scene.clear()
+            for cluster in clusters:
+                color = colors[random.randint(0, len(colors)-1)]
+                for t in cluster:
+                    self.scene.addLine(t[0][0], t[0][1], t[1][0], t[1][0], pen=QPen(QColor(color), 60))
+
 @QtCore.Slot()
 def work():
     now = time.time()
@@ -292,36 +303,34 @@ def work():
         with Pool(processes=len(samples)) as pool:
             pool.starmap(optimize, itertools.zip_longest(qs, corrs, combs, n_combs))
 
-        local_tracklets = []
-        local_tracklets_app = []
-        for q, n_comb, sample in itertools.zip_longest(qs, n_combs, samples):
-            component = partitionGraph(q.get(), n_comb, sample)
-            escena.draw(component, sample)
-            local_tracklets.append(component)
-
-        # compute appearence of the tracklets
         flatten = itertools.chain.from_iterable
-        for tracklet in local_tracklets:
-            ta = np.array()
-            for point in tracklet:
-                ta.append(vg.normalize(np.array(list(flatten([v[6] for [k,v] in p['joints'].items()])))))
-            local_tracklets_app.append(np.median(ta, axis=0))
-
+        for q, n_comb, sample in itertools.zip_longest(qs, n_combs, samples):
+            components = partitionGraph(q.get(), n_comb, sample)
+            #escena.draw(components, sample)
+            cps = list(flatten(components))
+            head = np.array([sample[cps[0]]['world'][0], sample[cps[0]]['world'][2]])
+            tail = np.array([sample[cps[-1]]['world'][0], sample[cps[-1]]['world'][2]])
+            first = sample[cps[0]]['timestamp']
+            last = sample[cps[-1]]['timestamp']
+            v = (tail-head)/(last-first) if last > first else 0
+            tracklets.append([head, tail, first, last, v])
+        
         # cluster the whole thing
-        tracklets.append(flatten(local_tracklets))
-        tracklets_app.append(flatten(local_tracklets_app))
-    
-        hdb = hdbscan.HDBSCAN(min_cluster_size=5)
-        hdb.fit(tracklets_app)
+        # compute appearence of the tracklets as a matrix of distances between samples
+
+        X = [(t[1]-t[0]/2.0)  for t in tracklets]
+        hdb = hdbscan.HDBSCAN(min_cluster_size=10)
+        hdb.fit(X)
         print("Second stage HDBScan num clusters: ", len(set(hdb.labels_)))
         # create a list og lists
         clusters = [[] for i in range(len(set(hdb.labels_)))]
         for i,l in enumerate(tracklets):
             clusters[hdb.labels_[i]].append(l)
 
+        print("Tracks ", len(set(hdb.labels_)))
+
         # draw the track
-        for cluster in clusters:
-            escena.draw(cluster, tracklets)
+        escena.drawTrack(clusters)
 
         print("real elapsed", (time.time() - now)*1000, " computed: " , samples[0][-1]['timestamp']-samples[0][0]['timestamp'])        
     except StopIteration:
@@ -339,7 +348,7 @@ FIN = -1
 
 #data, sample, comb, n_comb, d_comb = readData(SIZE, OFFSET_FROM_END)
 start = time.time()
-tracklets = deque(50)
+tracklets = deque(maxlen=50)
 data_generator = dataIter(INICIO, SIZE, FIN)
 timer.timeout.connect(work)
 #timer.setSingleShot(True)
