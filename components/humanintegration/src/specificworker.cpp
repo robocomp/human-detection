@@ -107,50 +107,102 @@ void SpecificWorker::compute()
 		{
 			//transformar a coordenadas del mundo y calculo pose
 			auto observed_model_people = transformToWorld(observed_people);
-			//update human
+//			writeToJSON_gnn(observed_model_people);
+			writeToJSON_new(observed_model_people);
+
 			for(const auto &op : observed_model_people)
 			{
-				// write to file
-				QJsonObject jsonObject;
-				jsonObject["cameraId"] = observed_people.cameraId;
-				jsonObject["timestamp"] = observed_people.timestamp;
-				QJsonArray gval{ -op.gtruth_y, op.gtruth_z, op.gtruth_x, op.gtruth_angle };
-				if(fabs(-op.gtruth_y)< 0.1 and fabs(op.gtruth_z)<0.1 and fabs(op.gtruth_x)<0.1)
-				{	
-					qDebug() << "SHIT";
-					continue;
-				}
-				jsonObject["ground_truth"] = gval;
-				QJsonArray wval{ op.x, op.y, op.z, degreesToRadians(op.angle) };
-				jsonObject["world"] = wval;
-
-				QJsonObject jsonJoints;
-				for(const auto &[name, key] : op.joints)
-				{	
-					QJsonArray descriptor_list;
-					QJsonArray descriptor;
-					for (const auto &list_values: key.descriptor_list)
-					{
-						std::copy(list_values.begin(), list_values.end(), std::back_inserter(descriptor)); 		
-						descriptor_list.push_back(descriptor);
-					}
-					QJsonArray jval{ key.x, key.y, key.z, key.i, key.j, key.score, descriptor_list}; 
-					jsonJoints[QString::fromStdString(name)] = jval;
-				}
-				jsonObject["joints"] = jsonJoints;
-				QJsonDocument jsonDoc(jsonObject);
-				QString strJson(jsonDoc.toJson(QJsonDocument::Compact));
-				outfile << strJson.toStdString();
-				outfile << ",\n";
-
 				//update view
-//				if(observed_people.cameraId == 1){
+				if(observed_people.cameraId == 1)
+				{
 					std::cout<<"calculado "<<degreesToRadians(op.angle)<<" simulador "<<op.gtruth_angle<<std::endl;
-				human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
-
+					human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
+				}
 			}
 		}
 	}
+}
+
+void SpecificWorker::writeToJSON_gnn(const ModelPeople &people)
+{
+	for(const auto &op : people)
+	{
+		// write to file
+		QJsonObject jsonObject;
+		jsonObject["cameraId"] = op.cameraId;
+		jsonObject["timestamp"] = op.timestamp;
+		QJsonArray gval{ -op.gtruth_y, op.gtruth_z, op.gtruth_x, op.gtruth_angle };
+
+		jsonObject["ground_truth"] = gval;
+		QJsonArray wval{ op.x, op.y, op.z, degreesToRadians(op.angle) };
+		jsonObject["world"] = wval;
+
+		QJsonObject jsonJoints;
+		for(const auto &[name, key] : op.joints)
+		{	
+			QJsonArray descriptor_list;
+			QJsonArray descriptor;
+			for (const auto &list_values: key.descriptor_list)
+			{
+				std::copy(list_values.begin(), list_values.end(), std::back_inserter(descriptor)); 		
+				descriptor_list.push_back(descriptor);
+			}
+			QJsonArray jval{ key.x, key.y, key.z, key.i, key.j, key.score, descriptor_list}; 
+			jsonJoints[QString::fromStdString(name)] = jval;
+		}
+		jsonObject["joints"] = jsonJoints;
+		QJsonDocument jsonDoc(jsonObject);
+		QString strJson(jsonDoc.toJson(QJsonDocument::Compact));
+		outfile << strJson.toStdString();
+		outfile << ",\n";
+	}
+}
+
+void SpecificWorker::writeToJSON_new(const ModelPeople &people)
+{
+	// write to file
+	QJsonObject jsonObject;
+	jsonObject["cameraId"] = people[0].cameraId;
+	jsonObject["timestamp"] = people[0].timestamp;
+	QJsonArray gval{ -people[0].gtruth_y, people[0].gtruth_z, people[0].gtruth_x, people[0].gtruth_angle };
+	jsonObject["ground_truth"] = gval;
+
+	QJsonArray jsonPeople;
+	for(const auto &op : people)
+	{
+		QJsonObject person;
+		QJsonArray wval{ op.x, op.y, op.z, degreesToRadians(op.angle) };
+		person["world"] = wval;
+
+		QJsonObject jsonJoints;
+		for(const auto &[name, key] : op.joints)
+		{	
+			QJsonArray descriptor_list;
+			QJsonArray descriptor;
+			for (const auto &list_values: key.descriptor_list)
+			{
+				std::copy(list_values.begin(), list_values.end(), std::back_inserter(descriptor)); 		
+				descriptor_list.push_back(descriptor);
+			}
+			QJsonArray jval{ key.x, key.y, key.z, key.i, key.j, key.score, descriptor_list}; 
+			jsonJoints[QString::fromStdString(name)] = jval;
+		}
+		person["joints"] = jsonJoints;
+		//roi
+		QJsonObject roi;
+		roi["width"] = op.roi.width;
+		roi["height"] = op.roi.height;
+		QJsonArray image_array;
+		std::copy(op.roi.image.begin(), op.roi.image.end(), std::back_inserter(image_array));
+		roi["image"] = image_array;
+		person["roi"] = roi;
+		jsonPeople.push_back(person);
+	}
+	jsonObject["people"] = jsonPeople;
+	QJsonDocument jsonDoc(jsonObject);
+	QString strJson(jsonDoc.toJson(QJsonDocument::Compact));
+	outfile << strJson.toStdString();
+	outfile << ",\n";
 }
 
 std::tuple<bool, float> SpecificWorker::getOrientation(const ModelPerson &ob_p)
@@ -252,6 +304,8 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			person.human = nullptr; 
 			person.to_delete = false;
 			person.cameraId = observed_people.cameraId;
+			person.timestamp = observed_people.timestamp;
+			person.roi = obs_person.roi;
 			person.gtruth_x = obs_person.x;
 			person.gtruth_y = obs_person.y;
 			person.gtruth_z = obs_person.z;

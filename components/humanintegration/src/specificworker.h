@@ -105,9 +105,10 @@ public:
 		Human *human;
 		bool to_delete = false;
 		int cameraId;
+		qint64 timestamp;
 		float gtruth_x, gtruth_y, gtruth_z, gtruth_angle;  // ground truth
 		std::map<std::string, KeyPoint> joints; 
-
+		RoboCompHumanCameraBody::TImage roi;
 	};
 
 
@@ -131,6 +132,8 @@ private:
 	using ModelPeople = std::vector<ModelPerson>;
 	ModelPeople model_people;										// people in the model
 	ModelPeople transformToWorld(const RoboCompHumanCameraBody::PeopleData &observed_people);
+	void writeToJSON_gnn(const ModelPeople &people);
+	void writeToJSON_new(const ModelPeople &people);
 	RoboCompCommonBehavior::ParameterList params;
 	std::tuple<bool, float> getOrientation(const ModelPerson &ob_p);
 	std::tuple<bool, float, float> getPosition(std::vector<float> &acum_x, std::vector<float> &acum_z);
