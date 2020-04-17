@@ -7,19 +7,20 @@ import vg
 import gurobipy as gp
 from gurobipy import GRB
 from PySide2.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QWidget, QDesktopWidget, QGraphicsLineItem
-from PySide2.QtCore import QSizeF, QPointF, SIGNAL, QObject, QTimer
+from PySide2.QtCore import QSizeF, QPointF, SIGNAL, QObject, QTimer, Slot, Qt
 from PySide2.QtGui import QPolygonF, QPen, QColor, QBrush
-from PySide2 import QtCore, QtGui
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster import hierarchy
 from matplotlib import pyplot as plt
-from sklearn.cluster import DBSCAN
+from scipy.cluster.vq import vq, kmeans, whiten
 import hdbscan
 from multiprocessing import Pool, TimeoutError, Queue, Manager
 from collections import deque
+import cv2
 
 FILE = 'human_data_2p_descriptores.txt'
 FILE = 'human_data_3C_2P_I_L3.txt'
+FILE = 'human_data.txt'
     
 def readData(size=30, offset=50):
     pp = pprint.PrettyPrinter(indent=4)
@@ -36,7 +37,7 @@ def readData(size=30, offset=50):
     print("Sample elapsed time (ms): ", sample[-1]['timestamp']-sample[0]['timestamp'])
     print("Sample size:", len(sample))
     data = removeDuplicates(data)    
-    # compute combination of N samples taken as 2
+    # compute combination of N clusters taken as 2
     n_comb = list(itertools.combinations(range(len(sample)), 2))
     comb = list(itertools.combinations(sample, 2))
     print("Number of combinations:", len(comb))
@@ -56,22 +57,21 @@ def removeDuplicates(sample):
         print("Duplicates removed: ", len(sample)-len(result))
     return sample
 
-def makeSpaceTimeGroups(sample):
-    # estimate number of clusters
-    # shuld be the mean number of people detected in all frames of the sample 
-
-    X = [[s['world'][0], s['world'][2]] for s in sample]
-    hdb = hdbscan.HDBSCAN(min_cluster_size=5)
+    
+# estimate number of clusters
+def makeSpaceTimeGroups(obs):
+    X = [[p['world'][0], p['world'][2]] for p in obs]
+    #X = np.array([p['roi'] for p in obs])
+    #print("Number of elements:", len(X), " clusters:", len(obs))
+    hdb = hdbscan.HDBSCAN(min_cluster_size=10)
     hdb.fit(X)
     print("HDBScan num clusters: ", len(set(hdb.labels_)))
     # create a list o lists
     clusters = [[] for i in range(len(set(hdb.labels_)))]
-    for i,l in enumerate(sample):
+    for i,l in enumerate(obs):
         clusters[hdb.labels_[i]].append(l)
-
     return clusters
-    #return [s for i,s in enumerate(sample) if i in cluster1]
-
+    
 def dataIter(init=0, size=40, end=-1):
     with open(FILE, 'r') as f:
         raw = f.read()
@@ -84,18 +84,41 @@ def dataIter(init=0, size=40, end=-1):
     if end == -1:
         end = len(data)
     while init+size < end:
-        init = init + size//2
         sample = data[init:init+size]
+
+        obs = []
+        for s in sample:
+            for person in s['people']:
+                w = person['roi']['width']
+                h = person['roi']['height']
+                d = 3
+                hist = dict()
+                if h*w*d == len(person['roi']['image']):
+                    roi = np.asarray(person['roi']['image'], np.uint8).reshape(h,w,3)
+                    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+                    # hh = cv2.calcHist([roi], [0], None, [10], [0, 256])[0,:]
+                    # hs = cv2.calcHist([roi], [1], None, [10], [0, 256])[0,:]
+                    # hv = cv2.calcHist([roi], [2], None, [10], [0, 256])[0,:]
+                    hh = cv2.calcHist([hsv], [0], None, [10], [0, 256])[:,0]
+                    hs = cv2.calcHist([hsv], [1], None, [10], [0, 256])[:,0]
+                    hv = cv2.calcHist([hsv], [2], None, [10], [0, 256])[:,0]
+                    hist = np.concatenate([hh, hs, hv])
+                    # hog = cv2.HOGDescriptor()
+                    # hist = hog.compute(roi)
+                    # print('dentro', len(person['roi']['image']))
+                    obs.append({'timestamp':s['timestamp'], 'world':person['world'], 'roi':hist}) 
+
         print("Sample elapsed time (ms): ", sample[-1]['timestamp']-sample[0]['timestamp'], " Initial: ", size)
-        samples = makeSpaceTimeGroups(sample)
+        clusters = makeSpaceTimeGroups(obs)
         combs = list()
         n_combs = list()
-        for i in range(len(samples)):
-            samples[i] = addVelocity(samples[i])
-            combs.append(list(itertools.combinations(samples[i], 2)))      # could be permutations
-            n_combs.append(list(itertools.combinations(range(len(samples[i])), 2)))
-            print("Cluster ",i,", size:", len(samples[i]), " Combinations: ", len(combs[i]))
-        yield samples, combs, n_combs
+        for i in range(len(clusters)):
+            clusters[i] = addVelocity(clusters[i])
+            combs.append(list(itertools.combinations(clusters[i], 2)))      # could be permutations
+            n_combs.append(list(itertools.combinations(range(len(clusters[i])), 2)))
+            print("Cluster ",i,", size:", len(clusters[i]), " Combinations: ", len(combs[i]))
+        init = init + size//2
+        yield clusters, combs, n_combs
 
 
 def spaceTimeAffinitiy(d1, d2):
@@ -124,7 +147,7 @@ def appearanceAffinity(d1, d2):
     a = vg.normalize(np.array(list(flatten([v[6] for [k,v] in d1['joints'].items() if k in common]))))
     b = vg.normalize(np.array(list(flatten([v[6] for [k,v] in d2['joints'].items() if k in common]))))
     try:
-        r = np.einsum('ij, ij->i', a, b)
+        r = np.fabs(np.einsum('ij, ij->i', a, b))
         return np.median(r)
     except:
         #print("wrong eisum")
@@ -136,7 +159,7 @@ def totalAffinity(spatial, aspect):
     # tA = -1 + 2/(1+exp(-l(aA*stA-mu))))
     LANDA = 1.0
     MU = 0.25
-    p = spatial*aspect
+    p = spatial#*aspect
     if p == 0:
         return -1000
     if p == 1:
@@ -236,7 +259,7 @@ class Escena(QWidget):
         self.scene.setSceneRect(-3000, -4000, 6000, 8000)
         self.view = QGraphicsView(self.scene)
         self.view.resize(self.size())
-        self.view.fitInView(self.scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.view.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
         self.view.setParent(self)
         self.view.setTransformationAnchor(QGraphicsView.NoAnchor)
         self.view.setResizeAnchor(QGraphicsView.NoAnchor)
@@ -245,7 +268,7 @@ class Escena(QWidget):
         self.show()
 
     def wheelEvent(self, event):
-        zoomInFactor = 1.25
+        zoomInFactor = 1.15
         zoomOutFactor = 1 / zoomInFactor
         # Zoom
         if event.delta() > 0:
@@ -257,27 +280,32 @@ class Escena(QWidget):
     def resizeEvent(self, event):
         self.view.resize(self.size())
     
-    def draw(self, comps, sample):
-        #colors = ["red","blue","green","brown","cyan","black","darkRed","darkBlue","darkCyan"]
+    def draw(self, comps, cluster):
         colors = QColor.colorNames()
 
-        for co in sample:
-            pol = QPolygonF()
-            x, _, z, _ = co['world'] 
-            pol.append(QPointF(x,z))
-            self.scene.addEllipse(x-50,z-50,100,100, pen=QPen(QColor('orange'), 5))
+        # for co in sample:
+        #     print(co)
+        #     x, _, z, _ = co['world'] 
+        #     self.scene.addEllipse(x-50,z-50,100,100, pen=QPen(QColor('orange'), 5))
         
         # x,_,z,_ = sample[-1]['world']
         # self.scene.addRect(x,z,60,60, pen=QPen(QColor('red'), 100))        
         # x,_,z,_ = sample[0]['world']
         # self.scene.addRect(x,z,60,60, pen=QPen(QColor('green'), 100))        
 
-        for co in comps:
-            if sample[co[-1]]['timestamp']-sample[co[0]]['timestamp'] > 200 and len(co)> 4:
-                color = colors[random.randint(0, len(colors)-1)]
-                for c in co:   
-                    x, _, z, _ = sample[c]['world'] 
-                    self.scene.addEllipse(x-15,z-15,30,30, pen=QPen(QColor(color), 100), brush=QBrush(color=QColor(color)))
+        # for co in comps:
+        #     if sample[co[-1]]['timestamp']-sample[co[0]]['timestamp'] > 200 and len(co)> 4:
+        #         color = colors[random.randint(0, len(colors)-1)]
+        #         for c in co:   
+        #             x, _, z, _ = sample[c]['world'] 
+        #             self.scene.addEllipse(x-15,z-15,30,30, pen=QPen(QColor(color), 100), brush=QBrush(color=QColor(color)))
+
+        if cluster[-1]['timestamp']-cluster[0]['timestamp'] > 200 and len(cluster)> 4:
+            color = colors[random.randint(0, len(colors)-1)]
+            for sample in cluster:
+                x, _, z, _ = sample['world'] 
+                self.scene.addEllipse(x-15,z-15,30,30, pen=QPen(QColor(color), 100), brush=QBrush(color=QColor(color)))
+
 
     def drawTrack(self, clusters):
             colors = QColor.colorNames()
@@ -287,55 +315,69 @@ class Escena(QWidget):
             for cluster in clusters:
                 color = colors[random.randint(0, len(colors)-1)]
                 for t in cluster:
-                    self.scene.addLine(t[0][0], t[0][1], t[1][0], t[1][0], pen=QPen(QColor(color), 60))
+                    self.scene.addLine(t[0][0], t[0][1], t[1][0], t[1][1], pen=QPen(QColor(color), 60))
 
-@QtCore.Slot()
+@Slot()
 def work():
     now = time.time()
     try:
-        samples, combs, n_combs  = next(data_generator)
-        corrs = [correlations(c) for c in combs]
+        clusters, combs, n_combs  = next(data_generator)
+        #corrs = [correlations(c) for c in combs]
         
         # we use queues to get the results back
-        m = Manager()
-        qs = [m.Queue() for i in range(len(samples))]
+        # m = Manager()
+        # qs = [m.Queue() for i in range(len(clusters))]
       
-        with Pool(processes=len(samples)) as pool:
-            pool.starmap(optimize, itertools.zip_longest(qs, corrs, combs, n_combs))
+        # with Pool(processes=len(clusters)) as pool:
+        #     pool.starmap(optimize, itertools.zip_longest(qs, corrs, combs, n_combs))
 
         flatten = itertools.chain.from_iterable
-        for q, n_comb, sample in itertools.zip_longest(qs, n_combs, samples):
-            components = partitionGraph(q.get(), n_comb, sample)
+        #for q, n_comb, sample in itertools.zip_longest(qs, n_combs, clusters):
+        for n_comb, sample in itertools.zip_longest(n_combs, clusters):   
+            #components = partitionGraph(q.get(), n_comb, sample)
+            #print("partitions: ",len(components))
             #escena.draw(components, sample)
-            cps = list(flatten(components))
-            head = np.array([sample[cps[0]]['world'][0], sample[cps[0]]['world'][2]])
-            tail = np.array([sample[cps[-1]]['world'][0], sample[cps[-1]]['world'][2]])
-            first = sample[cps[0]]['timestamp']
-            last = sample[cps[-1]]['timestamp']
+            escena.draw([range(len(sample))], sample)
+            head = np.array([sample[0]['world'][0], sample[0]['world'][2]])
+            tail = np.array([sample[-1]['world'][0], sample[-1]['world'][2]])
+            first = sample[0]['timestamp']
+            last = sample[-1]['timestamp']
             v = (tail-head)/(last-first) if last > first else 0
-            tracklets.append([head, tail, first, last, v])
+            t_roi = np.median([s['roi'] for s in sample], axis=0)
+            tracklets.append([head, tail, first, last, v, t_roi])
+
+            # cps = list(flatten(components))
+            # head = np.array([sample[cps[0]]['world'][0], sample[cps[0]]['world'][2]])
+            # tail = np.array([sample[cps[-1]]['world'][0], sample[cps[-1]]['world'][2]])
+            # first = sample[cps[0]]['timestamp']
+            # last = sample[cps[-1]]['timestamp']
+            # v = (tail-head)/(last-first) if last > first else 0
+            # tracklets.append([head, tail, first, last, v, cps, sample])
+        
         
         # cluster the whole thing
-        # compute appearence of the tracklets as a matrix of distances between samples
+        # compute appearence of the tracklets as a matrix of distances between clusters
 
-        X = [(t[1]-t[0]/2.0)  for t in tracklets]
-        hdb = hdbscan.HDBSCAN(min_cluster_size=10)
-        hdb.fit(X)
-        print("Second stage HDBScan num clusters: ", len(set(hdb.labels_)))
-        # create a list og lists
-        clusters = [[] for i in range(len(set(hdb.labels_)))]
-        for i,l in enumerate(tracklets):
-            clusters[hdb.labels_[i]].append(l)
+        # X = [(t[1]-t[0]/2.0)  for t in tracklets]
+        # hdb = hdbscan.HDBSCAN(min_cluster_size=5)
+        # hdb.fit(X)
+        # print("Second stage HDBScan num clusters: ", len(set(hdb.labels_)))
+        # # create a list og lists
+        # clusters = [[] for i in range(len(set(hdb.labels_)))]
+        # for i,l in enumerate(tracklets):
+        #     clusters[hdb.labels_[i]].append(l)
 
-        print("Tracks ", len(set(hdb.labels_)))
+        # print("Tracks ", len(set(hdb.labels_)))
 
-        # draw the track
-        escena.drawTrack(clusters)
+        #escena.drawTrack(clusters)
 
-        print("real elapsed", (time.time() - now)*1000, " computed: " , samples[0][-1]['timestamp']-samples[0][0]['timestamp'])        
+        print("real elapsed", (time.time() - now)*1000, " computed: " , clusters[0][-1]['timestamp']-clusters[0][0]['timestamp'])        
+    
     except StopIteration:
-        #print("End iterator")
-        pass
+        print("End iterator")
+        with open("tracklets.pickle", "wb") as f:
+            pickle.dump(tracklets, f)
+        timer.stop()
 
 ###########################################
 app = QApplication(sys.argv)
@@ -343,12 +385,13 @@ timer = QTimer()
 escena = Escena()
 
 INICIO = 0
-SIZE = 35
+SIZE = 50
 FIN = -1
 
 #data, sample, comb, n_comb, d_comb = readData(SIZE, OFFSET_FROM_END)
 start = time.time()
-tracklets = deque(maxlen=50)
+#tracklets = deque(maxlen=50)
+tracklets = []
 data_generator = dataIter(INICIO, SIZE, FIN)
 timer.timeout.connect(work)
 #timer.setSingleShot(True)
