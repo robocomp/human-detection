@@ -1,12 +1,17 @@
 import json, sys
 
-FILE = 'human_data_2p_descriptores.txt'
+FILE = 'human_data_textured2.txt'
+FILEW = 'human_data_textured2_short.txt'
     
+print("Working...")
 with open(FILE, 'r') as f:
     raw = f.read()
-data = json.loads(raw)["data_set"]
+data = json.loads(raw)
+total = len(data['data_set'])
+del data['data_set'][50:-1]
 
-r = [d['timestamp'] for d in data]
-rs = set([x for x in r if r.count(x)>1])
-print(len(r), len(rs))
+with open(FILEW, 'w') as f:
+    json.dump(data, f)
+
+print("Wrote ", len(data['data_set']), " elements of a todal of ", total)
 

@@ -60,10 +60,10 @@ def removeDuplicates(sample):
     
 # estimate number of clusters
 def makeSpaceTimeGroups(obs):
-    X = [[p['world'][0], p['world'][2]] for p in obs]
-    #X = np.array([p['roi'] for p in obs])
+    #X = [[p['world'][0], p['world'][2]] for p in obs]
+    X = np.array([p['roi'] for p in obs])
     #print("Number of elements:", len(X), " clusters:", len(obs))
-    hdb = hdbscan.HDBSCAN(min_cluster_size=10)
+    hdb = hdbscan.HDBSCAN(min_cluster_size=3)
     hdb.fit(X)
     print("HDBScan num clusters: ", len(set(hdb.labels_)))
     # create a list o lists
@@ -85,7 +85,6 @@ def dataIter(init=0, size=40, end=-1):
         end = len(data)
     while init+size < end:
         sample = data[init:init+size]
-
         obs = []
         for s in sample:
             for person in s['people']:
@@ -95,17 +94,7 @@ def dataIter(init=0, size=40, end=-1):
                 hist = dict()
                 if h*w*d == len(person['roi']['image']):
                     roi = np.asarray(person['roi']['image'], np.uint8).reshape(h,w,3)
-                    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-                    # hh = cv2.calcHist([roi], [0], None, [10], [0, 256])[0,:]
-                    # hs = cv2.calcHist([roi], [1], None, [10], [0, 256])[0,:]
-                    # hv = cv2.calcHist([roi], [2], None, [10], [0, 256])[0,:]
-                    hh = cv2.calcHist([hsv], [0], None, [10], [0, 256])[:,0]
-                    hs = cv2.calcHist([hsv], [1], None, [10], [0, 256])[:,0]
-                    hv = cv2.calcHist([hsv], [2], None, [10], [0, 256])[:,0]
-                    hist = np.concatenate([hh, hs, hv])
-                    # hog = cv2.HOGDescriptor()
-                    # hist = hog.compute(roi)
-                    # print('dentro', len(person['roi']['image']))
+                    hist = hsvHistogram(roi)
                     obs.append({'timestamp':s['timestamp'], 'world':person['world'], 'roi':hist}) 
 
         print("Sample elapsed time (ms): ", sample[-1]['timestamp']-sample[0]['timestamp'], " Initial: ", size)
@@ -120,6 +109,11 @@ def dataIter(init=0, size=40, end=-1):
         init = init + size//2
         yield clusters, combs, n_combs
 
+def hsvHistogram(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    hist = cv2.calcHist([hsv], [0,1], None, [30,32], [0,180,0,255])
+    cv2.normalize(hist, hist)
+    return hist
 
 def spaceTimeAffinitiy(d1, d2):
     # max[1 - B(e(D1,D2) + e(D2,D1)), 0]
