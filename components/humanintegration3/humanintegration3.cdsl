@@ -1,0 +1,10 @@
+
+Component humanintegration3
+{
+    Communications
+    {
+    };
+	language python;
+	gui Qt(QWidget);
+};
+
