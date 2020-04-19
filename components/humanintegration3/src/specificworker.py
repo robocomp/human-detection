@@ -20,7 +20,7 @@
 #
 
 from genericworker import *
-import json, sys, random, time
+import json, sys, random, time, bigjson
 import numpy as np
 import itertools
 import cv2
@@ -29,9 +29,13 @@ from scipy import stats
 from apartment import Apartment2D
 
 JSON_FILE = 'human_data_textured2.txt'
+JSON_FILE = 'human_data_2P_Text_I_L.txt'
 #JSON_FILE = 'human_data_textured2_short.txt'
-MAX_IDLE_TIME = 3  # secs
+#JSON_FILE = 'human_data_textured2_large.txt'
+
+MAX_IDLE_TIME = 5  # secs unseen before deleted
 MAX_QUEUE_LENGTH = 50  # obs
+MIN_TIME_ACTIVE = 1 # secs before accepted as new person
 
 class Person(object):
 	
@@ -41,16 +45,19 @@ class Person(object):
 		self.history.append(self.Epoch(camera, world, timestamp, histogram))
 		self.idletime = time.time()
 		self.scene_view = None
+		self.time_active = 0
+		self.time_created = time.time()
 
 	def last(self):
 		return self.history[-1]
 
 	def world(self):
-		return self.last().world
+		return self.history[-1].world
 
 	def update(self, obs):
 		self.history.extend(obs.history)
 		self.idletime = time.time()
+		self.time_active = time.time() - self.time_created
 		
 	def print(self):
 		print("Person:-> camera:", self.last().camera, "world:", self.last().world, "history:", len(self.history))
@@ -68,6 +75,8 @@ class SpecificWorker(GenericWorker):
 		self.dist = []
 		self.people = []
 		self.alab = Apartment2D(self.ui)
+		self.total_epochs = 0
+		self.count_epochs = 0
 		self.Period = 10
 		self.timer.start(self.Period)
 		return True
@@ -86,24 +95,30 @@ class SpecificWorker(GenericWorker):
 			# update coincidences
 			for o,p in matches:
 				p.update(o)
-				self.alab.movePerson(p.scene_view, o.world())
+				if p.time_active > MIN_TIME_ACTIVE:
+					self.alab.movePerson(p.scene_view, o.world())
 
-			# add new people
+			# add new potential candidates
 			for n in new:
-				pg = self.alab.addPerson(n.world())
-				n.scene_view = pg
 				self.people.append(n)
+				n.scene_view = self.alab.addPerson(n.world())
 
 			# remove unseen
 			now = time.time()
 			self.people[:] = [p for p in self.people if now - p.idletime < MAX_IDLE_TIME]
 
-			print("Matches:", len(matches), "New:", len(new), "Unseen:", len(unseen), "Total:", len(self.people))
+			total_people = len([p for p in self.people if p.time_active>MIN_TIME_ACTIVE])
+			print("Matches:", len(matches), "New:", len(new), "Unseen:", len(unseen), "Total:", total_people)
 			#[p.print() for p in self.people]
 			#print("-------------")
+			if total_people > 2:
+				self.count_epochs += 1
+			self.total_epochs += 1
 
 		except StopIteration:
 			print("End of file")
+			print("Percent of epochs with other than two people: ", 100*(self.count_epochs / self.total_epochs), " out of ", self.total_epochs)
+
 			self.timer.stop()
 	
 	#############################################################################
@@ -128,16 +143,18 @@ class SpecificWorker(GenericWorker):
 
 	def compareToExistingPeople(self, observations):
 		MIN_DIST = 10 # for KL divergence
-		MIN_DIST = 0.6 # for Bat divergence
+		MIN_DIST = 0.65 # for Bat divergence
+		MAX_DIST = 0.7 
 		matches = [] 
 		new = []
 		unseen = []
 		if len(self.people)>0:  # first time
-			# for each obervation get the min dist to existinh people
+			# for each obervation get the min dist to existing people
+			mins = []
 			for o in observations:
-				dists = [[self.histDist(o, p), p, o]  for p in self.people]
-				d,p,o = min(dists)
-				if d < MIN_DIST:
+				mins.append(min([[self.histDist(o, p), p, o]  for p in self.people]))
+			for d,p,o in mins:
+				if d < MIN_DIST: #and all([dm > MAX_DIST for dm,pm,om in mins if om is not o]):
 					matches.append([o, p])
 			for p in self.people:
 				if all(p is not mp for mo,mp in matches):
@@ -155,20 +172,14 @@ class SpecificWorker(GenericWorker):
 		dist = np.median([cv2.compareHist(obs.last().histogram, h.histogram, method=cv2.HISTCMP_BHATTACHARYYA) for h in person.history if obs.last().histogram is not None and h.histogram is not None])
 		#dist = cv2.compareHist(a, b, method=cv2.HISTCMP_CHISQR_ALT ) 
 		#dist = np.median([cv2.compareHist(obs.last().histogram, h.histogram, method=cv2.HISTCMP_KL_DIV) for h in person.history if obs.last().histogram is not None and h.histogram is not None])
-		#dist = stats.mode([cv2.compareHist(obs.last().histogram, h.histogram, method=cv2.HISTCMP_KL_DIV) for h in person.history if obs.last().histogram is not None and h.histogram is not None])[0]
 		#print("Dist:", dist)
 		return dist
 
 	def dataIter(self, file, init=0, size=40, end=-1):
 		with open(file, 'rb') as f:
-			#raw = f.read()
-			#data = json.loads(raw)["data_set"]
 			data = json.load(f)["data_set"]
-
-		total = len(data)
-		print("Total evidences: ", total)
-		if end == -1:
-			end = len(data)
+		print("Total evidences: ", len(data))
+		end = len(data) if end==-1 else end
 		while init+size < end:
 			sample = data[init:init+size]    
 			#print("Sample elapsed time (ms): ", sample[-1]['timestamp']-sample[0]['timestamp'], " Initial: ", size)
