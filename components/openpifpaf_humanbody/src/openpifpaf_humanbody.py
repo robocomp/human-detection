@@ -148,7 +148,7 @@ if __name__ == '__main__':
 			except:
 				print('Another client created the HumanCameraBody topic? ...')
 	pub = topic.getPublisher().ice_oneway()
-	humancamerabodyTopic = HumanCameraBodyPrx.uncheckedCast(pub)
+	humancamerabodyTopic = RoboCompHumanCameraBody.HumanCameraBodyPrx.uncheckedCast(pub)
 	mprx["HumanCameraBodyPub"] = humancamerabodyTopic
 
 	if status == 0:

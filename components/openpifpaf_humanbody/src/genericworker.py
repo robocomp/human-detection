@@ -55,7 +55,7 @@ for p in icePaths:
 if not ice_HumanCameraBody:
 	print('Couln\'t load HumanCameraBody')
 	sys.exit(-1)
-from RoboCompHumanCameraBody import *
+import RoboCompHumanCameraBody
 ice_CameraRGBDSimple = False
 for p in icePaths:
 	if os.path.isfile(p+'/CameraRGBDSimple.ice'):
