@@ -107,15 +107,14 @@ void SpecificWorker::compute()
 		{
 			//transformar a coordenadas del mundo y calculo pose
 			auto observed_model_people = transformToWorld(observed_people);
-//			writeToJSON_gnn(observed_model_people);
-			writeToJSON_new(observed_model_people);
+//			writeToJSON_gnn(observed_model_people, observed_people.gt);
+			writeToJSON_new(observed_model_people, observed_people.gt);
 
 			for(const auto &op : observed_model_people)
 			{
 				//update view
 				if(observed_people.cameraId == 1)
 				{
-					std::cout<<"calculado "<<degreesToRadians(op.angle)<<" simulador "<<op.gtruth_angle<<std::endl;
 					human_one.human->update(op.x, op.z, degreesToRadians(op.angle));
 				}
 			}
@@ -123,7 +122,7 @@ void SpecificWorker::compute()
 	}
 }
 
-void SpecificWorker::writeToJSON_gnn(const ModelPeople &people)
+void SpecificWorker::writeToJSON_gnn(const ModelPeople &people, const RoboCompHumanCameraBody::GroundTruth &gt)
 {
 	for(const auto &op : people)
 	{
@@ -131,9 +130,16 @@ void SpecificWorker::writeToJSON_gnn(const ModelPeople &people)
 		QJsonObject jsonObject;
 		jsonObject["cameraId"] = op.cameraId;
 		jsonObject["timestamp"] = op.timestamp;
-		QJsonArray gval{ -op.gtruth_y, op.gtruth_z, op.gtruth_x, op.gtruth_angle };
 
-		jsonObject["ground_truth"] = gval;
+		QJsonArray ground_truth_vector;
+		QJsonArray ground_truth;
+		for (const auto &vec: gt)
+		{
+			ground_truth = { -vec.y, vec.z, vec.x, vec.rz };
+			ground_truth_vector.push_back(ground_truth);	
+		}
+		jsonObject["ground_truth"] = ground_truth_vector;
+
 		QJsonArray wval{ op.x, op.y, op.z, degreesToRadians(op.angle) };
 		jsonObject["world"] = wval;
 
@@ -158,14 +164,21 @@ void SpecificWorker::writeToJSON_gnn(const ModelPeople &people)
 	}
 }
 
-void SpecificWorker::writeToJSON_new(const ModelPeople &people)
+void SpecificWorker::writeToJSON_new(const ModelPeople &people, const RoboCompHumanCameraBody::GroundTruth &gt)
 {
 	// write to file
 	QJsonObject jsonObject;
 	jsonObject["cameraId"] = people[0].cameraId;
 	jsonObject["timestamp"] = people[0].timestamp;
-	QJsonArray gval{ -people[0].gtruth_y, people[0].gtruth_z, people[0].gtruth_x, people[0].gtruth_angle };
-	jsonObject["ground_truth"] = gval;
+	
+	QJsonArray ground_truth_vector;
+	QJsonArray ground_truth;
+	for (const auto &vec: gt)
+	{
+		ground_truth = { -vec.y, vec.z, vec.x, vec.rz };
+		ground_truth_vector.push_back(ground_truth);	
+	}
+	jsonObject["ground_truth"] = ground_truth_vector;
 
 	QJsonArray jsonPeople;
 	for(const auto &op : people)
@@ -306,10 +319,6 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			person.cameraId = observed_people.cameraId;
 			person.timestamp = observed_people.timestamp;
 			person.roi = obs_person.roi;
-			person.gtruth_x = obs_person.x;
-			person.gtruth_y = obs_person.y;
-			person.gtruth_z = obs_person.z;
-			person.gtruth_angle = obs_person.rz;
 		}
 		res.push_back( person ); 
 	}
@@ -433,36 +442,7 @@ void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
 	if(people.cameraId +1 > (int)cameraList.size())
 		cameraList.resize(people.cameraId + 1);
 	cameraList[people.cameraId].push(people);
-	const auto &p = people.peoplelist[0];
-	qDebug() << " sub [" << p.x << p.y << p.z << "]";
-	if(fabs(p.x< 0.1) and fabs(p.y<0.1) and fabs(p.z<0.1))
-		qDebug() << "SHIT ABAJO";
-				
 }
-
-
-// if(model_people.size()>0)
-// 				model_people.erase(std::remove_if(model_people.begin(), model_people.end(), [this](auto &mo_p)
-// 				{ if(mo_p.matched==false)
-// 					{
-// 						scene.removeItem(mo_p.human);
-// 						return true;
-// 					}
-// 				})); 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /////////////////////////////////////////////////
 // void SpecificWorker::compute()
