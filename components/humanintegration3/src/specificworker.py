@@ -176,7 +176,7 @@ class SpecificWorker(GenericWorker):
 		return dist
 
 	def dataIter(self, file, init=0, size=40, end=-1):
-		with open(file, 'rb') as f:
+		with open(file, 'r') as f:
 			data = json.load(f)["data_set"]
 		print("Total evidences: ", len(data))
 		end = len(data) if end==-1 else end
