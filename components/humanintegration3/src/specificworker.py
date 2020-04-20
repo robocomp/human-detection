@@ -27,11 +27,13 @@ import cv2
 from collections import deque, namedtuple
 from scipy import stats
 from apartment import Apartment2D
+from netforward import NetForwad
 
 JSON_FILE = 'human_data_textured2.txt'
-JSON_FILE = 'human_data_2P_Text_I_L.txt'
+#JSON_FILE = 'human_data_2P_Text_I_L.txt'
 #JSON_FILE = 'human_data_textured2_short.txt'
 #JSON_FILE = 'human_data_textured2_large.txt'
+#JSON_FILE = 'human_data_3P.txt'
 
 MAX_IDLE_TIME = 5  # secs unseen before deleted
 MAX_QUEUE_LENGTH = 50  # obs
@@ -39,10 +41,10 @@ MIN_TIME_ACTIVE = 1 # secs before accepted as new person
 
 class Person(object):
 	
-	def __init__(self, camera, histogram, world, timestamp):
-		self.Epoch = namedtuple('Epoch', 'camera world timestamp histogram')
+	def __init__(self, camera, histogram, world, timestamp, pose=[], gtruth=[0,0,0,0], joints=[]):
+		self.Epoch = namedtuple('Epoch', 'camera world timestamp histogram pose gtruth joints')
 		self.history = deque(maxlen=MAX_QUEUE_LENGTH)
-		self.history.append(self.Epoch(camera, world, timestamp, histogram))
+		self.history.append(self.Epoch(camera, world, timestamp, histogram, pose, gtruth, joints))
 		self.idletime = time.time()
 		self.scene_view = None
 		self.time_active = 0
@@ -58,6 +60,27 @@ class Person(object):
 		self.history.extend(obs.history)
 		self.idletime = time.time()
 		self.time_active = time.time() - self.time_created
+
+	def addPose(self, pose):
+		#self.history[-1].pose = pose
+		pass
+
+	def getSuitableSet(self):
+		''' Return a past window of consecutive different cameras
+		'''
+		bag_cameras = []
+		bag_samples = []
+		for h in reversed(self.history):
+			if h.camera in bag_cameras:
+				break
+			else:
+				bag_cameras.append(h.camera)
+				bag_samples.append(h)
+		saco = []
+		for b in bag_samples:
+			saco.append({"cameraId": b.camera, "ground_truth": b.gtruth, "joints": b.joints, "timestamp": b.timestamp})
+		window = {"data_set":[{'superbody': saco}]}
+		return window
 		
 	def print(self):
 		print("Person:-> camera:", self.last().camera, "world:", self.last().world, "history:", len(self.history))
@@ -77,7 +100,9 @@ class SpecificWorker(GenericWorker):
 		self.alab = Apartment2D(self.ui)
 		self.total_epochs = 0
 		self.count_epochs = 0
-		self.Period = 10
+		self.net = NetForwad()
+
+		self.Period = 20
 		self.timer.start(self.Period)
 		return True
 
@@ -96,7 +121,11 @@ class SpecificWorker(GenericWorker):
 			for o,p in matches:
 				p.update(o)
 				if p.time_active > MIN_TIME_ACTIVE:
-					self.alab.movePerson(p.scene_view, o.world())
+					window = p.getSuitableSet()
+					pose = self.net.forward(window['data_set'][0])
+					#print(pose)
+					self.alab.movePerson(p.scene_view, [pose[0], -pose[1]])
+					#self.alab.movePerson(p.scene_view, o.world())
 
 			# add new potential candidates
 			for n in new:
@@ -107,11 +136,18 @@ class SpecificWorker(GenericWorker):
 			now = time.time()
 			self.people[:] = [p for p in self.people if now - p.idletime < MAX_IDLE_TIME]
 
+			# compute pose wiht GNN
+			# for p in self.people:
+			# 	window = p.getSuitableSet()
+			# 	pose = self.net.forward(window['data_set'][0])
+			# 	p.addPose(pose)
+			# 	print(pose)
+				
 			total_people = len([p for p in self.people if p.time_active>MIN_TIME_ACTIVE])
 			print("Matches:", len(matches), "New:", len(new), "Unseen:", len(unseen), "Total:", total_people)
 			#[p.print() for p in self.people]
 			#print("-------------")
-			if total_people > 2:
+			if total_people != 3:
 				self.count_epochs += 1
 			self.total_epochs += 1
 
@@ -138,7 +174,9 @@ class SpecificWorker(GenericWorker):
 				hist = None
 			world = person['world']
 			timestamp = sample['timestamp']
-			obs_as_people.append(Person(camera=camera, histogram=hist, world=world, timestamp=timestamp))
+			joints = person['joints']
+			gtruth = [0,0,0,0]
+			obs_as_people.append(Person(camera=camera, histogram=hist, world=world, timestamp=timestamp, joints=joints))
 		return obs_as_people
 
 	def compareToExistingPeople(self, observations):
