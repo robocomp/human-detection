@@ -205,6 +205,8 @@ class SpecificWorker(GenericWorker):
 		self.timer.timeout.connect(self.compute)
 		self.params = {}
 		self.cameraid = 0
+		self.gt = []
+		self.bill = []
 		self.adepth = []
 		self.bdepth = []
 		self.acolor = []
@@ -217,8 +219,6 @@ class SpecificWorker(GenericWorker):
 		self.descriptor_size = 10
 		self.akeypoint_sets = []
 		self.bkeypoint_sets = []
-		self.bill_pos = [99999, 99999, 99999]
-		self.bill_ori = [0.0, 0.0, 0.0]
 		self.processor = None
 
 	def __del__(self):
@@ -232,9 +232,9 @@ class SpecificWorker(GenericWorker):
 		self.viewimage = "true" in self.params["viewimage"]
 		self.simulation = "true" in self.params["simulation"]
 		if self.simulation:
-			self.focal = 462 #VREP
+			self.focal = 462  # VREP
 		else:
-			self.focal = 617 #REALSENSE
+			self.focal = 617  # REALSENSE
 		self.initialize()
 		self.timer.start(self.Period)
 		return True
@@ -246,15 +246,17 @@ class SpecificWorker(GenericWorker):
 		self.processor = decoder.factory_from_args(args, model)
 
 		if self.simulation:
-			self.client = b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApiAddOn')
-			self.bill = self.client.simxGetObjectHandle('Bill_base#1', self.client.simxServiceCall())
+			self.client = b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApiAddOn')
+			ret, children = self.client.simxGetObjectsInTree('sim.handle_scene', 'sim.object_dummy_type', 1+2, self.client.simxServiceCall())
+			for child in children:
+				ret, name = self.client.simxGetObjectName(child, '', self.client.simxServiceCall())
+				if "Bill" in str(name):
+					self.bill.append(child)
 
 		self.start = time.time()
 
 	@QtCore.Slot()
 	def compute(self):
-		start = time.time()
-#		print("Timer intialization")
 		try:
 			color_, depth_ = self.camerargbdsimple_proxy.getAll()
 			if (len(color_.image) == 0) or (len(depth_.depth) == 0):
@@ -262,22 +264,15 @@ class SpecificWorker(GenericWorker):
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
-		t1 = time.time()
-#		print("Receive images:", ((t1 - start)*1000 ))
+
 		if self.simulation:
-			p_success, self.bill_pos = self.client.simxGetObjectPosition(self.bill[1], -1, self.client.simxServiceCall())
-			o_success, self.bill_ori = self.client.simxGetObjectOrientation(self.bill[1], -1, self.client.simxServiceCall())
-			if p_success == False or o_success == False or all(np.abs(x) < 0.1 for x in self.bill_pos):
-				print("Error reading pose")
-				return
-		#print("pose", self.bill_pos, self.bill_ori)
-		t2 = time.time()
-#		print("Read bill vrep:", ((t2 - t1) * 1000))
+			t1 = time.time()
+			self.gt = self.getBillPose()
+			print("VREP_time", (time.time()-t1)*1000)
+
 		self.width = color_.width
 		self.adepth = np.frombuffer(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
 		self.acolor = np.frombuffer(color_.image, np.uint8).reshape(color_.height, color_.width, color_.depth)
-		t3 = time.time()
-#		print("Convert images:", ((t3 - t2) * 1000))
 
 		if self.horizontalflip:
 			self.acolor = cv2.flip(self.acolor, 1)
@@ -285,21 +280,16 @@ class SpecificWorker(GenericWorker):
 		if self.verticalflip:
 			self.acolor = cv2.flip(self.acolor, 0)
 			self.adepth = cv2.flip(self.adepth, 0)
-		t4 = time.time()
-#		print("Flip images:", ((t4 - t3)) * 1000)
-		scale = 0.5
 
+		scale = 0.5
 		pifResults = []
 		p1 = threading.Thread(target=processPifPaf, args=(self.processor, self.acolor, 0.5, pifResults))
 		p1.start()
-
 		desResults = []
 
 		p2 = threading.Thread(target=processDescriptor, args=(self.bcolor, self.bdepth, self.simulation, 0.5,
 															  self.bkeypoint_sets, self.focal, self.descriptor_size,
 															  desResults))
-
-
 		if len(self.bcolor) > 0:
 			p2.start()
 			p2.join()
@@ -309,17 +299,11 @@ class SpecificWorker(GenericWorker):
 		self.bkeypoint_sets = pifResults[0]
 
 
-		t5 = time.time()
-#		print("OpenPifPaf completo:", ((t5 - t4)) * 1000)
 		self.publishData()
-		t6 = time.time()
-#		print("Publish:", ((t6 - t5)) * 1000)
 		if self.viewimage and len(self.bcolor) > 0:
 			self.drawImage(self.bcolor, self.peoplelist)
 			cv2.imshow("Color frame", self.bcolor)
 			cv2.waitKey(1)
-
-
 
 		# swap data
 		self.acolor, self.bcolor = self.bcolor, self.acolor
@@ -331,8 +315,6 @@ class SpecificWorker(GenericWorker):
 			self.start = time.time()
 			self.contFPS = 0
 		self.contFPS += 1
-
-		print("Total time:", ((time.time() - start) * 1000))
 		return True
 
 	def drawImage(self, image, peoplelist):
@@ -357,11 +339,46 @@ class SpecificWorker(GenericWorker):
 		points = [[joint.i, joint.j] for key, joint in person.joints.items()]
 		points = np.array(points, dtype=np.float32)
 		x, y, w, h = cv2.boundingRect(points)
+
+		# increase roi size (15% width, 10% height)
+		x = int(x - 0.075 * w)
+		y = int(y - 0.05 * h)
+		h = int(h * 1.1)
+		w = int(w * 1.15)
+
 		roi.width = w
 		roi.height = h
-		roi.image = self.bcolor[x:x+w, y:y+h].tobytes()
+		roi.image = self.bcolor[y:y+h, x:x+w].tobytes()
 		return roi
 
+		# to check roi aspect
+		cv2.circle(self.bcolor, (x, y), 10, (0, 0, 255))
+		cv2.circle(self.bcolor, (x, y+h), 10, (0, 0, 255))
+		cv2.circle(self.bcolor, (x+w, y), 10, (0, 0, 255))
+		cv2.circle(self.bcolor, (x+w, y+h), 10, (0, 0, 255))
+		cv2.imshow("color", self.bcolor)
+		if len(roi.image) > 0:
+			cv2.imshow("roi", self.bcolor[y:y+h, x:x+w])
+		return roi
+
+	# read bill pose from V-REP simulator
+	def getBillPose(self):
+		gt_list = []
+		for bill in self.bill:
+			p_success, bill_pos = self.client.simxGetObjectPosition(bill, -1, self.client.simxServiceCall())
+			o_success, bill_ori = self.client.simxGetObjectOrientation(bill, -1, self.client.simxServiceCall())
+			if p_success == False or o_success == False :
+				print("Error reading pose")
+			else:
+				gt = RoboCompHumanCameraBody.TGroundTruth()
+				gt.x = bill_pos[0] * 1000.0
+				gt.y = bill_pos[1] * 1000.0
+				gt.z = bill_pos[2] * 1000.0
+				gt.rx = bill_ori[0]
+				gt.ry = bill_ori[1]
+				gt.rz = bill_ori[2]
+				gt_list.append(gt)
+		return gt_list
 ######################################
 ##### PUBLISHER
 ######################################
@@ -370,17 +387,11 @@ class SpecificWorker(GenericWorker):
 		people = RoboCompHumanCameraBody.PeopleData()
 		people.cameraId = self.cameraid
 		people.timestamp = int(round(time.time() * 1000))
+		people.gt = self.gt
 		people.peoplelist = self.peoplelist
 		if len(people.peoplelist) > 0:
-			people.peoplelist[0].x = self.bill_pos[0] * 1000.0
-			people.peoplelist[0].y = self.bill_pos[1] * 1000.0
-			people.peoplelist[0].z = self.bill_pos[2] * 1000.0
-			people.peoplelist[0].rx = self.bill_ori[0]
-			people.peoplelist[0].ry = self.bill_ori[1]
-			people.peoplelist[0].rz = self.bill_ori[2]
 			for person in people.peoplelist:
 				person.roi = self.getRoi(person)
-
 			try:
 				self.humancamerabody_proxy.newPeopleData(people)
 			except:
