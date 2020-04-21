@@ -33,11 +33,17 @@ JSON_FILE = 'human_data_textured2.txt'
 #JSON_FILE = 'human_data_2P_Text_I_L.txt'
 #JSON_FILE = 'human_data_textured2_short.txt'
 #JSON_FILE = 'human_data_textured2_large.txt'
-#JSON_FILE = 'human_data_3P.txt'
+JSON_FILE = 'human_data_3P.txt'
 
-MAX_IDLE_TIME = 5  # secs unseen before deleted
-MAX_QUEUE_LENGTH = 50  # obs
-MIN_TIME_ACTIVE = 1 # secs before accepted as new person
+KNOWN_PEOPLE = 3
+USE_GNN = False
+
+# Hyperparameters
+MAX_IDLE_TIME = 4  # secs unseen before deleted
+MAX_QUEUE_LENGTH = 40  # obs
+MIN_TIME_ACTIVE = 1.2 # secs before accepted as new person
+#MIN_DIST = 10 # for KL divergence
+MIN_DIST = 0.60 # for Bat divergence 
 
 class Person(object):
 	
@@ -121,11 +127,12 @@ class SpecificWorker(GenericWorker):
 			for o,p in matches:
 				p.update(o)
 				if p.time_active > MIN_TIME_ACTIVE:
-					window = p.getSuitableSet()
-					pose = self.net.forward(window['data_set'][0])
-					#print(pose)
-					self.alab.movePerson(p.scene_view, [pose[0], -pose[1]])
-					#self.alab.movePerson(p.scene_view, o.world())
+					if USE_GNN:
+						window = p.getSuitableSet()  # OJO que esto cambia las asignaciones
+						pose = self.net.forward(window['data_set'][0])
+						self.alab.movePerson(p.scene_view, [pose[0], -pose[1]])
+					else:
+						self.alab.movePerson(p.scene_view, o.world())
 
 			# add new potential candidates
 			for n in new:
@@ -147,14 +154,18 @@ class SpecificWorker(GenericWorker):
 			print("Matches:", len(matches), "New:", len(new), "Unseen:", len(unseen), "Total:", total_people)
 			#[p.print() for p in self.people]
 			#print("-------------")
-			if total_people != 3:
+			
+			if total_people != KNOWN_PEOPLE:
 				self.count_epochs += 1
 			self.total_epochs += 1
 
 		except StopIteration:
 			print("End of file")
-			print("Percent of epochs with other than two people: ", 100*(self.count_epochs / self.total_epochs), " out of ", self.total_epochs)
-
+			result = 100*(self.count_epochs / self.total_epochs)
+			print("Percent of epochs with other than ", str(KNOWN_PEOPLE), " people: ", result,  " out of ", self.total_epochs)
+			# save result
+			# sample hyperparameters as a function of result
+			# reset dataIter
 			self.timer.stop()
 	
 	#############################################################################
@@ -180,9 +191,6 @@ class SpecificWorker(GenericWorker):
 		return obs_as_people
 
 	def compareToExistingPeople(self, observations):
-		MIN_DIST = 10 # for KL divergence
-		MIN_DIST = 0.65 # for Bat divergence
-		MAX_DIST = 0.7 
 		matches = [] 
 		new = []
 		unseen = []
