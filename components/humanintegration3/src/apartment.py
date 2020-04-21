@@ -1,7 +1,7 @@
 import random, json
-from PySide2.QtWidgets import QGraphicsScene, QDesktopWidget, QGraphicsView
+from PySide2.QtWidgets import QGraphicsScene, QDesktopWidget, QGraphicsView, QGraphicsPixmapItem
 from PySide2.QtCore import Qt, QRectF, QPointF
-from PySide2.QtGui import QPen, QColor, QBrush
+from PySide2.QtGui import QPen, QColor, QBrush, QPixmap
 
 class Apartment2D(object):
     def __init__(self, ui):
@@ -18,6 +18,8 @@ class Apartment2D(object):
         ui.graphicsView.setTransformationAnchor(QGraphicsView.NoAnchor)
         ui.graphicsView.setResizeAnchor(QGraphicsView.NoAnchor)
 
+        self.persons = {}
+        self.pixmapSize = (0, 0)
         self.initializeWorld()
         
     def addPerson(self, pos, angle=0, color=-1, size=100):
@@ -25,6 +27,17 @@ class Apartment2D(object):
         color = colors[random.randint(0, len(colors)-1)] if color==-1 else color
         pos = [pos[0],pos[2]] if len(pos)>2 else pos
         p = self.scene.addEllipse(pos[0]-size//2, pos[1]-size//2, size, size, pen=QPen(QColor(color),20), brush=QBrush(color=QColor(color)))
+
+        # pixmap
+        pixmap = QPixmap("person.png").scaled(600, 300)
+        self.pixmapSize = (pixmap.width() / 2, pixmap.height() / 2)
+        pixItem = QGraphicsPixmapItem(pixmap)
+        pixItem.setTransformOriginPoint(pixItem.boundingRect().center())
+        pixItem.setZValue(20)
+        self.scene.addItem(pixItem)
+
+        self.persons[p] = pixItem
+
         return p
 
     def movePerson(self, elipse, pos, size=100):
@@ -32,7 +45,12 @@ class Apartment2D(object):
         pos = [pos[0],pos[2]] if len(pos)>2 else pos
         color=elipse.pen().color()
         self.scene.addEllipse(pos[0]-size//2, pos[1]-size//2, size, size, pen=QPen(QColor(color),20), brush=QBrush(color=QColor(color)))
-            
+        # pixmap
+        self.persons[elipse].setPos(pos[0]-self.pixmapSize[0], pos[1]-self.pixmapSize[1])
+
+        # change rotation value when provided
+        self.persons[elipse].setRotation(180)
+
 
     def wheelEvent(self, event):
         zoomInFactor = 1.15
