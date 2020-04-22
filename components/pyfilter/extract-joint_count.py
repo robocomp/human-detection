@@ -23,11 +23,19 @@ for line in data["data_set"]:
         joint_count[pos][cont] += 1
 
 
+print("Results:")
+total = [0] * 18
 for p, person in enumerate(joint_count):
     if sum(person) > 0:
         print("Joints for person:", p+1)
         for p2, value in enumerate(person):
             print("\t", p2, ":", value)
+            total[p2] += value
+
+print("Total joints:")
+for p3, value in enumerate(total):
+    print("\t", p3, ":", value)
+
 
 
 
