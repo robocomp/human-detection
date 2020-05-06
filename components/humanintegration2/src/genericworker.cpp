@@ -29,8 +29,10 @@ QObject()
 
 {
 
+	humantodsr_pubproxy = std::get<0>(tprx);
 
 	mutex = new QMutex(QMutex::Recursive);
+
 
 	#ifdef USE_QTGUI
 		setupUi(this);
@@ -63,4 +65,3 @@ void GenericWorker::setPeriod(int p)
 	Period = p;
 	timer.start(Period);
 }
-

@@ -134,6 +134,7 @@ int ::humanIntegration2::run(int argc, char* argv[])
 
 	int status=EXIT_SUCCESS;
 
+	HumanToDSRPrxPtr humantodsr_pubproxy;
 
 	string proxy, tmp;
 	initialize();
@@ -141,15 +142,45 @@ int ::humanIntegration2::run(int argc, char* argv[])
 	IceStorm::TopicManagerPrxPtr topicManager;
 	try
 	{
-		topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
+		topicManager = topicManager = Ice::checkedCast<IceStorm::TopicManagerPrx>(communicator()->propertyToProxy("TopicManager.Proxy"));
 	}
 	catch (const Ice::Exception &ex)
 	{
-		cout << "[" << PROGRAM_NAME << "]: Exception: STORM not running: " << ex << endl;
+		cout << "[" << PROGRAM_NAME << "]: Exception: 'rcnode' not running: " << ex << endl;
 		return EXIT_FAILURE;
 	}
+	std::shared_ptr<IceStorm::TopicPrx> humantodsr_topic;
 
-	tprx = std::tuple<>();
+	while (!humantodsr_topic)
+	{
+		try
+		{
+			humantodsr_topic = topicManager->retrieve("HumanToDSR");
+		}
+		catch (const IceStorm::NoSuchTopic&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR retrieving HumanToDSR topic. \n";
+			try
+			{
+				humantodsr_topic = topicManager->create("HumanToDSR");
+			}
+			catch (const IceStorm::TopicExists&){
+				// Another client created the topic.
+				cout << "[" << PROGRAM_NAME << "]: ERROR publishing the HumanToDSR topic. It's possible that other component have created\n";
+			}
+		}
+		catch(const IceUtil::NullHandleException&)
+		{
+			cout << "[" << PROGRAM_NAME << "]: ERROR TopicManager is Null. Check that your configuration file contains an entry like:\n"<<
+			"\t\tTopicManager.Proxy=IceStorm/TopicManager:default -p <port>\n";
+			return EXIT_FAILURE;
+		}
+	}
+
+	auto humantodsr_pub = humantodsr_topic->getPublisher()->ice_oneway();
+	humantodsr_pubproxy = Ice::uncheckedCast<HumanToDSRPrx>(humantodsr_pub);
+
+	tprx = std::make_tuple(humantodsr_pubproxy);
 	SpecificWorker *worker = new SpecificWorker(tprx);
 	//Monitor thread
 	SpecificMonitor *monitor = new SpecificMonitor(worker,communicator());
@@ -188,7 +219,6 @@ int ::humanIntegration2::run(int argc, char* argv[])
 
 
 
-
 		// Server adapter creation and publication
 		std::shared_ptr<IceStorm::TopicPrx> humancamerabody_topic;
 		Ice::ObjectPrxPtr humancamerabody;
@@ -218,6 +248,12 @@ int ::humanIntegration2::run(int argc, char* argv[])
 						//Error. Topic does not exist
 					}
 				}
+				catch(const IceUtil::NullHandleException&)
+				{
+					cout << "[" << PROGRAM_NAME << "]: ERROR TopicManager is Null. Check that your configuration file contains an entry like:\n"<<
+					"\t\tTopicManager.Proxy=IceStorm/TopicManager:default -p <port>\n";
+					return EXIT_FAILURE;
+				}
 				IceStorm::QoS qos;
 				humancamerabody_topic->subscribeAndGetPublisher(qos, humancamerabody);
 			}
@@ -228,6 +264,7 @@ int ::humanIntegration2::run(int argc, char* argv[])
 			cout << "[" << PROGRAM_NAME << "]: Error creating HumanCameraBody topic.\n";
 			//Error. Topic does not exist
 		}
+
 
 		// Server adapter creation and publication
 		cout << SERVER_FULL_NAME " started" << endl;
@@ -278,7 +315,7 @@ int main(int argc, char* argv[])
 	string arg;
 
 	// Set config file
-	std::string configFile = "config";
+	std::string configFile = "etc/config";
 	if (argc > 1)
 	{
 		std::string initIC("--Ice.Config=");

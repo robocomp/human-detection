@@ -79,6 +79,19 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
+	ModelPerson test;
+	test.x = 1000;
+	test.y = 0;
+	test.z = 0;	
+
+	ModelPerson::KeyPoint key{0,1000,0,0,0,0 };
+	test.joints["left_elbow"] = key;
+	personToDSR(test);
+
+
+
+	return;
+
 	static bool firstTime=true;
 	if (firstTime) //clear camera queue to aovid old data use
 	{
@@ -489,7 +502,7 @@ void SpecificWorker::initializeWorld()
 }
 
 
-void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
+void SpecificWorker::HumanCameraBody_newPeopleData(RoboCompHumanCameraBody::PeopleData people)
 {
 //qDebug()<<"newPeople"<<people.cameraId;
 	if(people.cameraId +1 > (int)cameraList.size())
@@ -526,4 +539,39 @@ void SpecificWorker::writeGNNFile(ModelGNN model)
 	}
 	outfile << "\n]}]}";
 	outfile.close();
+}
+
+void SpecificWorker::personToDSR(const ModelPerson &mp)
+{
+	//insert node person on innerModel
+	InnerModelNode *world = innerModel->getNode("world");
+	InnerModelNode *person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, 0, 0);
+	QVec tr  = innerModel->getTranslationVectorTo("person", "world");
+	tr.print("tr");
+	// update joints
+	InnerModelTransform *joint = innerModel->newTransform("joint", "static", person);
+
+//	for(joints)
+	std::string joint_name = "left_elbow";
+	joint->update(mp.joints.at(joint_name).x, mp.joints.at(joint_name).y, mp.joints.at(joint_name).z, 0,0,0 );
+	QVec tr2  = innerModel->getTranslationVectorTo("joint", "person");
+	tr2.print(QString::fromStdString(joint_name));
+
+
+	RoboCompHumanToDSR::Person dsrPerson;
+	dsrPerson.id = 1;
+	dsrPerson.x = tr.x();
+	dsrPerson.y = tr.y();
+	dsrPerson.z = tr.z();
+	RoboCompHumanToDSR::People dsrPeople;
+	dsrPeople.push_back(dsrPerson);
+	RoboCompHumanToDSR::PeopleData dsrPeopleData;
+	dsrPeopleData.peoplelist = dsrPeople;
+	//publish data
+	try{
+		humantodsr_pubproxy->newPeopleData(dsrPeopleData);
+	}catch(...)
+	{
+		qDebug()<<"Error publishing data to DSR agent";
+	}
 }
