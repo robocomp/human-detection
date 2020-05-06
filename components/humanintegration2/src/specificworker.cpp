@@ -230,7 +230,8 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 	else
 	{
 //		p_old->human->update(p_new.cameraId, p_old->x, p_old->z, degreesToRadians(p_old->angle));
-		p_old->human->updateGroundTruth(-p_new.gtruth_y, p_new.gtruth_x, p_new.gtruth_angle);
+//		p_old->human->updateGroundTruth(-p_new.gtruth_y, p_new.gtruth_x, p_new.gtruth_angle);
+// ground_truth must be updated to new data format
 	}
 	//gnn related
 	GNNData tempData;
@@ -391,10 +392,6 @@ SpecificWorker::ModelPeople SpecificWorker::transformToWorld(const RoboCompHuman
 			person.to_delete = false;
 			person.cameraId = observed_people.cameraId;
 			person.tiempo_no_visible = std::chrono::system_clock::now();
-			person.gtruth_x = obs_person.x;
-			person.gtruth_y = obs_person.y;
-			person.gtruth_z = obs_person.z;
-			person.gtruth_angle = obs_person.rz;
 			res.push_back( person ); 
 		}
 	}

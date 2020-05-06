@@ -108,7 +108,6 @@ public:
 		Human *human;
 		bool to_delete = false;
 		int cameraId;
-		float gtruth_x, gtruth_y, gtruth_z, gtruth_angle;  // ground truth
 		std::map<std::string, KeyPoint> joints; 
 	};
 	using ModelPeople = std::vector<ModelPerson>;
