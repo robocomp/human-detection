@@ -539,18 +539,16 @@ qDebug()<<"person to dsr";
 	try
 	{
 		person = innerModel->getNode<InnerModelTransform>("person");
-		person->update(mp.x, mp.y, mp.z, 0, 0, 0);
+		innerModel->updateTransformValues("person", mp.x, mp.y, mp.z, 0, 0, 0);
 		innerModel->update();
 	}
 	catch(...) //node creation
 	{
 		person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, 0, 0);
 	}
-	QVec tr  = innerModel->getTranslationVectorTo("person", "world");
-tr.print("person");
-	dsrPerson.x = tr.x();
-	dsrPerson.y = tr.y();
-	dsrPerson.z = tr.z();
+	dsrPerson.x = mp.x;
+	dsrPerson.y = mp.y;
+	dsrPerson.z = mp.z;
 	// update joints
 	try
 	{
@@ -564,10 +562,10 @@ tr.print("person");
 	for(const auto &[joint_name, joint_value] : mp.joints)
 	{
 		RoboCompHumanToDSR::TJointData dsrJoint;
-		joint->update(joint_value.x, joint_value.y, joint_value.z, 0,0,0 );
+		innerModel->updateTransformValues("joint", joint_value.x, joint_value.y, joint_value.z, 0,0,0 );
 		innerModel->update();
 		QVec tr2  = innerModel->getTranslationVectorTo("person", "joint");
-tr2.print(QString::fromStdString(joint_name));
+//tr2.print(QString::fromStdString(joint_name));
 		dsrJoint.x = tr2.x();
 		dsrJoint.y = tr2.y();
 		dsrJoint.z = tr2.z();
