@@ -79,19 +79,6 @@ void SpecificWorker::initialize(int period)
 
 void SpecificWorker::compute()
 {
-	ModelPerson test;
-	test.x = 1000;
-	test.y = 0;
-	test.z = 0;	
-
-	ModelPerson::KeyPoint key{0,1000,0,0,0,0 };
-	test.joints["left_elbow"] = key;
-	personToDSR(test);
-
-
-
-	return;
-
 	static bool firstTime=true;
 	if (firstTime) //clear camera queue to aovid old data use
 	{
@@ -277,7 +264,7 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 		updateHumanModel(gnnData[p_old->id], p_old);
 		gnnData[p_old->id].clear();
 		pythonCall->callPythonGNN(p_old);
-
+		personToDSR(*p_old);
 	}
 
 }
@@ -543,31 +530,55 @@ void SpecificWorker::writeGNNFile(ModelGNN model)
 
 void SpecificWorker::personToDSR(const ModelPerson &mp)
 {
+qDebug()<<"person to dsr";
+	RoboCompHumanToDSR::Person dsrPerson;
+	dsrPerson.id = mp.id;
 	//insert node person on innerModel
 	InnerModelNode *world = innerModel->getNode("world");
-	InnerModelNode *person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, 0, 0);
+	InnerModelTransform *person, *joint;
+	try
+	{
+		person = innerModel->getNode<InnerModelTransform>("person");
+		person->update(mp.x, mp.y, mp.z, 0, 0, 0);
+		innerModel->update();
+	}
+	catch(...) //node creation
+	{
+		person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, 0, 0);
+	}
 	QVec tr  = innerModel->getTranslationVectorTo("person", "world");
-	tr.print("tr");
-	// update joints
-	InnerModelTransform *joint = innerModel->newTransform("joint", "static", person);
-
-//	for(joints)
-	std::string joint_name = "left_elbow";
-	joint->update(mp.joints.at(joint_name).x, mp.joints.at(joint_name).y, mp.joints.at(joint_name).z, 0,0,0 );
-	QVec tr2  = innerModel->getTranslationVectorTo("joint", "person");
-	tr2.print(QString::fromStdString(joint_name));
-
-
-	RoboCompHumanToDSR::Person dsrPerson;
-	dsrPerson.id = 1;
+tr.print("person");
 	dsrPerson.x = tr.x();
 	dsrPerson.y = tr.y();
 	dsrPerson.z = tr.z();
+	// update joints
+	try
+	{
+		joint = innerModel->getNode<InnerModelTransform>("joint");
+	}
+	catch(...) //node creation
+	{
+		joint = innerModel->newTransform("joint", "static", world);
+	}
+
+	for(const auto &[joint_name, joint_value] : mp.joints)
+	{
+		RoboCompHumanToDSR::TJointData dsrJoint;
+		joint->update(joint_value.x, joint_value.y, joint_value.z, 0,0,0 );
+		innerModel->update();
+		QVec tr2  = innerModel->getTranslationVectorTo("person", "joint");
+tr2.print(QString::fromStdString(joint_name));
+		dsrJoint.x = tr2.x();
+		dsrJoint.y = tr2.y();
+		dsrJoint.z = tr2.z();
+		dsrPerson.joints[joint_name] = dsrJoint;
+	}
+	
+	//publish data	
 	RoboCompHumanToDSR::People dsrPeople;
 	dsrPeople.push_back(dsrPerson);
 	RoboCompHumanToDSR::PeopleData dsrPeopleData;
 	dsrPeopleData.peoplelist = dsrPeople;
-	//publish data
 	try{
 		humantodsr_pubproxy->newPeopleData(dsrPeopleData);
 	}catch(...)
