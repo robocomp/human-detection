@@ -263,7 +263,7 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 		writeGNNFile(gnnData[p_old->id]);
 		updateHumanModel(gnnData[p_old->id], p_old);
 		gnnData[p_old->id].clear();
-		pythonCall->callPythonGNN(p_old);
+		//pythonCall->callPythonGNN(p_old);
 		personToDSR(*p_old);
 	}
 
@@ -562,13 +562,19 @@ qDebug()<<"person to dsr";
 	for(const auto &[joint_name, joint_value] : mp.joints)
 	{
 		RoboCompHumanToDSR::TJointData dsrJoint;
+
+		//position referenced to world
+		dsrJoint.wx = joint_value.x;
+		dsrJoint.wy = joint_value.y;
+		dsrJoint.wz = joint_value.z;
+
+		//convert position to person reference
 		innerModel->updateTransformValues("joint", joint_value.x, joint_value.y, joint_value.z, 0,0,0 );
 		innerModel->update();
 		QVec tr2  = innerModel->getTranslationVectorTo("person", "joint");
-//tr2.print(QString::fromStdString(joint_name));
-		dsrJoint.x = tr2.x();
-		dsrJoint.y = tr2.y();
-		dsrJoint.z = tr2.z();
+		dsrJoint.px = tr2.x();
+		dsrJoint.py = tr2.y();
+		dsrJoint.pz = tr2.z();
 		dsrPerson.joints[joint_name] = dsrJoint;
 	}
 	
