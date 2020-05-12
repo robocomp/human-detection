@@ -565,7 +565,7 @@ qDebug()<<"person to dsr";
 
 		//position referenced to world
 		dsrJoint.wx = joint_value.x;
-		dsrJoint.wy = joint_value.y;
+		dsrJoint.wy = 1300;//joint_value.y;
 		dsrJoint.wz = joint_value.z;
 
 		//convert position to person reference
