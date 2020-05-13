@@ -31,10 +31,10 @@ using namespace RoboCompHumanCameraBody;
 class HumanCameraBodyI : public virtual RoboCompHumanCameraBody::HumanCameraBody
 {
 public:
-HumanCameraBodyI(GenericWorker *_worker);
+	HumanCameraBodyI(GenericWorker *_worker);
 	~HumanCameraBodyI();
 
-	void newPeopleData(PeopleData people, const Ice::Current&);
+	void newPeopleData(RoboCompHumanCameraBody::PeopleData people, const Ice::Current&);
 
 private:
 

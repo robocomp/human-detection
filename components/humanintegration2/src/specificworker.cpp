@@ -263,8 +263,8 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 		writeGNNFile(gnnData[p_old->id]);
 		updateHumanModel(gnnData[p_old->id], p_old);
 		gnnData[p_old->id].clear();
-		pythonCall->callPythonGNN(p_old);
-
+		//pythonCall->callPythonGNN(p_old);
+		personToDSR(*p_old);
 	}
 
 }
@@ -489,7 +489,7 @@ void SpecificWorker::initializeWorld()
 }
 
 
-void SpecificWorker::HumanCameraBody_newPeopleData(PeopleData people)
+void SpecificWorker::HumanCameraBody_newPeopleData(RoboCompHumanCameraBody::PeopleData people)
 {
 //qDebug()<<"newPeople"<<people.cameraId;
 	if(people.cameraId +1 > (int)cameraList.size())
@@ -526,4 +526,67 @@ void SpecificWorker::writeGNNFile(ModelGNN model)
 	}
 	outfile << "\n]}]}";
 	outfile.close();
+}
+
+void SpecificWorker::personToDSR(const ModelPerson &mp)
+{
+qDebug()<<"person to dsr";
+	RoboCompHumanToDSR::Person dsrPerson;
+	dsrPerson.id = mp.id;
+	//insert node person on innerModel
+	InnerModelNode *world = innerModel->getNode("world");
+	InnerModelTransform *person, *joint;
+	try
+	{
+		person = innerModel->getNode<InnerModelTransform>("person");
+		innerModel->updateTransformValues("person", mp.x, mp.y, mp.z, 0, 0, 0);
+		innerModel->update();
+	}
+	catch(...) //node creation
+	{
+		person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, 0, 0);
+	}
+	dsrPerson.x = mp.x;
+	dsrPerson.y = mp.y;
+	dsrPerson.z = mp.z;
+	// update joints
+	try
+	{
+		joint = innerModel->getNode<InnerModelTransform>("joint");
+	}
+	catch(...) //node creation
+	{
+		joint = innerModel->newTransform("joint", "static", world);
+	}
+
+	for(const auto &[joint_name, joint_value] : mp.joints)
+	{
+		RoboCompHumanToDSR::TJointData dsrJoint;
+
+		//position referenced to world
+		dsrJoint.wx = joint_value.x;
+		dsrJoint.wy = 1300;//joint_value.y;
+		dsrJoint.wz = joint_value.z;
+
+		//convert position to person reference
+		innerModel->updateTransformValues("joint", joint_value.x, joint_value.y, joint_value.z, 0,0,0 );
+		innerModel->update();
+		QVec tr2  = innerModel->getTranslationVectorTo("person", "joint");
+		dsrJoint.px = tr2.x();
+		dsrJoint.py = tr2.y();
+		dsrJoint.pz = tr2.z();
+		dsrPerson.joints[joint_name] = dsrJoint;
+	}
+	
+	//publish data	
+	RoboCompHumanToDSR::People dsrPeople;
+	dsrPeople.push_back(dsrPerson);
+	RoboCompHumanToDSR::PeopleData dsrPeopleData;
+	dsrPeopleData.peoplelist = dsrPeople;
+	try{
+		humantodsr_pubproxy->newPeopleData(dsrPeopleData);
+	}catch(...)
+	{
+		qDebug()<<"Error publishing data to DSR agent";
+	}
 }

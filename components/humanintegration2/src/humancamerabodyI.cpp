@@ -28,7 +28,7 @@ HumanCameraBodyI::~HumanCameraBodyI()
 {
 }
 
-void HumanCameraBodyI::newPeopleData(PeopleData people, const Ice::Current&)
+void HumanCameraBodyI::newPeopleData(RoboCompHumanCameraBody::PeopleData people, const Ice::Current&)
 {
 	worker->HumanCameraBody_newPeopleData(people);
 }

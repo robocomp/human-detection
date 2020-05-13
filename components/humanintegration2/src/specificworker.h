@@ -65,16 +65,16 @@ public:
 		std::queue<RoboCompHumanCameraBody::PeopleData> peopledata;
 		mutable std::mutex mymutex; 
 
-		void push(const PeopleData &detected_people)
+		void push(const RoboCompHumanCameraBody::PeopleData &detected_people)
 		{
 			std::lock_guard<std::mutex> lock(mymutex);
 			peopledata.push(detected_people);
 		}
-		std::tuple<bool,PeopleData> pop()
+		std::tuple<bool,RoboCompHumanCameraBody::PeopleData> pop()
 		{
 			std::lock_guard<std::mutex> lock(mymutex);
 			if(peopledata.empty() == true)
-				return std::make_tuple(false, PeopleData());
+				return std::make_tuple(false, RoboCompHumanCameraBody::PeopleData());
 			auto detected_people = peopledata.front();
 			peopledata.pop();
 			return std::make_tuple(true, detected_people);
@@ -133,11 +133,11 @@ public:
 	void removePeople();
 	int computeDistance(const ModelPerson &p_old, const ModelPerson &p_new);
 	void clearMatchedPeople();	
-	void HumanCameraBody_newPeopleData(PeopleData people);
+	void HumanCameraBody_newPeopleData(RoboCompHumanCameraBody::PeopleData people);
 	void joinPeople();
 	void writeGNNFile(ModelGNN model);
 	void updateHumanModel(ModelGNN model, ModelPerson *person);
-
+	void personToDSR(const ModelPerson &mp);
 public slots:
 	void compute();
 	void initialize(int period);

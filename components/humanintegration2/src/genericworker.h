@@ -32,15 +32,17 @@
 #include <CommonBehavior.h>
 
 #include <HumanCameraBody.h>
+#include <HumanToDSR.h>
 
 
 #define CHECK_PERIOD 5000
-#define BASIC_PERIOD 30
+#define BASIC_PERIOD 100
 
 using namespace std;
 using namespace RoboCompHumanCameraBody;
+using namespace RoboCompHumanToDSR;
 
-using TuplePrx = std::tuple<>;
+using TuplePrx = std::tuple<RoboCompHumanToDSR::HumanToDSRPrxPtr>;
 
 
 class GenericWorker :
@@ -61,8 +63,9 @@ public:
 	QMutex *mutex;
 
 
+	HumanToDSRPrxPtr humantodsr_pubproxy;
 
-	virtual void HumanCameraBody_newPeopleData(PeopleData people) = 0;
+	virtual void HumanCameraBody_newPeopleData(RoboCompHumanCameraBody::PeopleData people) = 0;
 
 protected:
 
@@ -74,7 +77,7 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-    virtual void initialize(int period) = 0;
+	virtual void initialize(int period) = 0;
 	
 signals:
 	void kill();
