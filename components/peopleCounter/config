@@ -12,7 +12,7 @@ tracker = kcf
 save_results = False
 
 #Put the url of the video as video_input
-video_input =  http://127.0.0.1:8000/crowd.mjpeg.avi
+video_input =  http://127.0.0.1:8000/demo2.avi
 
 #Change the path to the robocomp directory according to your username
 model = /home/caradmin/robocomp/components/human-detection/components/peopleCounter/resources/mobilenet_ssd/MobileNetSSD_deploy.caffemodel
