@@ -25,7 +25,7 @@ ROBOCOMP = ''
 try:
 	ROBOCOMP = os.environ['ROBOCOMP']
 except KeyError:
-	print '$ROBOCOMP environment variable not set, using the default value /opt/robocomp'
+	print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
 	ROBOCOMP = '/opt/robocomp'
 
 preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
@@ -41,7 +41,7 @@ try:
 		additionalPathStr += ' -I' + p + ' '
 	icePaths.append('/opt/robocomp/interfaces')
 except:
-	print 'SLICE_PATH environment variable was not exported. Using only the default paths'
+	print('SLICE_PATH environment variable was not exported. Using only the default paths')
 	pass
 
 ice_PeopleServer = False
@@ -53,7 +53,7 @@ for p in icePaths:
 		ice_PeopleServer = True
 		break
 if not ice_PeopleServer:
-	print 'Couln\'t load PeopleServer'
+	print('Couln\'t load PeopleServer')
 	sys.exit(-1)
 from RoboCompPeopleServer import *
 
@@ -130,37 +130,37 @@ class GenericWorker(QtCore.QObject):
 #Slots funtion State Machine
 	@QtCore.Slot()
 	def sm_processing_video(self):
-		print "Error: lack sm_processing_video in Specificworker"
+		print("Error: lack sm_processing_video in Specificworker")
 		sys.exit(-1)
 
 	@QtCore.Slot()
 	def sm_initialize_video(self):
-		print "Error: lack sm_initialize_video in Specificworker"
+		print("Error: lack sm_initialize_video in Specificworker")
 		sys.exit(-1)
 
 	@QtCore.Slot()
 	def sm_finalize_video(self):
-		print "Error: lack sm_finalize_video in Specificworker"
+		print("Error: lack sm_finalize_video in Specificworker")
 		sys.exit(-1)
 
 	@QtCore.Slot()
 	def sm_detecting(self):
-		print "Error: lack sm_detecting in Specificworker"
+		print("Error: lack sm_detecting in Specificworker")
 		sys.exit(-1)
 
 	@QtCore.Slot()
 	def sm_tracking(self):
-		print "Error: lack sm_tracking in Specificworker"
+		print("Error: lack sm_tracking in Specificworker")
 		sys.exit(-1)
 
 	@QtCore.Slot()
 	def sm_update(self):
-		print "Error: lack sm_update in Specificworker"
+		print("Error: lack sm_update in Specificworker")
 		sys.exit(-1)
 
 	@QtCore.Slot()
 	def sm_reading_frames(self):
-		print "Error: lack sm_reading_frames in Specificworker"
+		print("Error: lack sm_reading_frames in Specificworker")
 		sys.exit(-1)
 
 
@@ -174,6 +174,6 @@ class GenericWorker(QtCore.QObject):
 	# @param per Period in ms
 	@QtCore.Slot(int)
 	def setPeriod(self, p):
-		print "Period changed", p
+		print("Period changed", p)
 		Period = p
 		timer.start(Period)

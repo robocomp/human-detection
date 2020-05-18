@@ -43,14 +43,14 @@ class ReadIPStream:
         self.stream = requests.get(url, stream=True)
 
     def read_stream(self):
-        bytes = ''
+        msg = bytes('', encoding = 'UTF-8')
         for chunk in self.stream.iter_content(chunk_size=1024):
-            bytes += chunk
-            a = bytes.find(b'\xff\xd8')
-            b = bytes.find(b'\xff\xd9')
+            msg += chunk
+            a = msg.find(b'\xff\xd8')
+            b = msg.find(b'\xff\xd9')
             if a != -1 and b != -1:
-                jpg = bytes[a:b + 2]
-                bytes = bytes[b + 2:]
+                jpg = msg[a:b + 2]
+                msg = msg[b + 2:]
                 if len(jpg) > 0:
                     img = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
                     return True, img
@@ -110,7 +110,7 @@ class SpecificWorker(GenericWorker):
         self.peopleCounterMachine.start()
 
     def __del__(self):
-        print 'SpecificWorker destructor'
+        print('SpecificWorker destructor')
 
     def setParams(self, params):
         self.input = params["video_input"]

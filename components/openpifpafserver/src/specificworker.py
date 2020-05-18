@@ -19,9 +19,11 @@
 import argparse
 from genericworker import *
 from openpifpaf.network import nets
+from openpifpaf.network.factory import *
 from openpifpaf import decoder, show, transforms
 import torch
 import cv2
+import PIL
 import numpy as np
 
 COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
@@ -51,7 +53,7 @@ class SpecificWorker(GenericWorker):
 			basenet = None
 			dilation = None
 			dilation_end = None
-			headnets=['pif', 'paf']
+			headnets=('pif', 'paf')
 			dropout=0.0
 			quad=1
 			pretrained=False
@@ -89,7 +91,8 @@ class SpecificWorker(GenericWorker):
 
 
 		self.args = Args()
-		model, _ = nets.factory_from_args(self.args)
+		print(self.args)
+		model, _ = factory_from_args(self.args)
 		model = model.to(self.args.device)
 		#model.cuda()
 		self.processor = decoder.factory_from_args(self.args, model)
@@ -115,8 +118,9 @@ class SpecificWorker(GenericWorker):
 		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth)
 		image = cv2.resize(self.src, None, fx=scale, fy=scale)
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-		processed_image_cpu = transforms.image_transform(image.copy())
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
+		image_pil = PIL.Image.fromarray(image)
+		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
 		unsqueezed = torch.unsqueeze(processed_image, 0).to(self.args.device)
 		fields = self.processor.fields(unsqueezed)[0]
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
@@ -137,4 +141,3 @@ class SpecificWorker(GenericWorker):
 			person.joints = joints
 			people.append(person)
 		return people
-
