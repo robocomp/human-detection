@@ -88,7 +88,7 @@ Human::~Human()
 
 void Human::update(int cameraId, float x, float y, float ang)
 {
-//	qDebug()<<"update"<<cameraId<<x<<y<<ang<<cameraPose_list.size();
+	qDebug()<<"update"<<cameraId<<x<<y<<ang<<cameraPose_list.size();
 	cameraPose_list[cameraId-1].ellipse->setPos(x-ellipseHalfSizeX, y - ellipseHalfSizeY);
 	cameraPose_list[cameraId-1].text->setPos(x-ellipseHalfSizeX/2, y - ellipseHalfSizeY);
 }
