@@ -21,7 +21,7 @@
 /**
 * \brief Default constructor
 */
-SpecificWorker::SpecificWorker(TuplePrx tprx) : GenericWorker(tprx)
+SpecificWorker::SpecificWorker(TuplePrx tprx, bool startup_check) : GenericWorker(tprx)
 {
 
 }
@@ -75,6 +75,24 @@ void SpecificWorker::initialize(int period)
 	this->Period = period;
 	timer.start(Period);
 
+	//get data from file instead of subscription
+	if (this->params["Simulation_data"].value != "nofile")
+	{
+		QFile input_file(QString::fromStdString(this->params["Simulation_data"].value));
+		if (not input_file.open(QIODevice::ReadOnly | QIODevice::Text))
+			qFatal("Error opening input data file, check config file");
+		else
+		{
+			QString val = input_file.readAll();
+    		input_file.close();
+    		QJsonDocument doc = QJsonDocument::fromJson(val.toUtf8());
+    		QJsonObject jObject = doc.object();
+			data_from_file = jObject["data_set"].toArray();
+			json_iterator = data_from_file.begin();
+		}
+		connect(&file_read_timer, SIGNAL(timeout()), this, SLOT(read_next_entry()));
+		file_read_timer.start(20);
+	}
 }
 
 void SpecificWorker::compute()
@@ -496,6 +514,55 @@ void SpecificWorker::HumanCameraBody_newPeopleData(RoboCompHumanCameraBody::Peop
 		cameraList.resize(people.cameraId + 1);
 	cameraList[people.cameraId].push(people);
 }
+
+void SpecificWorker::read_next_entry()
+{
+	//convert data
+	RoboCompHumanCameraBody::PeopleData people;
+	QJsonObject new_data = (*json_iterator).toObject();
+	people.cameraId = new_data["cameraId"].toInt();
+	people.timestamp = long(new_data["timestamp"].toDouble());
+	QJsonArray gt_array = new_data["ground_truth"].toArray();
+	RoboCompHumanCameraBody::TGroundTruth gt;
+	//other files has more than one person => check input file struct
+	gt.x = gt_array.at(0).toDouble();
+	gt.y = gt_array.at(1).toDouble();
+	gt.z = gt_array.at(2).toDouble();
+	gt.rx = gt_array.at(3).toDouble();
+	gt.ry = gt_array.at(4).toDouble();		
+	gt.rz = gt_array.at(5).toDouble();
+	people.gt.push_back(gt);		
+	RoboCompHumanCameraBody::Person person;
+	person.id = 1;
+	QVariantMap joints_map = new_data["joints"].toObject().toVariantMap();
+
+	for(QVariantMap::const_iterator iter = joints_map.begin(); iter != joints_map.end(); ++iter)
+	{
+		std::string key = iter.key().toStdString();
+		QList<QVariant> joint_values = iter.value().toList();
+		RoboCompHumanCameraBody::KeyPoint keypoint;
+		keypoint.x = joint_values.at(0).toDouble();
+		keypoint.y = joint_values.at(1).toDouble();
+		keypoint.z = joint_values.at(2).toDouble();
+		keypoint.i = joint_values.at(3).toDouble();
+		keypoint.j = joint_values.at(4).toDouble();
+		keypoint.score = joint_values.at(5).toDouble();		
+		person.joints[key] = keypoint;
+	}
+	people.peoplelist.push_back(person);
+
+	// insert data as it cames from openpifpaf
+	HumanCameraBody_newPeopleData(people);
+	//prepare next data
+	json_iterator++;
+	//if file ends, get first entry again
+	if (json_iterator == data_from_file.end())
+	{
+		json_iterator = data_from_file.begin();
+	}
+
+}
+
 
 void SpecificWorker::writeGNNFile(ModelGNN model)
 {

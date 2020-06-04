@@ -91,7 +91,9 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString( "","InnerModelPath", aux.value, "nofile");
 	params["InnerModelPath"] = aux;
 	configGetString( "","World", aux.value, "nofile");
-	params["World"] = aux;    
+	params["World"] = aux;  
+	configGetString( "","Simulation_data", aux.value, "nofile");
+	params["Simulation_data"] = aux;  
 }
 
 //Check parameters and transform them to worker structure
