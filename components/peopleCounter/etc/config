@@ -8,10 +8,10 @@ Ice.Trace.Network=0
 Ice.Trace.Protocol=0
 
 #trackers: dlib, mosse, csrt, kcf, medianflow
-tracker = kcf
+tracker = dlib
 save_results = False
 
-#Put the url of the video as video_input
+#Put the url/path of the video as video_input
 video_input =  
 
 #Change the path to the robocomp directory according to your username

@@ -91,15 +91,17 @@ class SpecificWorker(GenericWorker):
         self.trackers = None
 
         self.confidence = 0.5
-        self.skip_frames = 5
+        self.skip_frames = 30
         self.width = None
         self.height = None
         self.read_ipstream = False
         self.writer = None
-        self.ct = CentroidTracker(maxDisappeared=50, maxDistance=100)
+        self.ct = CentroidTracker(maxDisappeared=50, maxDistance=40)
         self.trackableObjects = {}
         self.totalFrames = 0
         self.peopleInside = 0
+        self.Up = 0
+        self.Down = 0
         self.dict_id_position = {}
 
         if self.selected_tracker != "dlib":
@@ -205,7 +207,7 @@ class SpecificWorker(GenericWorker):
             self.processing_videotofinalize_video.emit()
 
         if process_image:
-            self.frame = imutils.resize(self.frame, width=400)
+            self.frame = imutils.resize(self.frame, width=500)
 
             self.rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
 
@@ -247,33 +249,33 @@ class SpecificWorker(GenericWorker):
         # blob = cv2.dnn.blobFromImage(self.frame, 0.007843, (self.width, self.height), 127.5)
         # self.net.setInput(blob)
         # detections = self.net.forward()
-        #
+        
         # for i in np.arange(0, detections.shape[2]):
-        #
+        
         #     conf = detections[0, 0, i, 2]
-        #
+        
         #     if conf > self.confidence:
-        #
+        
         #         idx = int(detections[0, 0, i, 1])
         #         if self.classes[idx] != "person":
         #             continue
-        #
+        
         #         box = detections[0, 0, i, 3:7] * np.array([self.width, self.height, self.width, self.height])
         #         (startX, startY, endX, endY) = box.astype("int")
 
-                # if self.selected_tracker == "dlib":
-                #
-                #     tracker = dlib.correlation_tracker()
-                #     rect = dlib.rectangle(startX, startY, endX, endY)
-                #     tracker.start_track(self.rgb, rect)
-                #     self.trackers.append(tracker)
-                #
-                # else:
-                #     (x, y, w, h) = (startX, startY, endX - startX, endY - startY)
-                #     tracker = self.opencv_trackers[self.selected_tracker]()
-                #     self.trackers.add(tracker, self.frame, (x, y, w, h))
-                #
-                # self.rects.append((startX, startY, endX, endY))
+        #         if self.selected_tracker == "dlib":
+                
+        #             tracker = dlib.correlation_tracker()
+        #             rect = dlib.rectangle(startX, startY, endX, endY)
+        #             tracker.start_track(self.rgb, rect)
+        #             self.trackers.append(tracker)
+                
+        #         else:
+        #             (x, y, w, h) = (startX, startY, endX - startX, endY - startY)
+        #             tracker = self.opencv_trackers[self.selected_tracker]()
+        #             self.trackers.add(tracker, self.frame, (x, y, w, h))
+                
+        #         self.rects.append((startX, startY, endX, endY))
 
         ##Deteccion con openPifPaf
         im = TImage()
@@ -358,32 +360,33 @@ class SpecificWorker(GenericWorker):
             if to is None:
                 to = TrackableObject(objectID, centroid)
 
-            y = [c[1] for c in to.centroids]
-            direction = centroid[1] - np.mean(y)
-            to.centroids.append(centroid)
+            else:
+                # the difference between the y-coordinate of the *current*
+                # centroid and the mean of *previous* centroids give the
+                # in which direction the object is moving
+                y = [c[1] for c in to.centroids]
+                direction = centroid[1]-np.mean(y)
+                to.centroids.append(centroid)
 
-            if centroid[1] < self.height // 2:  # El centroide esta en la parte superior FUERA
-                try:
-                    isOutside = self.dict_id_position[objectID]
-                    if not isOutside:
-                        self.peopleInside -= 1
-                        # to.counted = True
-                        self.dict_id_position[objectID] = True
+                # check to see if the object has already been counted
+                if not to.counted:
 
-                except:
-                    self.dict_id_position[objectID] = True
+                    # direction is negative(moving up)
+                    # AND centroid is above centre, count the obect
+                    if direction < 0 and centroid[1] < self.height // 2:
+                        self.Up += 1
+                        to.counted = True
 
+                    # direction is positive(moving down)
+                    # AND centroid is below centre, count the obect
+                    elif direction > 0 and centroid[1] > self.height // 2:
+                        self.Down += 1
+                        to.counted = True
+            # store the trackable object
+            # trackableObjects[objectID] = to
 
-            else:  # El centroide eesta en la inferior DENTRO
-                try:
-                    isOutside = self.dict_id_position[objectID]
-                    if isOutside:
-                        self.peopleInside += 1
-                        # to.counted = True
-                        self.dict_id_position[objectID] = False
-
-                except:
-                    self.dict_id_position[objectID] = False
+            # get count of people inside
+            self.peopleInside = self.Down - self.Up
 
             self.trackableObjects[objectID] = to
 
@@ -392,10 +395,10 @@ class SpecificWorker(GenericWorker):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             cv2.circle(self.frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
-        for rect in self.rects:
-            (startX, startY, endX, endY) = rect
-            cv2.rectangle(self.frame, (startX, startY), (endX, endY),
-                          (0, 255, 0), 2)
+        # for rect in self.rects:
+        #     (startX, startY, endX, endY) = rect
+        #     cv2.rectangle(self.frame, (startX, startY), (endX, endY),
+        #                   (0, 255, 0), 2)
 
         info = [
             ("People inside", self.peopleInside),

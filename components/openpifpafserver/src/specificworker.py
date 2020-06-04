@@ -19,7 +19,7 @@
 import argparse
 from genericworker import *
 from openpifpaf.network import nets
-from openpifpaf.network.factory import *
+# from openpifpaf.network.factory import *
 from openpifpaf import decoder, show, transforms
 import torch
 import cv2
@@ -53,10 +53,10 @@ class SpecificWorker(GenericWorker):
 			basenet = None
 			dilation = None
 			dilation_end = None
-			headnets=('pif', 'paf')
-			dropout=0.0
-			quad=1
-			pretrained=False
+			headnets = ['pif', 'paf']
+			dropout = 0.0
+			quad = 1
+			pretrained = False
 			keypoint_threshold = None
 			seed_threshold = 0.2
 			force_complete_pose = False
@@ -65,11 +65,11 @@ class SpecificWorker(GenericWorker):
 			connection_method = 'max'
 			fixed_b = None
 			pif_fixed_scale = None
-			profile_decoder = False
+			profile_decoder = None
 			instance_threshold = 0.05
 			device = torch.device(type="cuda")
 			disable_cuda = False
-			scale = 0.7
+			scale = 1
 			key_point_threshold = 0.05
 			head_dropout = 0.0
 			head_quad = 0
@@ -82,7 +82,7 @@ class SpecificWorker(GenericWorker):
 			cross_talk = 0.0
 			two_scale = False
 			multi_scale = False
-			multi_scale_hflip = True
+			multi_scale_hflip = False
 			paf_th = 0.1
 			pif_th = 0.1
 			decoder_workers = None
@@ -92,9 +92,9 @@ class SpecificWorker(GenericWorker):
 
 		self.args = Args()
 		print(self.args)
-		model, _ = factory_from_args(self.args)
+		model, _ = nets.factory_from_args(self.args)
 		model = model.to(self.args.device)
-		#model.cuda()
+		model.cuda()
 		self.processor = decoder.factory_from_args(self.args, model)
 		self.src = np.zeros((480, 640, 3), np.uint8)
 
