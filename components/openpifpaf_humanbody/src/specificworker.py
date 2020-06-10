@@ -200,7 +200,7 @@ def processDescriptor(image, depth, simulation, scale, keypoint_sets, focal, des
 
 
 class SpecificWorker(GenericWorker):
-	def __init__(self, proxy_map):
+	def __init__(self, proxy_map, startup_check=False):
 		super(SpecificWorker, self).__init__(proxy_map)
 		self.timer.timeout.connect(self.compute)
 		self.params = {}
@@ -247,10 +247,10 @@ class SpecificWorker(GenericWorker):
 
 		if self.simulation:
 			self.client = b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApiAddOn')
-			ret, children = self.client.simxGetObjectsInTree('sim.handle_scene', 'sim.object_dummy_type', 1+2, self.client.simxServiceCall())
+			ret, children = self.client.simxGetObjectsInTree('sim.handle_scene', None, 1+2, self.client.simxServiceCall())
 			for child in children:
 				ret, name = self.client.simxGetObjectName(child, '', self.client.simxServiceCall())
-				if "Bill" in str(name):
+				if "Bill_base" in str(name):
 					self.bill.append(child)
 
 		self.start = time.time()
