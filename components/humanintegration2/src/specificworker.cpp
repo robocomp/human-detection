@@ -606,16 +606,17 @@ qDebug()<<"person to dsr";
 	try
 	{
 		person = innerModel->getNode<InnerModelTransform>("person");
-		innerModel->updateTransformValues("person", mp.x, mp.y, mp.z, 0, 0, 0);
+		innerModel->updateTransformValues("person", mp.x, mp.y, mp.z, 0, mp.angle, 0);
 		innerModel->update();
 	}
 	catch(...) //node creation
 	{
-		person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, 0, 0);
+		person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, mp.angle, 0);
 	}
 	dsrPerson.x = mp.x;
 	dsrPerson.y = mp.y;
 	dsrPerson.z = mp.z;
+    dsrPerson.ry = mp.angle;
 	// update joints
 	try
 	{
