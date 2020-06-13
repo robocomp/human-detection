@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2020 by YOUR NAME HERE
+#    Copyright (C) 2020 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -23,81 +23,219 @@ from PySide2 import QtWidgets, QtCore
 
 ROBOCOMP = ''
 try:
-	ROBOCOMP = os.environ['ROBOCOMP']
+    ROBOCOMP = os.environ['ROBOCOMP']
 except KeyError:
-	print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
-	ROBOCOMP = '/opt/robocomp'
+    print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
+    ROBOCOMP = '/opt/robocomp'
 
-preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ --all /opt/robocomp/interfaces/"
-Ice.loadSlice(preStr+"CommonBehavior.ice")
+Ice.loadSlice("-I ./src/ --all ./src/CommonBehavior.ice")
 import RoboCompCommonBehavior
 
-additionalPathStr = ''
-icePaths = [ '/opt/robocomp/interfaces' ]
-try:
-	SLICE_PATH = os.environ['SLICE_PATH'].split(':')
-	for p in SLICE_PATH:
-		icePaths.append(p)
-		additionalPathStr += ' -I' + p + ' '
-	icePaths.append('/opt/robocomp/interfaces')
-except:
-	print('SLICE_PATH environment variable was not exported. Using only the default paths')
-	pass
-
-ice_HumanCameraBody = False
-for p in icePaths:
-	if os.path.isfile(p+'/HumanCameraBody.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"HumanCameraBody.ice"
-		Ice.loadSlice(wholeStr)
-		ice_HumanCameraBody = True
-		break
-if not ice_HumanCameraBody:
-	print('Couln\'t load HumanCameraBody')
-	sys.exit(-1)
+Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
+import RoboCompCameraRGBDSimple
+Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
 import RoboCompHumanCameraBody
-ice_CameraRGBDSimple = False
-for p in icePaths:
-	if os.path.isfile(p+'/CameraRGBDSimple.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"CameraRGBDSimple.ice"
-		Ice.loadSlice(wholeStr)
-		ice_CameraRGBDSimple = True
-		break
-if not ice_CameraRGBDSimple:
-	print('Couln\'t load CameraRGBDSimple')
-	sys.exit(-1)
-from RoboCompCameraRGBDSimple import *
+
+class ImgType(list):
+    def __init__(self, iterable=list()):
+        super(ImgType, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(ImgType, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).insert(index, item)
+
+setattr(RoboCompCameraRGBDSimple, "ImgType", ImgType)
+
+class DepthType(list):
+    def __init__(self, iterable=list()):
+        super(DepthType, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(DepthType, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(DepthType, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(DepthType, self).insert(index, item)
+
+setattr(RoboCompCameraRGBDSimple, "DepthType", DepthType)
+
+class DescriptorFloat(list):
+    def __init__(self, iterable=list()):
+        super(DescriptorFloat, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, float)
+        super(DescriptorFloat, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, float)
+        super(DescriptorFloat, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, float)
+        super(DescriptorFloat, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescriptorFloat", DescriptorFloat)
+
+class DescriptorByte(list):
+    def __init__(self, iterable=list()):
+        super(DescriptorByte, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(DescriptorByte, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(DescriptorByte, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(DescriptorByte, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescriptorByte", DescriptorByte)
+
+class DescByteList(list):
+    def __init__(self, iterable=list()):
+        super(DescByteList, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorByte)
+        super(DescByteList, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.DescriptorByte)
+        super(DescByteList, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorByte)
+        super(DescByteList, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescByteList", DescByteList)
+
+class DescFloatList(list):
+    def __init__(self, iterable=list()):
+        super(DescFloatList, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorFloat)
+        super(DescFloatList, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.DescriptorFloat)
+        super(DescFloatList, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.DescriptorFloat)
+        super(DescFloatList, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "DescFloatList", DescFloatList)
+
+class ImgType(list):
+    def __init__(self, iterable=list()):
+        super(ImgType, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, byte)
+        super(ImgType, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, byte)
+        super(ImgType, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "ImgType", ImgType)
+
+class GroundTruth(list):
+    def __init__(self, iterable=list()):
+        super(GroundTruth, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.TGroundTruth)
+        super(GroundTruth, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.TGroundTruth)
+        super(GroundTruth, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.TGroundTruth)
+        super(GroundTruth, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "GroundTruth", GroundTruth)
+
+class People(list):
+    def __init__(self, iterable=list()):
+        super(People, self).__init__(iterable)
+
+    def append(self, item):
+        assert isinstance(item, RoboCompHumanCameraBody.Person)
+        super(People, self).append(item)
+
+    def extend(self, iterable):
+        for item in iterable:
+            assert isinstance(item, RoboCompHumanCameraBody.Person)
+        super(People, self).extend(iterable)
+
+    def insert(self, index, item):
+        assert isinstance(item, RoboCompHumanCameraBody.Person)
+        super(People, self).insert(index, item)
+
+setattr(RoboCompHumanCameraBody, "People", People)
+
+
 
 
 
 
 class GenericWorker(QtCore.QObject):
 
-	kill = QtCore.Signal()
+    kill = QtCore.Signal()
 
-	def __init__(self, mprx):
-		super(GenericWorker, self).__init__()
+    def __init__(self, mprx):
+        super(GenericWorker, self).__init__()
 
+        self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
+        self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
 
-		self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
-		self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
-
-		
-		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
-		self.Period = 30
-		self.timer = QtCore.QTimer(self)
+        self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
+        self.Period = 30
+        self.timer = QtCore.QTimer(self)
 
 
-	@QtCore.Slot()
-	def killYourSelf(self):
-		rDebug("Killing myself")
-		self.kill.emit()
+    @QtCore.Slot()
+    def killYourSelf(self):
+        rDebug("Killing myself")
+        self.kill.emit()
 
-	# \brief Change compute period
-	# @param per Period in ms
-	@QtCore.Slot(int)
-	def setPeriod(self, p):
-		print("Period changed", p)
-		self.Period = p
-		self.timer.start(self.Period)
+    # \brief Change compute period
+    # @param per Period in ms
+    @QtCore.Slot(int)
+    def setPeriod(self, p):
+        print("Period changed", p)
+        self.Period = p
+        self.timer.start(self.Period)

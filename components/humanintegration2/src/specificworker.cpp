@@ -281,7 +281,7 @@ void SpecificWorker::update_person(ModelPerson *p_old, ModelPerson p_new)
 		writeGNNFile(gnnData[p_old->id]);
 		updateHumanModel(gnnData[p_old->id], p_old);
 		gnnData[p_old->id].clear();
-		//pythonCall->callPythonGNN(p_old);
+		pythonCall->callPythonGNN(p_old);
 		personToDSR(*p_old);
 	}
 
@@ -317,8 +317,8 @@ void SpecificWorker::updateHumanModel(ModelGNN model, ModelPerson *person)
 	 	angle = atan2(sin_angle/cont, cos_angle/cont);
 qDebug()<<"PERSON"<<x<<z<<angle_orig<<sin_angle<<cos_angle<<cont<<angle;	
 	}
-	if (person->human != NULL)
-		person->human->updateCameraMedian(x, z, angle);
+//	if (person->human != NULL)
+//		person->human->updateCameraMedian(x, z, angle);
 }
 
 
@@ -606,16 +606,18 @@ qDebug()<<"person to dsr";
 	try
 	{
 		person = innerModel->getNode<InnerModelTransform>("person");
-		innerModel->updateTransformValues("person", mp.x, mp.y, mp.z, 0, 0, 0);
+		innerModel->updateTransformValues("person", mp.x, mp.y, mp.z, 0, mp.angle, 0);
 		innerModel->update();
 	}
 	catch(...) //node creation
 	{
-		person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, 0, 0);
+		person = innerModel->newTransform("person", "static", world, mp.x, mp.y, mp.z, 0, mp.angle, 0);
 	}
 	dsrPerson.x = mp.x;
 	dsrPerson.y = mp.y;
 	dsrPerson.z = mp.z;
+    dsrPerson.ry = mp.angle;
+qDebug()<<"publish data ("<<mp.x<<","<<mp.z<<","<<mp.angle<<")";
 	// update joints
 	try
 	{
