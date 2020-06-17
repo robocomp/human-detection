@@ -55,6 +55,7 @@ Human::Human(int id_, int ncameras, const QRectF &r, QPointF pos, float angle, Q
 		newModel.ellipse->setPen(QPen(QBrush(QColor(colors[i])),20));  
 		newModel.ellipse->setBrush(QColor(colors[i]));  
 		newModel.ellipse->setZValue(30);
+		newModel.ellipse->setVisible(false);
 		scene->addItem(newModel.ellipse);
 		//pixmap
 
@@ -62,6 +63,7 @@ Human::Human(int id_, int ncameras, const QRectF &r, QPointF pos, float angle, Q
 		newModel.pixmap->setTransformOriginPoint(newModel.pixmap->boundingRect().center());
 		newModel.pixmap->setParentItem(this);
 		newModel.pixmap->setZValue(20);
+		newModel.pixmap->setVisible(false);
 		scene->addItem(newModel.pixmap);
 		models.append(newModel);
 	}	
@@ -88,7 +90,7 @@ Human::~Human()
 
 void Human::update(int cameraId, float x, float y, float ang)
 {
-//	qDebug()<<"update"<<cameraId<<x<<y<<ang<<cameraPose_list.size();
+	qDebug()<<"update"<<cameraId<<x<<y<<ang<<cameraPose_list.size();
 	cameraPose_list[cameraId-1].ellipse->setPos(x-ellipseHalfSizeX, y - ellipseHalfSizeY);
 	cameraPose_list[cameraId-1].text->setPos(x-ellipseHalfSizeX/2, y - ellipseHalfSizeY);
 }
@@ -116,6 +118,8 @@ void Human::updateCameraMedian(float x, float y, float ang)
 
 void Human::updateN(int n, float x, float y, float ang)
 {
+	models[n].pixmap->setVisible(true);
+	models[n].ellipse->setVisible(true);
 	models[n].pixmap->setPos(x-pixmapHalfSizeX, y-pixmapHalfSizeY);
 	models[n].pixmap->setRotation(qRadiansToDegrees(ang)+180);
 	models[n].ellipse->setPos(x-ellipseHalfSizeX, y - ellipseHalfSizeY);

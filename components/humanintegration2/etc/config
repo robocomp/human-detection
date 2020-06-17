@@ -8,9 +8,10 @@ HumanCameraBodyTopic.Endpoints=tcp -p 12457
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-InnerModelPath = autonomyLab.xml
+InnerModelPath = autonomyLab_real.xml
 World = room5.json
-
+Simulation_data = 
+human_data_3C_R-V_19x19_L_L.txt
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

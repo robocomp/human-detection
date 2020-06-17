@@ -65,16 +65,16 @@ public:
 		std::queue<RoboCompHumanCameraBody::PeopleData> peopledata;
 		mutable std::mutex mymutex; 
 
-		void push(const PeopleData &detected_people)
+		void push(const RoboCompHumanCameraBody::PeopleData &detected_people)
 		{
 			std::lock_guard<std::mutex> lock(mymutex);
 			peopledata.push(detected_people);
 		}
-		std::tuple<bool,PeopleData> pop()
+		std::tuple<bool,RoboCompHumanCameraBody::PeopleData> pop()
 		{
 			std::lock_guard<std::mutex> lock(mymutex);
 			if(peopledata.empty() == true)
-				return std::make_tuple(false, PeopleData());
+				return std::make_tuple(false, RoboCompHumanCameraBody::PeopleData());
 			auto detected_people = peopledata.front();
 			peopledata.pop();
 			return std::make_tuple(true, detected_people);
@@ -108,7 +108,6 @@ public:
 		Human *human;
 		bool to_delete = false;
 		int cameraId;
-		float gtruth_x, gtruth_y, gtruth_z, gtruth_angle;  // ground truth
 		std::map<std::string, KeyPoint> joints; 
 	};
 	using ModelPeople = std::vector<ModelPerson>;
@@ -125,7 +124,7 @@ public:
 	std::map<int, ModelGNN> gnnData;
 	PythonCall *pythonCall;
 
-	SpecificWorker(TuplePrx tprx);
+	SpecificWorker(TuplePrx tprx, bool startup_check);
 	~SpecificWorker();
 	bool setParams(RoboCompCommonBehavior::ParameterList params);
 
@@ -134,14 +133,15 @@ public:
 	void removePeople();
 	int computeDistance(const ModelPerson &p_old, const ModelPerson &p_new);
 	void clearMatchedPeople();	
-	void HumanCameraBody_newPeopleData(PeopleData people);
+	void HumanCameraBody_newPeopleData(RoboCompHumanCameraBody::PeopleData people);
 	void joinPeople();
 	void writeGNNFile(ModelGNN model);
 	void updateHumanModel(ModelGNN model, ModelPerson *person);
-
+	void personToDSR(const ModelPerson &mp);
 public slots:
 	void compute();
 	void initialize(int period);
+	void read_next_entry();
 private:
 	std::vector<std::string> COCO_IDS{"nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
             "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
@@ -170,6 +170,9 @@ private:
 	const int MINDISTANCE = 1000;  //Distance to assume to person data are the same 
 	const int MAXTIME = 2000; //Maximum time elapsed without seen a person before deleted
 	const int MINFRAMES = 10;
+	QTimer file_read_timer;
+	QJsonArray data_from_file;
+	QJsonArray::iterator json_iterator;
 };
 
 #include "pythonCall.h"
