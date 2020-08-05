@@ -261,6 +261,7 @@ class SpecificWorker(GenericWorker):
 			color_, depth_ = self.camerargbdsimple_proxy.getAll()
 			if (len(color_.image) == 0) or (len(depth_.depth) == 0):
 				print ('Error retrieving images!')
+			print(len(color_.image), len(depth_.depth))
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
