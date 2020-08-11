@@ -17,7 +17,7 @@ needs a configuration file to start. In `etc/config` you can find an example of 
 5. **stitch:** Set this to true if there are multiple video feeds and you want the count values to be obtained post stitching the videos together. setting this to false will assume majority voting.
 6. **video:** Path/URL of videos. You can set this None if you want to start a webcam stream. 
 
-The state trnsition diagram of the component:  
+The state transition diagram of the component:  
 ![](images/fsm.png)
     
 ## Starting the component
