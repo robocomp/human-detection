@@ -1,0 +1,26 @@
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
+PeopleServerProxy = peopleserver:tcp -h localhost -p 11222
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+
+save_results=False
+
+#Kalman filter: kf or Moving average: mavg or None
+filter=None
+
+#model1, model2, model3
+model=model3
+
+skip_frames=45
+
+stitch=True
+
+#Put the url/path of the video as video_input
+video=http://localhost:8000/f1.mp4 http://localhost:8000/f2.mp4
+#/home/caradmin/space/videos/f1.mp4
+#/home/caradmin/space/videos/cam.avi
+# /home/caradmin/space/videos/cam2.avi /home/caradmin/space/videos/cam3.avi
+
