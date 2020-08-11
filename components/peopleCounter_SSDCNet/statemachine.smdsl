@@ -1,0 +1,49 @@
+
+/* CHANGE THE NAME OF THE MACHINE IF YOU MAKE
+   ANY CHANGE TO THE DEFAULT STATES OR TRANSITIONS */
+
+peopleCounterMachine{
+    states processing_video;
+    initial_state initialize_video;
+    end_state finalize_video;
+    transitions{
+        initialize_video => processing_video;
+        initialize_video => finalize_video;
+        processing_video => finalize_video;
+    };
+};
+
+:processing_video{
+	states counting;
+	initial_state reading_frames;
+ 	transitions{
+        reading_frames => reading_frames;
+        reading_frames => counting;
+        counting => reading_frames;
+    };
+};
+
+/* --------------------------------------------------------------
+   This is the accepted syntax for the State Machine definition 
+
+name_machine{
+    [states name_state *[, name_state];]
+    [initial_state name_state;]
+    [end_state name_state;]
+    [transitions{
+        name_state => name_state *[, name_state];
+        *[name_state => name_state *[, name_state];]
+    };]
+};
+
+[:parent_state [parallel]{
+    states name_state *[, name_state];
+    [initial_state name_state;]
+    [end_state name_state;]
+    [transitions{
+        name_state => name_state *[, name_state];
+        *[name_state => name_state *[, name_state];]
+    };]
+};]
+
+------------------------------------------------------------------ */
