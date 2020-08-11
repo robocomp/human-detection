@@ -39,4 +39,5 @@ components/peopleCounter/\.idea/
 
 components/humanPoseFake/build/
 
-components/peopleCounter_SSDCNet/model
+components/peopleCounter_SSDCNet/model/
+components/peopleCounter_SSDCNet/config
