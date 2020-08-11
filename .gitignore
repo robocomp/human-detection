@@ -38,3 +38,5 @@ components/openpifpafserver/\.idea/
 components/peopleCounter/\.idea/
 
 components/humanPoseFake/build/
+
+components/peopleCounter_SSDCNet/model
