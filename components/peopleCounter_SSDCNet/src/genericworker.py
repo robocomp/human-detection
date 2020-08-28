@@ -17,7 +17,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
-
 import sys, Ice, os
 from PySide2 import QtWidgets, QtCore
 
@@ -45,21 +44,6 @@ except:
 	pass
 
 ice_PeopleServer = False
-for p in icePaths:
-	if os.path.isfile(p+'/PeopleServer.ice'):
-		preStr = "-I/opt/robocomp/interfaces/ -I"+ROBOCOMP+"/interfaces/ " + additionalPathStr + " --all "+p+'/'
-		wholeStr = preStr+"PeopleServer.ice"
-		Ice.loadSlice(wholeStr)
-		ice_PeopleServer = True
-		break
-if not ice_PeopleServer:
-	print('Couln\'t load PeopleServer')
-	sys.exit(-1)
-from RoboCompPeopleServer import *
-
-
-
-
 class GenericWorker(QtCore.QObject):
 
 	kill = QtCore.Signal()
@@ -67,21 +51,14 @@ class GenericWorker(QtCore.QObject):
 	initialize_videotoprocessing_video = QtCore.Signal()
 	initialize_videotofinalize_video = QtCore.Signal()
 	processing_videotofinalize_video = QtCore.Signal()
-	reading_framestodetecting = QtCore.Signal()
-	reading_framestotracking = QtCore.Signal()
-	detectingtoupdate = QtCore.Signal()
-	trackingtoupdate = QtCore.Signal()
-	updatetoreading_frames = QtCore.Signal()
+	reading_framestoreading_frames = QtCore.Signal()
+	reading_framestocounting = QtCore.Signal()
+	countingtoreading_frames = QtCore.Signal()
 
 #-------------------------
 
 	def __init__(self, mprx):
-		super(GenericWorker, self).__init__()
-
-
-		self.peopleserver_proxy = mprx["PeopleServerProxy"]
-
-		
+		super(GenericWorker, self).__init__()		
 		self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
 		self.Period = 30
 		self.timer = QtCore.QTimer(self)
@@ -90,37 +67,27 @@ class GenericWorker(QtCore.QObject):
 		self.peopleCounterMachine= QtCore.QStateMachine()
 		self.processing_video_state = QtCore.QState(self.peopleCounterMachine)
 		self.initialize_video_state = QtCore.QState(self.peopleCounterMachine)
-
 		self.finalize_video_state = QtCore.QFinalState(self.peopleCounterMachine)
 
-
-
-		self.detecting_state = QtCore.QState(self.processing_video_state)
-		self.tracking_state = QtCore.QState(self.processing_video_state)
-		self.update_state = QtCore.QState(self.processing_video_state)
 		self.reading_frames_state = QtCore.QState(self.processing_video_state)
-
+		self.counting_state = QtCore.QState(self.processing_video_state)
 
 
 #------------------
 #Initialization State machine
+		
 		self.initialize_video_state.addTransition(self.initialize_videotoprocessing_video, self.processing_video_state)
 		self.initialize_video_state.addTransition(self.initialize_videotofinalize_video, self.finalize_video_state)
 		self.processing_video_state.addTransition(self.processing_videotofinalize_video, self.finalize_video_state)
-		self.reading_frames_state.addTransition(self.reading_framestodetecting, self.detecting_state)
-		self.reading_frames_state.addTransition(self.reading_framestotracking, self.tracking_state)
-		self.detecting_state.addTransition(self.detectingtoupdate, self.update_state)
-		self.tracking_state.addTransition(self.trackingtoupdate, self.update_state)
-		self.update_state.addTransition(self.updatetoreading_frames, self.reading_frames_state)
-
-
+		self.reading_frames_state.addTransition(self.reading_framestocounting, self.counting_state)
+		self.reading_frames_state.addTransition(self.reading_framestoreading_frames, self.reading_frames_state)
+		self.counting_state.addTransition(self.countingtoreading_frames, self.reading_frames_state)
+		
 		self.processing_video_state.entered.connect(self.sm_processing_video)
 		self.initialize_video_state.entered.connect(self.sm_initialize_video)
 		self.finalize_video_state.entered.connect(self.sm_finalize_video)
 		self.reading_frames_state.entered.connect(self.sm_reading_frames)
-		self.detecting_state.entered.connect(self.sm_detecting)
-		self.tracking_state.entered.connect(self.sm_tracking)
-		self.update_state.entered.connect(self.sm_update)
+		self.counting_state.entered.connect(self.sm_counting)
 
 		self.peopleCounterMachine.setInitialState(self.initialize_video_state)
 		self.processing_video_state.setInitialState(self.reading_frames_state)
@@ -144,18 +111,8 @@ class GenericWorker(QtCore.QObject):
 		sys.exit(-1)
 
 	@QtCore.Slot()
-	def sm_detecting(self):
+	def sm_counting(self):
 		print("Error: lack sm_detecting in Specificworker")
-		sys.exit(-1)
-
-	@QtCore.Slot()
-	def sm_tracking(self):
-		print("Error: lack sm_tracking in Specificworker")
-		sys.exit(-1)
-
-	@QtCore.Slot()
-	def sm_update(self):
-		print("Error: lack sm_update in Specificworker")
 		sys.exit(-1)
 
 	@QtCore.Slot()

@@ -19,9 +19,11 @@
 import argparse
 from genericworker import *
 from openpifpaf.network import nets
+# from openpifpaf.network.factory import *
 from openpifpaf import decoder, show, transforms
 import torch
 import cv2
+import PIL
 import numpy as np
 
 COCO_IDS=["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle" ]
@@ -51,10 +53,10 @@ class SpecificWorker(GenericWorker):
 			basenet = None
 			dilation = None
 			dilation_end = None
-			headnets=['pif', 'paf']
-			dropout=0.0
-			quad=1
-			pretrained=False
+			headnets = ['pif', 'paf']
+			dropout = 0.0
+			quad = 1
+			pretrained = False
 			keypoint_threshold = None
 			seed_threshold = 0.2
 			force_complete_pose = False
@@ -63,11 +65,11 @@ class SpecificWorker(GenericWorker):
 			connection_method = 'max'
 			fixed_b = None
 			pif_fixed_scale = None
-			profile_decoder = False
+			profile_decoder = None
 			instance_threshold = 0.05
 			device = torch.device(type="cuda")
 			disable_cuda = False
-			scale = 0.7
+			scale = 1
 			key_point_threshold = 0.05
 			head_dropout = 0.0
 			head_quad = 0
@@ -77,12 +79,22 @@ class SpecificWorker(GenericWorker):
 			head_kernel_size = 1
 			head_padding = 0
 			head_dilation = 0
+			cross_talk = 0.0
+			two_scale = False
+			multi_scale = False
+			multi_scale_hflip = False
+			paf_th = 0.1
+			pif_th = 0.1
+			decoder_workers = None
+			experimental_decoder = False
+			extra_coupling = 0.0
 
 
 		self.args = Args()
+		print(self.args)
 		model, _ = nets.factory_from_args(self.args)
 		model = model.to(self.args.device)
-		#model.cuda()
+		model.cuda()
 		self.processor = decoder.factory_from_args(self.args, model)
 		self.src = np.zeros((480, 640, 3), np.uint8)
 
@@ -106,8 +118,9 @@ class SpecificWorker(GenericWorker):
 		self.src = np.frombuffer(img.image, np.uint8).reshape(img.height, img.width, img.depth)
 		image = cv2.resize(self.src, None, fx=scale, fy=scale)
 		#image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-		processed_image_cpu = transforms.image_transform(image.copy())
-		processed_image = processed_image_cpu.contiguous().to(non_blocking=True)
+		image_pil = PIL.Image.fromarray(image)
+		processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
+		processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
 		unsqueezed = torch.unsqueeze(processed_image, 0).to(self.args.device)
 		fields = self.processor.fields(unsqueezed)[0]
 		keypoint_sets, _ = self.processor.keypoint_sets(fields)
@@ -128,4 +141,3 @@ class SpecificWorker(GenericWorker):
 			person.joints = joints
 			people.append(person)
 		return people
-

@@ -48,7 +48,7 @@
 #
 # \subsection execution_ssec Execution
 #
-# Just: "${PATH_TO_BINARY}/peopleCounter --Ice.Config=${PATH_TO_CONFIG_FILE}"
+# Just: "${PATH_TO_BINARY}/peopleCounter_SSDCNet --Ice.Config=${PATH_TO_CONFIG_FILE}"
 #
 # \subsection running_ssec Once running
 #
@@ -106,22 +106,6 @@ if __name__ == '__main__':
 	parameters = {}
 	for i in ic.getProperties():
 		parameters[str(i)] = str(ic.getProperties().getProperty(i))
-
-	# Remote object connection for PeopleServer
-	try:
-		proxyString = ic.getProperties().getProperty('PeopleServerProxy')
-		try:
-			basePrx = ic.stringToProxy(proxyString)
-			peopleserver_proxy = PeopleServerPrx.checkedCast(basePrx)
-			mprx["PeopleServerProxy"] = peopleserver_proxy
-		except Ice.Exception:
-			print('Cannot connect to the remote object (PeopleServer)', proxyString)
-			#traceback.print_exc()
-			status = 1
-	except (Ice.Exception, e):
-		print(e)
-		print('Cannot get PeopleServerProxy property.')
-		status = 1
 
 	if status == 0:
 		worker = SpecificWorker(mprx)
