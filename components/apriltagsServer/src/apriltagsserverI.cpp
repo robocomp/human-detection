@@ -1,5 +1,5 @@
 /*
- *    Copyright (C) 2020 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -28,7 +28,8 @@ AprilTagsServerI::~AprilTagsServerI()
 {
 }
 
-tagsList AprilTagsServerI::getAprilTags(const Image  &frame, const double  tagsize, const double  mfx, const double  mfy, const Ice::Current&)
+
+RoboCompAprilTagsServer::tagsList AprilTagsServerI::getAprilTags(RoboCompAprilTagsServer::Image frame, double tagsize, double mfx, double mfy, const Ice::Current&)
 {
 	return worker->AprilTagsServer_getAprilTags(frame, tagsize, mfx, mfy);
 }

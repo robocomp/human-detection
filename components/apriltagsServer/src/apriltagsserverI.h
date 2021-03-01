@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2020 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -26,15 +26,14 @@
 #include <config.h>
 #include "genericworker.h"
 
-using namespace RoboCompAprilTagsServer;
 
 class AprilTagsServerI : public virtual RoboCompAprilTagsServer::AprilTagsServer
 {
 public:
-AprilTagsServerI(GenericWorker *_worker);
+	AprilTagsServerI(GenericWorker *_worker);
 	~AprilTagsServerI();
 
-	tagsList getAprilTags(const Image  &frame, const double  tagsize, const double  mfx, const double  mfy, const Ice::Current&);
+	RoboCompAprilTagsServer::tagsList getAprilTags(RoboCompAprilTagsServer::Image frame, double tagsize, double mfx, double mfy, const Ice::Current&);
 
 private:
 

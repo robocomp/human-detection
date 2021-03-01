@@ -43,11 +43,11 @@ class SpecificWorker : public GenericWorker
 {
     Q_OBJECT
 public:
-    SpecificWorker(MapPrx& mprx);
+    SpecificWorker(TuplePrx tprx, bool startup_check);
     ~SpecificWorker();
     bool setParams(RoboCompCommonBehavior::ParameterList params);
 
-    tagsList AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy);
+    RoboCompAprilTagsServer::tagsList AprilTagsServer_getAprilTags(RoboCompAprilTagsServer::Image frame, double tagsize, double mfx, double mfy);
 
 public slots:
     void compute();

@@ -6,6 +6,6 @@ Component AprilTagsServer
 	{
 		implements AprilTagsServer;
 	};
-	language Cpp;
+	language Cpp11;
 };
 

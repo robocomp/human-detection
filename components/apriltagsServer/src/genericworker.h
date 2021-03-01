@@ -1,5 +1,5 @@
 /*
- *    Copyright (C)2020 by YOUR NAME HERE
+ *    Copyright (C) 2021 by YOUR NAME HERE
  *
  *    This file is part of RoboComp
  *
@@ -22,26 +22,23 @@
 #include "config.h"
 #include <stdint.h>
 #include <qlog/qlog.h>
-
 #include <CommonBehavior.h>
 
 #include <AprilTagsServer.h>
 
+
 #define CHECK_PERIOD 5000
 #define BASIC_PERIOD 100
 
-using namespace std;
-using namespace RoboCompAprilTagsServer;
 
-typedef map <string,::IceProxy::Ice::Object*> MapPrx;
+using TuplePrx = std::tuple<>;
 
 
-class GenericWorker :
-public QObject
+class GenericWorker : public QObject
 {
 Q_OBJECT
 public:
-	GenericWorker(MapPrx& mprx);
+	GenericWorker(TuplePrx tprx);
 	virtual ~GenericWorker();
 	virtual void killYourSelf();
 	virtual void setPeriod(int p);
@@ -51,7 +48,7 @@ public:
 
 
 
-	virtual tagsList AprilTagsServer_getAprilTags(const Image &frame, const double &tagsize, const double &mfx, const double &mfy) = 0;
+	virtual RoboCompAprilTagsServer::tagsList AprilTagsServer_getAprilTags(RoboCompAprilTagsServer::Image frame, double tagsize, double mfx, double mfy) = 0;
 
 protected:
 
@@ -63,7 +60,7 @@ private:
 
 public slots:
 	virtual void compute() = 0;
-    virtual void initialize(int period) = 0;
+	virtual void initialize(int period) = 0;
 	
 signals:
 	void kill();
