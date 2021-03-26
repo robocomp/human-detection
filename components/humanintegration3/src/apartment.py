@@ -18,7 +18,7 @@ class Apartment2D(object):
         ui.graphicsView.setTransformationAnchor(QGraphicsView.NoAnchor)
         ui.graphicsView.setResizeAnchor(QGraphicsView.NoAnchor)
 
-        self.persons = {}
+        #self.persons = {}
         self.pixmapSize = (0, 0)
         self.initializeWorld()
         
@@ -26,31 +26,20 @@ class Apartment2D(object):
         colors = QColor.colorNames()
         color = colors[random.randint(0, len(colors)-1)] if color==-1 else color
         pos = [pos[0],pos[2]] if len(pos)>2 else pos
-        p = self.scene.addEllipse(pos[0]-size//2, pos[1]-size//2, size, size, pen=QPen(QColor(color),20), brush=QBrush(color=QColor(color)))
+        #p = self.scene.addEllipse(pos[0]-size//2, pos[1]-size//2, size, size, pen=QPen(QColor(color),20), brush=QBrush(color=QColor(color)))
 
         # pixmap
-        pixmap = QPixmap("person.png").scaled(600, 300)
-        self.pixmapSize = (pixmap.width() / 2, pixmap.height() / 2)
-        pixItem = QGraphicsPixmapItem(pixmap)
-        pixItem.setTransformOriginPoint(pixItem.boundingRect().center())
-        pixItem.setZValue(20)
-        self.scene.addItem(pixItem)
+        return {'pixmap' : self.addPixmap(), 'color': color}
 
-        self.persons[p] = pixItem
-
-        return p
-
-    def movePerson(self, elipse, pos, size=100):
+    def movePerson(self, pixmap, pos, rot, size=100):
         #elipse.setPos(pos[0], pos[1])
         pos = [pos[0],pos[2]] if len(pos)>2 else pos
-        color=elipse.pen().color()
-        self.scene.addEllipse(pos[0]-size//2, pos[1]-size//2, size, size, pen=QPen(QColor(color),20), brush=QBrush(color=QColor(color)))
+        color = pixmap['color']
+        e = self.scene.addEllipse(pos[0]-size//2, pos[1]-size//2, size, size, pen=QPen(QColor(color),20), brush=QBrush(color=QColor(color)))
         # pixmap
-        self.persons[elipse].setPos(pos[0]-self.pixmapSize[0], pos[1]-self.pixmapSize[1])
-
-        # change rotation value when provided
-        self.persons[elipse].setRotation(180)
-
+        pixmap['pixmap'].setPos(pos[0]-self.pixmapSize[0], pos[1]-self.pixmapSize[1])
+        pixmap['pixmap'].setRotation(rot) 
+        
 
     def wheelEvent(self, event):
         zoomInFactor = 1.15
@@ -131,6 +120,14 @@ class Apartment2D(object):
         self.scene.addLine(0,0,400,0,QPen(QBrush(QColor("red")),20));
         self.scene.addLine(0,0,0,400,QPen(QBrush(QColor("blue")),20));
 
-
+    def addPixmap(self):
+        pixmap = QPixmap("person.png").scaled(600, 300)
+        self.pixmapSize = (pixmap.width() / 2, pixmap.height() / 2)
+        pixItem = QGraphicsPixmapItem(pixmap)
+        pixItem.setTransformOriginPoint(pixItem.boundingRect().center())
+        pixItem.setZValue(20)
+        self.scene.addItem(pixItem)
+        return pixItem
+        
 
 

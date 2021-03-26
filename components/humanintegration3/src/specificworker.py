@@ -33,17 +33,17 @@ JSON_FILE = 'human_data_textured2.txt'
 #JSON_FILE = 'human_data_2P_Text_I_L.txt'
 #JSON_FILE = 'human_data_textured2_short.txt'
 #JSON_FILE = 'human_data_textured2_large.txt'
-JSON_FILE = 'human_data_3P.txt'
+#JSON_FILE = 'human_data_3P.txt'
 
-KNOWN_PEOPLE = 3
-USE_GNN = False
+KNOWN_PEOPLE = 2
+USE_GNN = True
 
 # Hyperparameters
-MAX_IDLE_TIME = 4  # secs unseen before deleted
-MAX_QUEUE_LENGTH = 40  # obs
+MAX_IDLE_TIME = 3  # secs unseen before deleted
+MAX_QUEUE_LENGTH = 50  # obs
 MIN_TIME_ACTIVE = 1.2 # secs before accepted as new person
 #MIN_DIST = 10 # for KL divergence
-MIN_DIST = 0.60 # for Bat divergence 
+MIN_DIST = 0.65 # to accept match using Bat divergence (0 is best)
 
 class Person(object):
 	
@@ -61,6 +61,9 @@ class Person(object):
 
 	def world(self):
 		return self.history[-1].world
+
+	def rot(self):
+		return self.history[-1].world[3]
 
 	def update(self, obs):
 		self.history.extend(obs.history)
@@ -108,7 +111,7 @@ class SpecificWorker(GenericWorker):
 		self.count_epochs = 0
 		self.net = NetForwad()
 
-		self.Period = 20
+		self.Period = 10
 		self.timer.start(self.Period)
 		return True
 
@@ -128,32 +131,26 @@ class SpecificWorker(GenericWorker):
 				p.update(o)
 				if p.time_active > MIN_TIME_ACTIVE:
 					if USE_GNN:
-						window = p.getSuitableSet()  # OJO que esto cambia las asignaciones
-						pose = self.net.forward(window['data_set'][0])
-						self.alab.movePerson(p.scene_view, [pose[0], -pose[1]])
+						window = p.getSuitableSet()['data_set'][0]
+						if window:  
+							pose = self.net.forward(window)
+							self.alab.movePerson(p.scene_view, [pose[0], -pose[1]], pose[2])
+						else:
+							pass
 					else:
-						self.alab.movePerson(p.scene_view, o.world())
+						self.alab.movePerson(p.scene_view, o.world(), o.rot())
 
 			# add new potential candidates
 			for n in new:
+				n.scene_view = self.alab.addPerson(n.world(), n.rot())
 				self.people.append(n)
-				n.scene_view = self.alab.addPerson(n.world())
 
 			# remove unseen
 			now = time.time()
 			self.people[:] = [p for p in self.people if now - p.idletime < MAX_IDLE_TIME]
-
-			# compute pose wiht GNN
-			# for p in self.people:
-			# 	window = p.getSuitableSet()
-			# 	pose = self.net.forward(window['data_set'][0])
-			# 	p.addPose(pose)
-			# 	print(pose)
 				
 			total_people = len([p for p in self.people if p.time_active>MIN_TIME_ACTIVE])
 			print("Matches:", len(matches), "New:", len(new), "Unseen:", len(unseen), "Total:", total_people)
-			#[p.print() for p in self.people]
-			#print("-------------")
 			
 			if total_people != KNOWN_PEOPLE:
 				self.count_epochs += 1

@@ -20,7 +20,7 @@ import cv2
 
 FILE = 'human_data_2p_descriptores.txt'
 FILE = 'human_data_3C_2P_I_L3.txt'
-FILE = 'human_data.txt'
+#FILE = 'human_data.txt'
     
 def readData(size=30, offset=50):
     pp = pprint.PrettyPrinter(indent=4)

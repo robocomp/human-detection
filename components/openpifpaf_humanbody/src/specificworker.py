@@ -25,13 +25,14 @@ import torch
 import numpy as np
 import cv2
 from openpifpaf.network import nets
-from openpifpaf import decoder, show, transforms
+from openpifpaf import decoder, show, transforms, network
+#import openpifpaf
 import argparse
 import time
 import PIL
 from PySide2.QtCore import QMutexLocker
 import math 
-import b0RemoteApi
+#import b0RemoteApi
 import threading
 
 COCO_IDS = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
@@ -104,14 +105,27 @@ class Args:
 	extra_coupling = 0.0
 
 
-def processPifPaf(processor, img, scale, pifResult):
+def processPifPaf(processor, img, scale, pifResult, args, model):
+	preprocess = transforms.Compose([
+		transforms.NormalizeAnnotations(),
+		transforms.CenterPadTight(16),
+		transforms.EVAL_TRANSFORM,
+	])
 	image = cv2.resize(img, None, fx=scale, fy=scale)
 	image_pil = PIL.Image.fromarray(image)
-	processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
-	processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
-	fields = processor.fields(torch.unsqueeze(processed_image, 0))[0]
-	keypoint_sets, _ = processor.keypoint_sets(fields)
-	pifResult.append(keypoint_sets)
+	#processed_image_cpu, _, __ = transforms.EVAL_TRANSFORM(image_pil, [], None)
+	#processed_image = processed_image_cpu.contiguous().to(non_blocking=True).cuda()
+	meta = {
+		'hflip': False,
+		'offset': np.array([0.0, 0.0]),
+		'scale': np.array([1.0, 1.0]),
+		'valid_area': np.array([0.0, 0.0, image_pil.size[0], image_pil.size[1]]),
+	}
+	processed_image, _, meta = preprocess(image_pil, [], meta)
+	#fields = processor.fields(torch.unsqueeze(processed_image, 0))[0]
+	preds = processor.batch(model, torch.unsqueeze(processed_image, 0), device=args.device)[0]
+	#keypoint_sets, _ = processor.keypoint_sets(preds.data)
+	pifResult.append(preds)
 
 
 def getDepth2(image, i, j, simulation):
@@ -231,6 +245,7 @@ class SpecificWorker(GenericWorker):
 		self.horizontalflip = "true" in self.params["horizontalflip"]
 		self.viewimage = "true" in self.params["viewimage"]
 		self.simulation = "true" in self.params["simulation"]
+		self.cameraname = self.params["cameraname"]
 		if self.simulation:
 			self.focal = 462  # VREP
 		else:
@@ -240,36 +255,26 @@ class SpecificWorker(GenericWorker):
 		return True
 
 	def initialize(self):
-		args = Args()
-		model, _ = nets.factory_from_args(args)
-		model = model.to(args.device)
-		self.processor = decoder.factory_from_args(args, model)
-
-		if self.simulation:
-			self.client = b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApiAddOn')
-			ret, children = self.client.simxGetObjectsInTree('sim.handle_scene', None, 1+2, self.client.simxServiceCall())
-			for child in children:
-				ret, name = self.client.simxGetObjectName(child, '', self.client.simxServiceCall())
-				if "Bill_base" in str(name):
-					self.bill.append(child)
+		self.args = Args()
+		model, _ = network.Factory().factory()
+		self.model = model.to(self.args.device)
+		head_metas = [hn.meta for hn in model.head_nets]
+		self.processor = decoder.factory(head_metas)
 
 		self.start = time.time()
 
 	@QtCore.Slot()
 	def compute(self):
 		try:
-			color_, depth_ = self.camerargbdsimple_proxy.getAll()
+			all_ = self.camerargbdsimple_proxy.getAll(self.cameraname)
+			color_ = all_.image
+			depth_ = all_.depth
 			if (len(color_.image) == 0) or (len(depth_.depth) == 0):
-				print ('Error retrieving images!')
-			print(len(color_.image), len(depth_.depth))
+				print('Error retrieving images!')
+				return
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
-
-		if self.simulation:
-			t1 = time.time()
-			self.gt = self.getBillPose()
-			print("VREP_time", (time.time()-t1)*1000)
 
 		self.width = color_.width
 		self.adepth = np.frombuffer(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
@@ -283,8 +288,9 @@ class SpecificWorker(GenericWorker):
 			self.adepth = cv2.flip(self.adepth, 0)
 
 		scale = 0.5
+
 		pifResults = []
-		p1 = threading.Thread(target=processPifPaf, args=(self.processor, self.acolor, 0.5, pifResults))
+		p1 = threading.Thread(target=processPifPaf, args=(self.processor, self.acolor, 0.5, pifResults, self.args, self.model))
 		p1.start()
 		desResults = []
 
@@ -299,8 +305,6 @@ class SpecificWorker(GenericWorker):
 		p1.join()
 		self.bkeypoint_sets = pifResults[0]
 
-
-		self.publishData()
 		if self.viewimage and len(self.bcolor) > 0:
 			self.drawImage(self.bcolor, self.peoplelist)
 			cv2.imshow("Color frame", self.bcolor)
@@ -318,6 +322,7 @@ class SpecificWorker(GenericWorker):
 		self.contFPS += 1
 		return True
 
+###########################################################################3333
 	def drawImage(self, image, peoplelist):
 		# draw
 		for person in peoplelist:
@@ -362,24 +367,7 @@ class SpecificWorker(GenericWorker):
 			cv2.imshow("roi", self.bcolor[y:y+h, x:x+w])
 		return roi
 
-	# read bill pose from V-REP simulator
-	def getBillPose(self):
-		gt_list = []
-		for bill in self.bill:
-			p_success, bill_pos = self.client.simxGetObjectPosition(bill, -1, self.client.simxServiceCall())
-			o_success, bill_ori = self.client.simxGetObjectOrientation(bill, -1, self.client.simxServiceCall())
-			if p_success == False or o_success == False :
-				print("Error reading pose")
-			else:
-				gt = RoboCompHumanCameraBody.TGroundTruth()
-				gt.x = bill_pos[0] * 1000.0
-				gt.y = bill_pos[1] * 1000.0
-				gt.z = bill_pos[2] * 1000.0
-				gt.rx = bill_ori[0]
-				gt.ry = bill_ori[1]
-				gt.rz = bill_ori[2]
-				gt_list.append(gt)
-		return gt_list
+
 ######################################
 ##### PUBLISHER
 ######################################
