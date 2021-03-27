@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#    Copyright (C) 2020 by YOUR NAME HERE
+#    Copyright (C) 2021 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -62,11 +62,11 @@ import time
 import os
 import copy
 import argparse
-from termcolor import colored
 # Ctrl+c handling
 import signal
 
 from PySide2 import QtCore
+from PySide2 import QtWidgets
 
 from specificworker import *
 
@@ -99,7 +99,7 @@ def sigint_handler(*args):
     QtCore.QCoreApplication.quit()
     
 if __name__ == '__main__':
-    app = QtCore.QCoreApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     parser = argparse.ArgumentParser()
     parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
     parser.add_argument('--startup-check', action='store_true')
@@ -136,6 +136,23 @@ if __name__ == '__main__':
     except Ice.Exception as e:
         print(e)
         print('Cannot get CameraRGBDSimpleProxy property.')
+        status = 1
+
+
+    # Remote object connection for CoppeliaUtils
+    try:
+        proxyString = ic.getProperties().getProperty('CoppeliaUtilsProxy')
+        try:
+            basePrx = ic.stringToProxy(proxyString)
+            coppeliautils_proxy = RoboCompCoppeliaUtils.CoppeliaUtilsPrx.uncheckedCast(basePrx)
+            mprx["CoppeliaUtilsProxy"] = coppeliautils_proxy
+        except Ice.Exception:
+            print('Cannot connect to the remote object (CoppeliaUtils)', proxyString)
+            #traceback.print_exc()
+            status = 1
+    except Ice.Exception as e:
+        print(e)
+        print('Cannot get CoppeliaUtilsProxy property.')
         status = 1
 
 

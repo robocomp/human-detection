@@ -24,16 +24,16 @@ import traceback
 import torch
 import numpy as np
 import cv2
-from openpifpaf.network import nets
+import matplotlib.pyplot as plt
 from openpifpaf import decoder, show, transforms, network
-#import openpifpaf
-import argparse
 import time
 import PIL
-from PySide2.QtCore import QMutexLocker
-import math 
-#import b0RemoteApi
+import math
 import threading
+import dt_apriltags as april
+from pytransform3d import rotations as pr
+from pytransform3d import transformations as pt
+from pytransform3d.transform_manager import TransformManager
 
 COCO_IDS = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
             "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
@@ -57,9 +57,6 @@ SKELETON_CONNECTIONS = [("left_ankle", "left_knee"),
                         ("right_eye", "right_ear"),
                         ("left_ear", "left_shoulder"),
                         ("right_ear", "right_shoulder")]
-
-
-
 
 # openpifpaf configuration
 class Args:
@@ -104,7 +101,6 @@ class Args:
 	experimental_decoder = False
 	extra_coupling = 0.0
 
-
 def processPifPaf(processor, img, scale, pifResult, args, model):
 	preprocess = transforms.Compose([
 		transforms.NormalizeAnnotations(),
@@ -127,7 +123,6 @@ def processPifPaf(processor, img, scale, pifResult, args, model):
 	#keypoint_sets, _ = processor.keypoint_sets(preds.data)
 	pifResult.append(preds)
 
-
 def getDepth2(image, i, j, simulation):
 	OFFSET = 19
 	x = i-OFFSET
@@ -139,7 +134,6 @@ def getDepth2(image, i, j, simulation):
 	if simulation:
 		return np.min(min) * 1000
 	return np.min(min)
-
 
 	#return median depth value
 def getDepth(image, i, j, simulation):
@@ -160,35 +154,26 @@ def getDepth(image, i, j, simulation):
 			return np.min(values) * 1000  # VREP to mm
 		return np.min(values)
 
-
-if __name__ == '__main__':
-	mat = np.full((480, 640), 150.0)
-	mat[240][320] = 1
-	mat[240][321] = 10
-	min1 = getDepth(mat, 310, 230, False)
-	min2 = getDepth2(mat, 310, 230, False)
-	print(min1, min2)
-
-
 def processDescriptor(image, depth, simulation, scale, keypoint_sets, focal, descriptor_size, desResult):
 	#image descriptors
 	grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	orb_extractor = cv2.ORB_create()
 	peoplelist = []
+	height, width = image.shape[:2]
 	# create joint dictionary
 	for id, p in enumerate(keypoint_sets):
 		person = RoboCompHumanCameraBody.Person()
 		person.id = id
 		person.joints = dict()
-		for pos, joint in enumerate(p):
+		for pos, joint in enumerate(p.data):
 			if float(joint[2]) > 0.5:
 				keypoint = RoboCompHumanCameraBody.KeyPoint()
 				keypoint.i = int(joint[0] / scale)
 				keypoint.j = int(joint[1] / scale)
 				keypoint.score = float(joint[2])
 
-				ki = keypoint.i - 320
-				kj = 240 - keypoint.j
+				ki = keypoint.i - width/2
+				kj = height/2 - keypoint.j
 				#pdepth = float(getDepth(depth, keypoint.i, keypoint.j, simulation))
 				pdepth = float(getDepth2(depth, keypoint.i, keypoint.j, simulation))
 				#print("depth", pdepth, pdepth2)
@@ -210,8 +195,6 @@ def processDescriptor(image, depth, simulation, scale, keypoint_sets, focal, des
 		if len(person.joints) > 5:
 			peoplelist.append(person)
 	desResult.append(peoplelist)
-
-
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map, startup_check=False):
@@ -246,20 +229,35 @@ class SpecificWorker(GenericWorker):
 		self.viewimage = "true" in self.params["viewimage"]
 		self.simulation = "true" in self.params["simulation"]
 		self.cameraname = self.params["cameraname"]
+		self.do_openpifpaf = "true" in self.params["openpifpaf"]
 		if self.simulation:
-			self.focal = 462  # VREP
+			#self.focal = 462  # VREP
+			self.focal = 443.4
 		else:
 			self.focal = 617  # REALSENSE
+
+		self.hide()
 		self.initialize()
+		#self.timer.setSingleShot(True)
 		self.timer.start(self.Period)
 		return True
 
 	def initialize(self):
-		self.args = Args()
-		model, _ = network.Factory().factory()
-		self.model = model.to(self.args.device)
-		head_metas = [hn.meta for hn in model.head_nets]
-		self.processor = decoder.factory(head_metas)
+
+		self.peoplelist = []
+
+		#apriltags
+		self.detector = april.Detector(searchpath=['apriltags'], families='tag36h11', nthreads=5,
+									   quad_decimate=1.0, quad_sigma=0.1, refine_edges=1, decode_sharpening=0.25,
+									   debug=0)
+
+		# openpifpaf
+		if self.do_openpifpaf:
+			self.args = Args()
+			model, _ = network.Factory().factory()
+			self.model = model.to(self.args.device)
+			head_metas = [hn.meta for hn in model.head_nets]
+			self.processor = decoder.factory(head_metas)
 
 		self.start = time.time()
 
@@ -267,54 +265,50 @@ class SpecificWorker(GenericWorker):
 	def compute(self):
 		try:
 			all_ = self.camerargbdsimple_proxy.getAll(self.cameraname)
-			color_ = all_.image
-			depth_ = all_.depth
-			if (len(color_.image) == 0) or (len(depth_.depth) == 0):
-				print('Error retrieving images!')
-				return
+			rgb = all_.image
+			self.adepth = np.frombuffer(all_.depth.depth, dtype=np.float32).reshape(all_.depth.height, all_.depth.width)
+			self.acolor = np.frombuffer(all_.image.image, np.uint8).reshape(rgb.height, rgb.width, all_.image.depth)
+			if self.horizontalflip:
+				self.acolor = cv2.flip(self.acolor, 1)
+				self.adepth = cv2.flip(self.adepth, 1)
+			if self.verticalflip:
+				self.acolor = cv2.flip(self.acolor, 0)
+				self.adepth = cv2.flip(self.adepth, 0)
 		except Ice.Exception:
 			print("Error connecting to camerargbd")
 			return
 
-		self.width = color_.width
-		self.adepth = np.frombuffer(depth_.depth, dtype=np.float32).reshape(depth_.height, depth_.width)
-		self.acolor = np.frombuffer(color_.image, np.uint8).reshape(color_.height, color_.width, color_.depth)
+		self.calibrate_with_apriltag(self.acolor, self.focal, rgb.width, rgb.height)
 
-		if self.horizontalflip:
-			self.acolor = cv2.flip(self.acolor, 1)
-			self.adepth = cv2.flip(self.adepth, 1)
-		if self.verticalflip:
-			self.acolor = cv2.flip(self.acolor, 0)
-			self.adepth = cv2.flip(self.adepth, 0)
+		# openPifPaf threads
+		if self.do_openpifpaf:
+			scale = 0.5
+			pifResults = []
+			p1 = threading.Thread(target=processPifPaf, args=(self.processor, self.acolor, 0.5, pifResults, self.args, self.model))
+			p1.start()
+			desResults = []
+			p2 = threading.Thread(target=processDescriptor, args=(self.bcolor, self.bdepth, self.simulation, 0.5, self.bkeypoint_sets, self.focal, self.descriptor_size, desResults))
 
-		scale = 0.5
+			if len(self.bcolor) > 0:
+				p2.start()
+				p2.join()
+				self.peoplelist = desResults[0]
+			p1.join()
+			self.bkeypoint_sets = pifResults[0]
 
-		pifResults = []
-		p1 = threading.Thread(target=processPifPaf, args=(self.processor, self.acolor, 0.5, pifResults, self.args, self.model))
-		p1.start()
-		desResults = []
-
-		p2 = threading.Thread(target=processDescriptor, args=(self.bcolor, self.bdepth, self.simulation, 0.5,
-															  self.bkeypoint_sets, self.focal, self.descriptor_size,
-															  desResults))
-		if len(self.bcolor) > 0:
-			p2.start()
-			p2.join()
-			self.peoplelist = desResults[0]
-
-		p1.join()
-		self.bkeypoint_sets = pifResults[0]
-
+		# draw
 		if self.viewimage and len(self.bcolor) > 0:
 			self.drawImage(self.bcolor, self.peoplelist)
-			cv2.imshow("Color frame", self.bcolor)
-			cv2.waitKey(1)
+			plt.imshow(self.bcolor)
+			plt.show()
+			self.draw_points_in_coppelia(self.peoplelist[0])
 
 		# swap data
 		self.acolor, self.bcolor = self.bcolor, self.acolor
 		self.adepth, self.bdepth = self.bdepth, self.adepth
 		self.akeypoint_sets, self.bkeypoint_sets = self.bkeypoint_sets, self.akeypoint_sets
 
+		# time
 		if time.time() - self.start > 1:
 			print("FPS:", self.contFPS)
 			self.start = time.time()
@@ -322,7 +316,57 @@ class SpecificWorker(GenericWorker):
 		self.contFPS += 1
 		return True
 
-###########################################################################3333
+	def draw_points_in_coppelia(self, person):
+		names = ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip']
+		for name, joint in person.joints.items():
+			try:
+				if name in names and joint.score > 0.5:
+					try:
+						#print(name, joint.x, joint.y, joint.z)
+						p = pt.transform(self.tm.get_transform("camera", "world"), np.array([joint.x, -joint.y, joint.z, 1]))
+						body_pose = RoboCompCoppeliaUtils.PoseType()
+						body_pose.x = p[1]
+						body_pose.y = p[0]
+						body_pose.z = -p[2]
+						self.coppeliautils_proxy.addOrModifyDummy(RoboCompCoppeliaUtils.TargetTypes.Info, name, body_pose)
+					except Exception as e:
+						print(e)
+			except:
+				pass
+
+###########################################################################
+# Apriltags calibration
+###########################################################################
+	def calibrate_with_apriltag(self, rgb, focal, width, height):
+		self.tm = TransformManager()
+		# add transform from world to tag
+		#w2tag = pt.transform_from(, [0.0,0.0,0.0])
+		#self.tm.add_transform("world", "tag", w2tag)
+
+		grey = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+		tags = self.detector.detect(grey, estimate_tag_pose=True, camera_params=[focal, focal, width/2.0, height/2.0], tag_size=0.275)
+		if len(tags) > 0:
+			tag = tags[0]
+			for idx in range(len(tag.corners)):
+				cv2.line(rgb, tuple(tag.corners[idx - 1, :].astype(int)), tuple(tag.corners[idx, :].astype(int)),
+						 (0, 255, 0))
+				cv2.putText(rgb, str(tag.tag_id),
+							org=(tag.corners[0, 0].astype(int) + 10, tag.corners[0, 1].astype(int) + 10),
+							fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+							fontScale=0.8,
+							color=(0, 0, 255))
+
+			t = tags[0].pose_t.ravel() * 1000.0
+			w2c = pt.transform_from(tags[0].pose_R, t)
+			#print(w2c)
+			#print(tags[0].pose_R, t)
+			self.tm.add_transform("world", "camera", w2c)
+		else:
+			transform = None
+
+###########################################################################
+#
+###########################################################################
 	def drawImage(self, image, peoplelist):
 		# draw
 		for person in peoplelist:

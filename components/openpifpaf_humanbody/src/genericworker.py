@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-#    Copyright (C) 2020 by YOUR NAME HERE
+#    Copyright (C) 2021 by YOUR NAME HERE
 #
 #    This file is part of RoboComp
 #
@@ -33,6 +33,8 @@ import RoboCompCommonBehavior
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
+Ice.loadSlice("-I ./src/ --all ./src/CoppeliaUtils.ice")
+import RoboCompCoppeliaUtils
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
 import RoboCompHumanCameraBody
 
@@ -210,9 +212,15 @@ setattr(RoboCompHumanCameraBody, "People", People)
 
 
 
+try:
+    from ui_mainUI import *
+except:
+    print("Can't import UI file. Did you run 'make'?")
+    sys.exit(-1)
 
 
-class GenericWorker(QtCore.QObject):
+
+class GenericWorker(QtWidgets.QWidget):
 
     kill = QtCore.Signal()
 
@@ -220,7 +228,12 @@ class GenericWorker(QtCore.QObject):
         super(GenericWorker, self).__init__()
 
         self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
+        self.coppeliautils_proxy = mprx["CoppeliaUtilsProxy"]
         self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
+
+        self.ui = Ui_guiDlg()
+        self.ui.setupUi(self)
+        self.show()
 
         self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
         self.Period = 30
