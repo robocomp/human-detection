@@ -6,6 +6,8 @@ CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10178 -h 10.253.247.80
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
 
+device_serial=909522060513
+
 calibrate = false
 openpifpaf = true
 realsense = false

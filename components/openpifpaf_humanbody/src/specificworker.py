@@ -234,6 +234,7 @@ class SpecificWorker(GenericWorker):
 		self.do_openpifpaf = "true" in self.params["openpifpaf"]
 		self.do_calibrate = "true" in self.params["calibrate"]
 		self.do_realsense = "true" in self.params["realsense"]
+		self.device_serial = self.params["device_serial"]
 
 		self.hide()
 		self.initialize()
