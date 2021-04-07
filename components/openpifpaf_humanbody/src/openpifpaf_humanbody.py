@@ -62,11 +62,11 @@ import time
 import os
 import copy
 import argparse
+from termcolor import colored
 # Ctrl+c handling
 import signal
 
 from PySide2 import QtCore
-from PySide2 import QtWidgets
 
 from specificworker import *
 
@@ -99,7 +99,7 @@ def sigint_handler(*args):
     QtCore.QCoreApplication.quit()
     
 if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtCore.QCoreApplication(sys.argv)
     parser = argparse.ArgumentParser()
     parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
     parser.add_argument('--startup-check', action='store_true')
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     try:
         topicManager = IceStorm.TopicManagerPrx.checkedCast(obj)
     except Ice.ConnectionRefusedException as e:
-        print('Cannot connect to rcnode! This must be running to use pub/sub.', 'red')
+        print(colored('Cannot connect to rcnode! This must be running to use pub/sub.', 'red'))
         exit(1)
 
     # Remote object connection for CameraRGBDSimple

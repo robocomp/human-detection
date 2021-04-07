@@ -11,13 +11,17 @@ device_serial=839112062698
 
 
 cameraid=3
-viewimage=false
+viewimage=true
 verticalflip=true
 horizontalflip=false
 simulation=true
-calibrate = false
+calibrate = true
 openpifpaf = true
-realsense = false
+cameraname= cam3
+realsense = true
+width = 640
+height = 480
+publishimage = false
 
 
 Ice.Warn.Connections=0

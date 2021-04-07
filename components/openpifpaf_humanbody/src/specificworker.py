@@ -24,7 +24,7 @@ import traceback
 import torch
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from openpifpaf import decoder, show, transforms, network
 import time
 import PIL
@@ -86,8 +86,8 @@ class Args:
 	pif_fixed_scale = None
 	profile_decoder = None
 	instance_threshold = 0.05
-	device = torch.device(type="cuda")
-	disable_cuda = False
+	device = torch.device(type="cpu")
+	disable_cuda = True
 	scale = 1
 	key_point_threshold = 0.05
 	head_dropout = 0.0
@@ -158,6 +158,7 @@ class Process_Descriptor(threading.Thread):
 							print("Incorrect depth")
 				if len(person.joints) > 2:
 					peoplelist.append(person)
+			#print(len(peoplelist))
 			peoplelist_queue.put(peoplelist)
 
 	def getDepth(self, image, i, j, median=False):
@@ -219,6 +220,9 @@ class SpecificWorker(GenericWorker):
 		self.tm = TransformManager()
 		self.args = Args()
 		self.scale = 0.5
+		self.width = 0
+		self.height = 0
+
 
 	def __del__(self):
 		print('SpecificWorker destructor')
@@ -235,8 +239,11 @@ class SpecificWorker(GenericWorker):
 		self.do_calibrate = "true" in self.params["calibrate"]
 		self.do_realsense = "true" in self.params["realsense"]
 		self.device_serial = self.params["device_serial"]
+		self.width = int(self.params["width"])
+		self.height = int(self.params["height"])
+		self.publishimage = "true" in self.params["publishimage"]
 
-		self.hide()
+		#self.hide()
 		self.initialize()
 		#self.timer.setSingleShot(True)
 		self.timer.start(self.Period)
@@ -270,16 +277,13 @@ class SpecificWorker(GenericWorker):
 				config.enable_device(self.params["device_serial"])
 				config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
 				config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
-
-				self.pointcloud = rs.pointcloud()
+				#self.pointcloud = rs.pointcloud()
 				self.pipeline = rs.pipeline()
 				cfg = self.pipeline.start(config)
-			#            profile = cfg.get_stream(rs.stream.color) # Fetch stream profile for depth stream
-			#            intr = profile.as_video_stream_profile().get_intrinsics() # Downcast to video_stream_profile and fetch intrinsics
-			#            print (intr.fx, intr.fy)
-			#            depth_scale = cfg.get_device().first_depth_sensor().get_depth_scale()
-			#            print("Depth Scale is: " , depth_scale)
-			#            sys.exit(-1)
+				profile = cfg.get_stream(rs.stream.color) # Fetch stream profile for depth stream
+				intr = profile.as_video_stream_profile().get_intrinsics() # Downcast to video_stream_profile and fetch intrinsics
+				self.rs_focal_x = intr.fx
+				self.rs_focal_y = intr.fy
 			except Exception as e:
 				print("Error initializing camera")
 				print(e)
@@ -296,12 +300,19 @@ class SpecificWorker(GenericWorker):
 			depthData = frames.get_depth_frame()
 			self.adepth = np.asanyarray(depthData.get_data(), dtype=np.float32)
 			self.acolor = np.asanyarray(frames.get_color_frame().get_data())
-
+			rgb_width = self.width
+			rgb_height = self.height
+			rgb_depth = 3
+			rgb_focal_x = self.rs_focal_x
 		else:
 			try:
 				rgb, depth = self.camerargbdsimple_proxy.getAll("cam")
+				rgb_width = rgb.width
+				rgb_height = rgb.height
+				rgb_depth = rgb.depth
+				rgb_focal_x = rgb.focalx
 				self.adepth = np.frombuffer(depth.depth, dtype=np.float32).reshape(depth.height, depth.width)
-				self.acolor = np.frombuffer(rgb.image, np.uint8).reshape(rgb.height, rgb.width, rgb.depth)
+				self.acolor = np.frombuffer(rgb.image, np.uint8).reshape(rgb_height, rgb_width, rgb_depth)
 			except Ice.Exception as e:
 				print("Error connecting to camerargbd", e)
 				return
@@ -315,35 +326,37 @@ class SpecificWorker(GenericWorker):
 
 
 		if self.do_calibrate:
-			transform = self.calibrate_with_apriltag(self.acolor, rgb.focalx, rgb.width, rgb.height)
+			transform = self.calibrate_with_apriltag(self.acolor, rgb_focal_x, rgb_width, rgb_height)
+			print(transform)
 			if len(transform) > 0:
 				self.tm.add_transform("world", "camera", transform)
 				self.do_calibrate = False  # Do it once
 				print("Camera to World transform", self.tm.get_transform("camera", "world"))
 			else:
-				sys.exit()
+				print("No AprilTag recognized. Exiting")
+				#sys.exit()
 
 		# send data to threads
-		openpifpaf_queue.put([self.acolor, self.adepth, rgb.focalx])
-		peoplelist = peoplelist_queue.get()
+		openpifpaf_queue.put([self.acolor, self.adepth, rgb_focal_x])
+		peoplelist = peoplelist_queue.get_nowait()
 
 		if self.publishimage:
 			im = RoboCompCameraRGBDSimple.TImage()
 			im.cameraID = self.cameraid
-			im.width = self.width
-			im.height = self.height
-			im.focalx = self.color_focal_x
-			im.focaly = self.color_focal_y
-			im.depth = 3
+			im.width = rgb_width
+			im.height = rgb_height
+			im.focalx = rgb_focal_x
+			im.focaly = rgb_focal_y
+			im.depth = rgb_depth
 			im.image = self.acolor
 
 			dep = RoboCompCameraRGBDSimple.TDepth()
-			dep.cameraID = self.cameraid
-			dep.width = self.width
-			dep.height = self.height
-			dep.focalx = self.depth_focal_x
-			dep.focaly = self.depth_focal_y
-			# dep.depth = self.adepth
+			#dep.cameraID = self.cameraid
+			#dep.width = self.width
+			#dep.height = self.height
+			#dep.focalx = self.depth_focal_x
+			#dep.focaly = self.depth_focal_y
+			#dep.depth = self.adepth
 
 			try:
 				dep.alivetime = (time.time() - self.capturetime) * 1000
@@ -354,10 +367,10 @@ class SpecificWorker(GenericWorker):
 				print(e)
 
 		# draw
-		if self.viewimage and len(self.acolor) > 0 and len(peoplelist) > 0:
-			#self.drawImage(self.acolor, peoplelist)
-			self.draw_points_in_coppelia(peoplelist[0])
-			#plt.imshow(self.bcolor)
+		if self.viewimage and len(self.acolor) > 0 :#and len(peoplelist) > -1:
+			self.drawImage(self.acolor, peoplelist)
+			#self.draw_points_in_coppelia(peoplelist[0])
+			cv2.imshow(" ", self.acolor)
 			#plt.pause(0.001)
 
 		# time
@@ -451,9 +464,9 @@ class SpecificWorker(GenericWorker):
 		cv2.circle(self.bcolor, (x, y+h), 10, (0, 0, 255))
 		cv2.circle(self.bcolor, (x+w, y), 10, (0, 0, 255))
 		cv2.circle(self.bcolor, (x+w, y+h), 10, (0, 0, 255))
-		cv2.imshow("color", self.bcolor)
-		if len(roi.image) > 0:
-			cv2.imshow("roi", self.bcolor[y:y+h, x:x+w])
+		#cv2.imshow("color", self.bcolor)
+		#if len(roi.image) > 0:
+		#	cv2.imshow("roi", self.bcolor[y:y+h, x:x+w])
 		return roi
 
 ####################################################################################################

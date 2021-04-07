@@ -1,22 +1,23 @@
 # Proxies for required interfaces
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10178 -h 10.253.247.80
-
-
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10178
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
 
 device_serial=909522060513
 
-calibrate = false
+calibrate = true
 openpifpaf = true
-realsense = false
+realsense = true
 cameraid=1
-cameraname="cam1"
-viewimage=false
-verticalflip=true
-horizontalflip=false
-simulation=true
+cameraname= cam1
+viewimage = true
+verticalflip = true
+horizontalflip = false
+simulation = true
+width = 640
+height = 480
+publishimage = false
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0
