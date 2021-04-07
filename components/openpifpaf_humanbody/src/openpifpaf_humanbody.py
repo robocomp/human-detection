@@ -119,7 +119,7 @@ if __name__ == '__main__':
     try:
         topicManager = IceStorm.TopicManagerPrx.checkedCast(obj)
     except Ice.ConnectionRefusedException as e:
-        print(colored('Cannot connect to rcnode! This must be running to use pub/sub.', 'red'))
+        print('Cannot connect to rcnode! This must be running to use pub/sub.', 'red')
         exit(1)
 
     # Remote object connection for CameraRGBDSimple

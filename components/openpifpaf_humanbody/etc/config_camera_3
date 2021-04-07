@@ -12,6 +12,10 @@ viewimage=false
 verticalflip=true
 horizontalflip=false
 simulation=true
+calibrate = false
+openpifpaf = true
+realsense = false
+
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

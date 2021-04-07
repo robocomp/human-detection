@@ -233,6 +233,7 @@ class SpecificWorker(GenericWorker):
 		self.cameraname = self.params["cameraname"]
 		self.do_openpifpaf = "true" in self.params["openpifpaf"]
 		self.do_calibrate = "true" in self.params["calibrate"]
+		self.do_realsense = "true" in self.params["realsense"]
 
 		self.hide()
 		self.initialize()
@@ -261,7 +262,7 @@ class SpecificWorker(GenericWorker):
 			self.openpifpaf_processor.daemon = True
 			self.openpifpaf_processor.start()
 
-		if self.realsense:
+		if self.do_realsense:
 			# realsense configuration
 			try:
 				config = rs.config()
@@ -287,7 +288,7 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		if self.realsense:
+		if self.do_realsense:
 			frames = self.pipeline.wait_for_frames()
 			if not frames:
 				return
@@ -297,12 +298,11 @@ class SpecificWorker(GenericWorker):
 
 		else:
 			try:
-				all_ = self.camerargbdsimple_proxy.getAll(self.cameraname)
-				rgb = all_.image
-				self.adepth = np.frombuffer(all_.depth.depth, dtype=np.float32).reshape(all_.depth.height, all_.depth.width)
-				self.acolor = np.frombuffer(all_.image.image, np.uint8).reshape(rgb.height, rgb.width, all_.image.depth)
-			except Ice.Exception:
-				print("Error connecting to camerargbd")
+				rgb, depth = self.camerargbdsimple_proxy.getAll("cam")
+				self.adepth = np.frombuffer(depth.depth, dtype=np.float32).reshape(depth.height, depth.width)
+				self.acolor = np.frombuffer(rgb.image, np.uint8).reshape(rgb.height, rgb.width, rgb.depth)
+			except Ice.Exception as e:
+				print("Error connecting to camerargbd", e)
 				return
 
 		if self.horizontalflip:
