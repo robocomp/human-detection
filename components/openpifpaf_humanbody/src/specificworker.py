@@ -35,6 +35,8 @@ from pytransform3d import rotations as pr
 from pytransform3d import transformations as pt
 from pytransform3d.transform_manager import TransformManager
 import queue
+import pyrealsense2 as rs
+
 
 COCO_IDS = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
             "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
@@ -259,24 +261,57 @@ class SpecificWorker(GenericWorker):
 			self.openpifpaf_processor.daemon = True
 			self.openpifpaf_processor.start()
 
+		if self.realsense:
+			# realsense configuration
+			try:
+				config = rs.config()
+				config.enable_device(self.params["device_serial"])
+				config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
+				config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
+
+				self.pointcloud = rs.pointcloud()
+				self.pipeline = rs.pipeline()
+				cfg = self.pipeline.start(config)
+			#            profile = cfg.get_stream(rs.stream.color) # Fetch stream profile for depth stream
+			#            intr = profile.as_video_stream_profile().get_intrinsics() # Downcast to video_stream_profile and fetch intrinsics
+			#            print (intr.fx, intr.fy)
+			#            depth_scale = cfg.get_device().first_depth_sensor().get_depth_scale()
+			#            print("Depth Scale is: " , depth_scale)
+			#            sys.exit(-1)
+			except Exception as e:
+				print("Error initializing camera")
+				print(e)
+				sys.exit(-1)
+
 		self.start = time.time()
 
 	@QtCore.Slot()
 	def compute(self):
-		try:
-			all_ = self.camerargbdsimple_proxy.getAll(self.cameraname)
-			rgb = all_.image
-			self.adepth = np.frombuffer(all_.depth.depth, dtype=np.float32).reshape(all_.depth.height, all_.depth.width)
-			self.acolor = np.frombuffer(all_.image.image, np.uint8).reshape(rgb.height, rgb.width, all_.image.depth)
-			if self.horizontalflip:
-				self.acolor = cv2.flip(self.acolor, 1)
-				self.adepth = cv2.flip(self.adepth, 1)
-			if self.verticalflip:
-				self.acolor = cv2.flip(self.acolor, 0)
-				self.adepth = cv2.flip(self.adepth, 0)
-		except Ice.Exception:
-			print("Error connecting to camerargbd")
-			return
+		if self.realsense:
+			frames = self.pipeline.wait_for_frames()
+			if not frames:
+				return
+			depthData = frames.get_depth_frame()
+			self.adepth = np.asanyarray(depthData.get_data(), dtype=np.float32)
+			self.acolor = np.asanyarray(frames.get_color_frame().get_data())
+
+		else:
+			try:
+				all_ = self.camerargbdsimple_proxy.getAll(self.cameraname)
+				rgb = all_.image
+				self.adepth = np.frombuffer(all_.depth.depth, dtype=np.float32).reshape(all_.depth.height, all_.depth.width)
+				self.acolor = np.frombuffer(all_.image.image, np.uint8).reshape(rgb.height, rgb.width, all_.image.depth)
+			except Ice.Exception:
+				print("Error connecting to camerargbd")
+				return
+
+		if self.horizontalflip:
+			self.acolor = cv2.flip(self.acolor, 1)
+			self.adepth = cv2.flip(self.adepth, 1)
+		if self.verticalflip:
+			self.acolor = cv2.flip(self.acolor, 0)
+			self.adepth = cv2.flip(self.adepth, 0)
+
 
 		if self.do_calibrate:
 			transform = self.calibrate_with_apriltag(self.acolor, rgb.focalx, rgb.width, rgb.height)
@@ -290,6 +325,32 @@ class SpecificWorker(GenericWorker):
 		# send data to threads
 		openpifpaf_queue.put([self.acolor, self.adepth, rgb.focalx])
 		peoplelist = peoplelist_queue.get()
+
+		if self.publishimage:
+			im = RoboCompCameraRGBDSimple.TImage()
+			im.cameraID = self.cameraid
+			im.width = self.width
+			im.height = self.height
+			im.focalx = self.color_focal_x
+			im.focaly = self.color_focal_y
+			im.depth = 3
+			im.image = self.acolor
+
+			dep = RoboCompCameraRGBDSimple.TDepth()
+			dep.cameraID = self.cameraid
+			dep.width = self.width
+			dep.height = self.height
+			dep.focalx = self.depth_focal_x
+			dep.focaly = self.depth_focal_y
+			# dep.depth = self.adepth
+
+			try:
+				dep.alivetime = (time.time() - self.capturetime) * 1000
+				im.alivetime = (time.time() - self.capturetime) * 1000
+				self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
+			except Exception as e:
+				print("Error on camerabody data publication")
+				print(e)
 
 		# draw
 		if self.viewimage and len(self.acolor) > 0 and len(peoplelist) > 0:

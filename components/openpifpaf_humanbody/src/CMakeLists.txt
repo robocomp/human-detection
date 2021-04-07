@@ -3,4 +3,4 @@ PROJECT(  openpifpaf_humanbody )
 
 INCLUDE( /opt/robocomp/cmake/robocomp.cmake )
 
-ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple CoppeliaUtils HumanCameraBody )
+ROBOCOMP_IDSL_TO_ICE( CommonBehavior CameraRGBDSimple CameraRGBDSimplePub CoppeliaUtils HumanCameraBody )

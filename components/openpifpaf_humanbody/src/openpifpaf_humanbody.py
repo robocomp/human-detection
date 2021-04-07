@@ -156,6 +156,25 @@ if __name__ == '__main__':
         status = 1
 
 
+    # Create a proxy to publish a CameraRGBDSimplePub topic
+    topic = False
+    try:
+        topic = topicManager.retrieve("CameraRGBDSimplePub")
+    except:
+        pass
+    while not topic:
+        try:
+            topic = topicManager.retrieve("CameraRGBDSimplePub")
+        except IceStorm.NoSuchTopic:
+            try:
+                topic = topicManager.create("CameraRGBDSimplePub")
+            except:
+                print('Another client created the CameraRGBDSimplePub topic? ...')
+    pub = topic.getPublisher().ice_oneway()
+    camerargbdsimplepubTopic = RoboCompCameraRGBDSimplePub.CameraRGBDSimplePubPrx.uncheckedCast(pub)
+    mprx["CameraRGBDSimplePubPub"] = camerargbdsimplepubTopic
+
+
     # Create a proxy to publish a HumanCameraBody topic
     topic = False
     try:

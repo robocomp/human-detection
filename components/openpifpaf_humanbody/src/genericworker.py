@@ -33,6 +33,8 @@ import RoboCompCommonBehavior
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
+Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimplePub.ice")
+import RoboCompCameraRGBDSimplePub
 Ice.loadSlice("-I ./src/ --all ./src/CoppeliaUtils.ice")
 import RoboCompCoppeliaUtils
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
@@ -229,6 +231,7 @@ class GenericWorker(QtWidgets.QWidget):
 
         self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
         self.coppeliautils_proxy = mprx["CoppeliaUtilsProxy"]
+        self.camerargbdsimplepub_proxy = mprx["CameraRGBDSimplePubPub"]
         self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
 
         self.ui = Ui_guiDlg()

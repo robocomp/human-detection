@@ -1,13 +1,14 @@
 import "CameraRGBDSimple.idsl";
 import "HumanCameraBody.idsl";
 import "CoppeliaUtils.idsl";
+import "CameraRGBDSimplePub.idsl";
 
 Component openpifpaf_humanbody
 {
     Communications
     {
         requires CameraRGBDSimple, CoppeliaUtils;
-        publishes HumanCameraBody;
+        publishes HumanCameraBody, CameraRGBDSimplePub;
     };
 	language python;
 	gui Qt(QWidget);
