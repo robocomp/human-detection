@@ -118,7 +118,7 @@ class Process_Descriptor(threading.Thread):
 	def run(self):
 		while True:
 			[image, depth, focal, keypoint_sets] = descriptors_queue.get(block=True)
-			grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+			#grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 			orb_extractor = cv2.ORB_create()
 			peoplelist = []
 			height, width = image.shape[:2]
@@ -150,7 +150,7 @@ class Process_Descriptor(threading.Thread):
 							# descriptors
 							desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
 							kp, des = orb_extractor.compute(grey, [desKeypoint])
-							cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
+							#cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
 							if type(des).__module__ == np.__name__:
 								keypoint.floatdesclist = des.tolist()
 							person.joints[COCO_IDS[pos]] = keypoint
@@ -252,8 +252,8 @@ class SpecificWorker(GenericWorker):
 	def initialize(self):
 
 		#apriltags
-		self.detector = april.Detector(searchpath=['apriltags'], families='tag36h11', nthreads=5,
-									   quad_decimate=1.0, quad_sigma=0.1, refine_edges=1, decode_sharpening=0.25,
+		self.detector = april.Detector(searchpath=['apriltags'], families='tagStandard41h12', nthreads=1,
+									   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
 									   debug=0)
 
 		# openpifpaf
@@ -298,7 +298,7 @@ class SpecificWorker(GenericWorker):
 			if not frames:
 				return
 			depthData = frames.get_depth_frame()
-			self.adepth = np.asanyarray(depthData.get_data(), dtype=np.float32)
+			self.adepth = np.asanyarray(depthData.get_data(), dtype=np.uint16)  # MIRAR ESTO
 			self.acolor = np.asanyarray(frames.get_color_frame().get_data())
 			rgb_width = self.width
 			rgb_height = self.height
@@ -326,7 +326,7 @@ class SpecificWorker(GenericWorker):
 
 
 		if self.do_calibrate:
-			transform = self.calibrate_with_apriltag(self.acolor, rgb_focal_x, rgb_width, rgb_height)
+			transform = self.calibrate_with_apriltag(self.acolor, rgb_focal_x)
 			print(transform)
 			if len(transform) > 0:
 				self.tm.add_transform("world", "camera", transform)
@@ -338,8 +338,8 @@ class SpecificWorker(GenericWorker):
 
 		# send data to threads
 		openpifpaf_queue.put([self.acolor, self.adepth, rgb_focal_x])
-		peoplelist = peoplelist_queue.get_nowait()
-
+		peoplelist = peoplelist_queue.get()
+		
 		if self.publishimage:
 			im = RoboCompCameraRGBDSimple.TImage()
 			im.cameraID = self.cameraid
@@ -367,7 +367,7 @@ class SpecificWorker(GenericWorker):
 				print(e)
 
 		# draw
-		if self.viewimage and len(self.acolor) > 0 :#and len(peoplelist) > -1:
+		if self.viewimage and len(self.acolor) > 0  and len(peoplelist) > 0:
 			self.drawImage(self.acolor, peoplelist)
 			#self.draw_points_in_coppelia(peoplelist[0])
 			cv2.imshow(" ", self.acolor)
@@ -403,10 +403,12 @@ class SpecificWorker(GenericWorker):
 ###########################################################################
 # Apriltags calibration
 ###########################################################################
-	def calibrate_with_apriltag(self, rgb, focal, width, height):
+	def calibrate_with_apriltag(self, rgb, focal):
 		grey = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+		s = grey.shape
 		transform = []
-		tags = self.detector.detect(grey, estimate_tag_pose=True, camera_params=[focal, focal, width/2.0, height/2.0], tag_size=0.275)
+		tags = self.detector.detect(grey, estimate_tag_pose=True, camera_params=[focal, focal, s[0]/2.0, s[1]/2.0], tag_size=0.275)
+		print(tags)
 		if len(tags) > 0:
 			tag = tags[0]
 			for idx in range(len(tag.corners)):
