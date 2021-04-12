@@ -1,5 +1,7 @@
 # Proxies for required interfaces
-CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10178
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10096
+CoppeliaUtilsProxy = coppeliautils:tcp -p 10666
+
 
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
@@ -11,7 +13,7 @@ openpifpaf = true
 realsense = true
 cameraid=1
 cameraname= cam1
-viewimage = true
+viewimage = false
 verticalflip = true
 horizontalflip = true
 simulation = true

@@ -149,10 +149,10 @@ class Process_Descriptor(threading.Thread):
 							keypoint.wz = -p[2]
 							# descriptors
 							desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
-							kp, des = orb_extractor.compute(grey, [desKeypoint])
+							#kp, des = orb_extractor.compute(grey, [desKeypoint])
 							#cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
-							if type(des).__module__ == np.__name__:
-								keypoint.floatdesclist = des.tolist()
+							#if type(des).__module__ == np.__name__:
+							#	keypoint.floatdesclist = des.tolist()
 							person.joints[COCO_IDS[pos]] = keypoint
 						else:
 							print("Incorrect depth")
@@ -252,7 +252,11 @@ class SpecificWorker(GenericWorker):
 	def initialize(self):
 
 		#apriltags
-		self.detector = april.Detector(searchpath=['apriltags'], families='tagStandard41h12', nthreads=1,
+		# self.detector = april.Detector(searchpath=['apriltags'], families='tagStandard41h12', nthreads=1,
+		# 							   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
+		# 							   debug=0)
+		#
+		self.detector = april.Detector(searchpath=['apriltags'], families='tag36h11', nthreads=1,
 									   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
 									   debug=0)
 
@@ -306,7 +310,9 @@ class SpecificWorker(GenericWorker):
 			rgb_focal_x = self.rs_focal_x
 		else:
 			try:
-				rgb, depth = self.camerargbdsimple_proxy.getAll("cam")
+				all = self.camerargbdsimple_proxy.getAll(self.cameraname)
+				rgb = all.image
+				depth = all.depth
 				rgb_width = rgb.width
 				rgb_height = rgb.height
 				rgb_depth = rgb.depth
@@ -339,6 +345,9 @@ class SpecificWorker(GenericWorker):
 		# send data to threads
 		openpifpaf_queue.put([self.acolor, self.adepth, rgb_focal_x])
 		peoplelist = peoplelist_queue.get()
+		if len(peoplelist) > 0:
+			#self.draw_points_in_coppelia(peoplelist[0])
+			self.move_avatar_in_coppelia(peoplelist[0])
 		
 		if self.publishimage:
 			im = RoboCompCameraRGBDSimple.TImage()
@@ -369,7 +378,7 @@ class SpecificWorker(GenericWorker):
 		# draw
 		if self.viewimage and len(self.acolor) > 0  and len(peoplelist) > 0:
 			self.drawImage(self.acolor, peoplelist)
-			#self.draw_points_in_coppelia(peoplelist[0])
+
 			cv2.imshow(" ", self.acolor)
 			#plt.pause(0.001)
 
@@ -399,6 +408,31 @@ class SpecificWorker(GenericWorker):
 						print(e)
 			except:
 				pass
+
+	###########################################################################
+	# AVATAR
+	###########################################################################
+	def move_avatar_in_coppelia(self, person):
+		name = 'Bill_goalDummy'
+		avatar_x = 0.0
+		avatar_y = 0.0
+		cont = 0
+		names = ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip']
+		for name, keypoint in person.joints.items():
+			if name in names:
+				avatar_x += keypoint.wx
+				avatar_y += keypoint.wy
+				cont += 1
+		if cont > 0:
+			avatar_x /= cont
+			avatar_y /= cont
+			try:
+				body_pose = RoboCompCoppeliaUtils.PoseType()
+				body_pose.x = avatar_x
+				body_pose.y = avatar_y
+				self.coppeliautils_proxy.addOrModifyDummy(RoboCompCoppeliaUtils.TargetTypes.Info, name,  body_pose)
+			except Exception as e:
+				print(e)
 
 ###########################################################################
 # Apriltags calibration
