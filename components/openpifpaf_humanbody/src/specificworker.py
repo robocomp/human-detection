@@ -109,11 +109,12 @@ class Args:
 	extra_coupling = 0.0
 
 class Process_Descriptor(threading.Thread):
-	def __init__(self, scale, descriptor_size, tm):
+	def __init__(self, scale, descriptor_size, tm, depth_scale):
 		threading.Thread.__init__(self)
 		self.scale = scale
 		self.descriptor_size = descriptor_size
 		self.tm = tm
+		self.depth_scale = depth_scale
 
 	def run(self):
 		while True:
@@ -133,14 +134,15 @@ class Process_Descriptor(threading.Thread):
 						keypoint.i = int(joint[0] / self.scale)
 						keypoint.j = int(joint[1] / self.scale)
 						keypoint.score = float(joint[2])
-
 						ki = keypoint.i - width / 2
 						kj = height / 2 - keypoint.j
-						pdepth = self.getDepth(depth, keypoint.i, keypoint.j, False)
+						pdepth = self.getDepth(depth, keypoint.i, keypoint.j, False) * self.depth_scale
+						#print("pdepth " , pdepth)
 						if pdepth < 10000 and pdepth > 0:
 							keypoint.z = pdepth
 							keypoint.x = ki * keypoint.z / focal
 							keypoint.y = kj * keypoint.z / focal
+							#print(keypoint.x, keypoint.y)
 							# compute world transform
 							p = pt.transform(self.tm.get_transform("camera", "world"),
 											 np.array([keypoint.x, -keypoint.y, keypoint.z, 1]))
@@ -148,17 +150,17 @@ class Process_Descriptor(threading.Thread):
 							keypoint.wy = p[0]
 							keypoint.wz = -p[2]
 							# descriptors
-							desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
+							#desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
 							#kp, des = orb_extractor.compute(grey, [desKeypoint])
 							#cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
 							#if type(des).__module__ == np.__name__:
 							#	keypoint.floatdesclist = des.tolist()
 							person.joints[COCO_IDS[pos]] = keypoint
 						else:
-							print("Incorrect depth")
+							#print("Incorrect depth")
+							pass
 				if len(person.joints) > 2:
 					peoplelist.append(person)
-			#print(len(peoplelist))
 			peoplelist_queue.put(peoplelist)
 
 	def getDepth(self, image, i, j, median=False):
@@ -252,28 +254,15 @@ class SpecificWorker(GenericWorker):
 	def initialize(self):
 
 		#apriltags
-		# self.detector = april.Detector(searchpath=['apriltags'], families='tagStandard41h12', nthreads=1,
-		# 							   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
-		# 							   debug=0)
-		#
-		self.detector = april.Detector(searchpath=['apriltags'], families='tag36h11', nthreads=1,
-									   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
-									   debug=0)
+		self.detector = april.Detector(searchpath=['apriltags'], families='tagStandard41h12', nthreads=1,
+		 							   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
+		 							   debug=0)
+		
+		#self.detector = april.Detector(searchpath=['apriltags'], families='tag36h11', nthreads=1,
+		#							   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
+		#							   debug=0)
 
-		# openpifpaf
-		if self.do_openpifpaf:
-			self.args = Args()
-			model, _ = network.Factory().factory()
-			self.model = model.to(self.args.device)
-			head_metas = [hn.meta for hn in model.head_nets]
-			self.processor = decoder.factory(head_metas)
-			self.desc_processor = Process_Descriptor(scale=self.scale, descriptor_size=self.descriptor_size, tm=self.tm)
-			self.desc_processor.daemon = True
-			self.desc_processor.start()
-			self.openpifpaf_processor = OpenPifPaf_Extractor(self.processor, 0.5, self.args, self.model)
-			self.openpifpaf_processor.daemon = True
-			self.openpifpaf_processor.start()
-
+		self.depth_scale = 1.0
 		if self.do_realsense:
 			# realsense configuration
 			try:
@@ -288,10 +277,27 @@ class SpecificWorker(GenericWorker):
 				intr = profile.as_video_stream_profile().get_intrinsics() # Downcast to video_stream_profile and fetch intrinsics
 				self.rs_focal_x = intr.fx
 				self.rs_focal_y = intr.fy
+				ds = cfg.get_device().first_depth_sensor()
+				self.depth_scale = ds.get_depth_scale()
+				print("----------------------", self.depth_scale)
 			except Exception as e:
 				print("Error initializing camera")
 				print(e)
 				sys.exit(-1)
+				
+		# openpifpaf
+		if self.do_openpifpaf:
+			self.args = Args()
+			model, _ = network.Factory().factory()
+			self.model = model.to(self.args.device)
+			head_metas = [hn.meta for hn in model.head_nets]
+			self.processor = decoder.factory(head_metas)
+			self.desc_processor = Process_Descriptor(scale=self.scale, descriptor_size=self.descriptor_size, tm=self.tm, depth_scale = self.depth_scale)
+			self.desc_processor.daemon = True
+			self.desc_processor.start()
+			self.openpifpaf_processor = OpenPifPaf_Extractor(self.processor, 0.5, self.args, self.model)
+			self.openpifpaf_processor.daemon = True
+			self.openpifpaf_processor.start()
 
 		self.start = time.time()
 
@@ -343,8 +349,10 @@ class SpecificWorker(GenericWorker):
 				#sys.exit()
 
 		# send data to threads
-		openpifpaf_queue.put([self.acolor, self.adepth, rgb_focal_x])
-		peoplelist = peoplelist_queue.get()
+	#	openpifpaf_queue.put([self.acolor, self.adepth, rgb_focal_x])
+	#	peoplelist = peoplelist_queue.get()
+		peoplelist = []
+	
 		if len(peoplelist) > 0:
 			#self.draw_points_in_coppelia(peoplelist[0])
 			self.move_avatar_in_coppelia(peoplelist[0])
@@ -376,11 +384,9 @@ class SpecificWorker(GenericWorker):
 				print(e)
 
 		# draw
-		if self.viewimage and len(self.acolor) > 0  and len(peoplelist) > 0:
+		if self.viewimage and len(self.acolor) > 0:  #and len(peoplelist) > 0:
 			self.drawImage(self.acolor, peoplelist)
-
 			cv2.imshow(" ", self.acolor)
-			#plt.pause(0.001)
 
 		# time
 		if time.time() - self.start > 1:
@@ -397,7 +403,7 @@ class SpecificWorker(GenericWorker):
 		names = ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip', "left_elbow", "right_elbow", "left_knee", "right_knee"]
 		for name, keypoint in person.joints.items():
 			try:
-				if name in names and keypoint.score > 0.5:
+				if name in names and keypoint.score > 0.3:
 					try:
 						body_pose = RoboCompCoppeliaUtils.PoseType()
 						body_pose.x = keypoint.wx
@@ -413,24 +419,39 @@ class SpecificWorker(GenericWorker):
 	# AVATAR
 	###########################################################################
 	def move_avatar_in_coppelia(self, person):
-		name = 'Bill_goalDummy'
-		avatar_x = 0.0
-		avatar_y = 0.0
-		cont = 0
-		names = ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip']
+		bill_name = 'Bill_goalDummy'
+		left_avatar_x = 0.0
+		right_avatar_x = 0.0
+		right_avatar_y = 0.0
+		left_avatar_y = 0.0
+		left_cont = 0
+		right_cont = 0
+		left_names = ['left_shoulder', 'left_hip', 'left_elbow', 'left_ankle', 'left_knee', 'left_eye', 'left_ear', 'left_wrist']
+		right_names = ['right_shoulder', 'right_hip', 'right_elbow', 'right_ankle', 'right_knee', 'right_eye', 'right_ear', 'right_wrist']
+		
 		for name, keypoint in person.joints.items():
-			if name in names:
-				avatar_x += keypoint.wx
-				avatar_y += keypoint.wy
-				cont += 1
-		if cont > 0:
-			avatar_x /= cont
-			avatar_y /= cont
+			if name in left_names:
+				left_avatar_x += keypoint.wx
+				left_avatar_y += keypoint.wy
+				left_cont += 1
+		if left_cont > 0:
+			left_avatar_x /= left_cont
+			left_avatar_y /= left_cont
+		for name, keypoint in person.joints.items():
+			if name in right_names:
+				right_avatar_x += keypoint.wx
+				right_avatar_y += keypoint.wy
+				right_cont += 1
+		if right_cont > 0:
+			right_avatar_x /= right_cont
+			right_avatar_y /= right_cont
+		
+		if right_cont > 0 and left_cont > 0:
 			try:
 				body_pose = RoboCompCoppeliaUtils.PoseType()
-				body_pose.x = avatar_x
-				body_pose.y = avatar_y
-				self.coppeliautils_proxy.addOrModifyDummy(RoboCompCoppeliaUtils.TargetTypes.Info, name,  body_pose)
+				body_pose.x = (left_avatar_x + right_avatar_x )/ 2.0
+				body_pose.y = (left_avatar_y + right_avatar_y )/ 2.0
+				self.coppeliautils_proxy.addOrModifyDummy(RoboCompCoppeliaUtils.TargetTypes.Info, bill_name,  body_pose)
 			except Exception as e:
 				print(e)
 
@@ -441,7 +462,7 @@ class SpecificWorker(GenericWorker):
 		grey = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
 		s = grey.shape
 		transform = []
-		tags = self.detector.detect(grey, estimate_tag_pose=True, camera_params=[focal, focal, s[0]/2.0, s[1]/2.0], tag_size=0.275)
+		tags = self.detector.detect(grey, estimate_tag_pose=True, camera_params=[focal, focal, s[0]/2.0, s[1]/2.0], tag_size=0.25)
 		print(tags)
 		if len(tags) > 0:
 			tag = tags[0]

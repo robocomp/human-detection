@@ -1,6 +1,6 @@
 # Proxies for required interfaces
 CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10096
-CoppeliaUtilsProxy = coppeliautils:tcp -p 10666
+CoppeliaUtilsProxy = coppeliautils:tcp -p 10666 -h 158.49.247.167
 
 
 # This property is used by the clients to connect to IceStorm.
@@ -13,7 +13,7 @@ openpifpaf = true
 realsense = true
 cameraid=1
 cameraname= cam1
-viewimage = false
+viewimage = true
 verticalflip = true
 horizontalflip = true
 simulation = true
