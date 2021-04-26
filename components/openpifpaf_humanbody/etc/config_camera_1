@@ -4,7 +4,8 @@ CoppeliaUtilsProxy = coppeliautils:tcp -p 10666 -h 158.49.247.167
 
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
+#TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
+TopicManager.Proxy=IceStorm/TopicManager:default -h 158.49.247.167 -p 9999
 
 device_serial=909522060513
 
@@ -13,13 +14,13 @@ openpifpaf = true
 realsense = true
 cameraid=1
 cameraname= cam1
-viewimage = true
+viewimage = false
 verticalflip = true
 horizontalflip = true
 simulation = true
 width = 640
 height = 480
-publishimage = false
+publishimage = true
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

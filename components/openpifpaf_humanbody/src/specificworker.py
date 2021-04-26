@@ -65,6 +65,12 @@ peoplelist_queue = queue.SimpleQueue()
 openpifpaf_queue = queue.SimpleQueue()
 descriptors_queue = queue.SimpleQueue()
 
+rgb_width = 0 #probando variables publishimage
+rgb_height = 0
+rgb_focal_x = 0
+rgb_focal_y = 0
+rgb_depth = 0
+
 # openpifpaf configuration
 class Args:
 	source = 0
@@ -118,7 +124,7 @@ class Process_Descriptor(threading.Thread):
 
 	def run(self):
 		while True:
-			[image, depth, focal, keypoint_sets] = descriptors_queue.get(block=True)
+			[image, depth, focal, keypoint_sets, tm] = descriptors_queue.get(block=True)
 			#grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 			orb_extractor = cv2.ORB_create()
 			peoplelist = []
@@ -144,11 +150,11 @@ class Process_Descriptor(threading.Thread):
 							keypoint.y = kj * keypoint.z / focal
 							#print(keypoint.x, keypoint.y)
 							# compute world transform
-							p = pt.transform(self.tm.get_transform("camera", "world"),
+							p = pt.transform(tm.get_transform("camera", "world"),
 											 np.array([keypoint.x, -keypoint.y, keypoint.z, 1]))
-							keypoint.wx = p[1]
-							keypoint.wy = p[0]
-							keypoint.wz = -p[2]
+							keypoint.xw = p[1]
+							keypoint.yw = p[0]
+							keypoint.zw = -p[2]
 							# descriptors
 							#desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
 							#kp, des = orb_extractor.compute(grey, [desKeypoint])
@@ -161,7 +167,7 @@ class Process_Descriptor(threading.Thread):
 							pass
 				if len(person.joints) > 2:
 					peoplelist.append(person)
-			peoplelist_queue.put(peoplelist)
+			peoplelist_queue.put([image, peoplelist])
 
 	def getDepth(self, image, i, j, median=False):
 		OFFSET = 19
@@ -176,23 +182,43 @@ class Process_Descriptor(threading.Thread):
 		return float(np.min(min) * 1000.0)
 
 class OpenPifPaf_Extractor(threading.Thread):
-	def __init__(self, processor, scale, args, model):
+	def __init__(self, processor, scale, args, model, do_realsense, pipeline, width, height, rs_focal_x, hf, vf, calibrate):
 		threading.Thread.__init__(self)
 		self.scale = scale
 		self.processor = processor
 		self.model = model
 		self.args = args
+		
+		self.do_realsense = do_realsense
+		self.pipeline = pipeline
+		self.width = width
+		self.height = height
+		self.rs_focal_x = rs_focal_x
+		self.horizontalflip = hf
+		self.verticalflip = vf
+		self.do_calibrate = calibrate
 
 		self.preprocess = transforms.Compose([
 			transforms.NormalizeAnnotations(),
 			transforms.CenterPadTight(16),
 			transforms.EVAL_TRANSFORM,
 		])
+		
+		self.tm = TransformManager()
+		self.detector = april.Detector(searchpath=['apriltags'], families='tagStandard41h12', nthreads=1,
+		 							   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
+		 							   debug=0)
+		
+		# Declare filters
+		self.dec_filter = rs.decimation_filter ()   # Decimation - reduces depth frame density
+		self.spat_filter = rs.spatial_filter()          # Spatial    - edge-preserving spatial smoothing
+		self.temp_filter = rs.temporal_filter()    # Temporal   - reduces temporal noise
+		self.hole_filter = rs.hole_filling_filter()
 
 	def run(self):
 		while True:
-			[img, depth, focalx] = openpifpaf_queue.get(block=True)
-			image = cv2.resize(img, None, fx=self.scale, fy=self.scale)
+			self.imgIn()
+			image = cv2.resize(self.acolor, None, fx=self.scale, fy=self.scale)
 			image_pil = PIL.Image.fromarray(image)
 			meta = {
 				'hflip': False,
@@ -200,9 +226,84 @@ class OpenPifPaf_Extractor(threading.Thread):
 				'scale': np.array([1.0, 1.0]),
 				'valid_area': np.array([0.0, 0.0, image_pil.size[0], image_pil.size[1]]),
 			}
+			
 			processed_image, _, meta = self.preprocess(image_pil, [], meta)
 			preds = self.processor.batch(self.model, torch.unsqueeze(processed_image, 0), device=self.args.device)[0]
-			descriptors_queue.put([img, depth, focalx, preds])
+			
+			#print("Escribiendo en cola OPP")
+			descriptors_queue.put([self.acolor, self.adepth, self.rs_focal_x, preds, self.tm])
+			
+	def imgIn(self):
+		if self.do_realsense:
+			frames = self.pipeline.wait_for_frames()
+			if not frames:
+				return
+			depthData = frames.get_depth_frame()
+			colorData = frames.get_color_frame()
+			#filtered = self.dec_filter.process(depthData)
+			filtered = self.spat_filter.process(depthData)
+			filtered = self.temp_filter.process(filtered)
+			filtered = self.hole_filter.process(filtered)
+			self.adepth = np.asanyarray(filtered.get_data(), dtype=np.uint16)  
+			self.acolor = np.asanyarray(colorData.get_data())
+			rgb_width = self.width#probando
+			rgb_height = self.height
+			rgb_depth = 3
+			rgb_focal_x = self.rs_focal_x
+		else:
+			try:
+				all = self.camerargbdsimple_proxy.getAll(self.cameraname)
+				rgb = all.image
+				depth = all.depth
+				rgb_width = rgb.width#probando
+				rgb_height = rgb.height
+				rgb_depth = rgb.depth
+				rgb_focal_x = rgb.focalx
+				self.adepth = np.frombuffer(depth.depth, dtype=np.float32).reshape(depth.height, depth.width)
+				self.acolor = np.frombuffer(rgb.image, np.uint8).reshape(rgb_height, rgb_width, rgb_depth)
+			except Ice.Exception as e:
+				print("Error connecting to camerargbd", e)
+				return
+			
+		if self.horizontalflip:
+			self.acolor = cv2.flip(self.acolor, 1)
+			self.adepth = cv2.flip(self.adepth, 1)
+		if self.verticalflip:
+			self.acolor = cv2.flip(self.acolor, 0)
+			self.adepth = cv2.flip(self.adepth, 0)
+			
+		if self.do_calibrate:
+			transform = self.calibrate_with_apriltag(self.acolor, rgb_focal_x)
+			print(transform)
+			if len(transform) > 0:
+				self.tm.add_transform("world", "camera", transform)
+				self.do_calibrate = False  # Do it once
+				print("Camera to World transform", self.tm.get_transform("camera", "world"))
+			else:
+				print("No AprilTag recognized. Exiting")
+				#sys.exit()
+				
+
+	def calibrate_with_apriltag(self, rgb, focal):
+		grey = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+		s = grey.shape
+		transform = []
+		tags = self.detector.detect(grey, estimate_tag_pose=True, camera_params=[focal, focal, s[0]/2.0, s[1]/2.0], tag_size=0.25)
+		print(tags)
+		if len(tags) > 0:
+			tag = tags[0]
+			for idx in range(len(tag.corners)):
+				cv2.line(rgb, tuple(tag.corners[idx - 1, :].astype(int)), tuple(tag.corners[idx, :].astype(int)),
+						 (0, 255, 0))
+				cv2.putText(rgb, str(tag.tag_id),
+							org=(tag.corners[0, 0].astype(int) + 10, tag.corners[0, 1].astype(int) + 10),
+							fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+							fontScale=0.8,
+							color=(0, 0, 255))
+
+			t = tags[0].pose_t.ravel() * 1000.0
+			transform = pt.transform_from(tags[0].pose_R, t)
+		return transform
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map, startup_check=False):
@@ -211,8 +312,8 @@ class SpecificWorker(GenericWorker):
 		self.params = {}
 		self.cameraid = 0
 		self.gt = []
-		self.adepth = []
-		self.acolor = []
+		#self.adepth = []
+		#self.acolor = []
 		self.viewimage = False
 		self.timer.timeout.connect(self.compute)
 		self.Period = 50
@@ -224,6 +325,7 @@ class SpecificWorker(GenericWorker):
 		self.scale = 0.5
 		self.width = 0
 		self.height = 0
+		
 
 
 	def __del__(self):
@@ -248,7 +350,7 @@ class SpecificWorker(GenericWorker):
 		#self.hide()
 		self.initialize()
 		#self.timer.setSingleShot(True)
-		self.timer.start(self.Period)
+		self.timer.start(50)
 		return True
 
 	def initialize(self):
@@ -264,7 +366,7 @@ class SpecificWorker(GenericWorker):
 
 		self.depth_scale = 1.0
 		if self.do_realsense:
-			# realsense configuration
+		#	# realsense configuration
 			try:
 				config = rs.config()
 				config.enable_device(self.params["device_serial"])
@@ -295,7 +397,7 @@ class SpecificWorker(GenericWorker):
 			self.desc_processor = Process_Descriptor(scale=self.scale, descriptor_size=self.descriptor_size, tm=self.tm, depth_scale = self.depth_scale)
 			self.desc_processor.daemon = True
 			self.desc_processor.start()
-			self.openpifpaf_processor = OpenPifPaf_Extractor(self.processor, 0.5, self.args, self.model)
+			self.openpifpaf_processor = OpenPifPaf_Extractor(self.processor, 0.5, self.args, self.model,self.do_realsense, self.pipeline, self.width, self.height, self.rs_focal_x, self.horizontalflip, self.verticalflip, self.do_calibrate)
 			self.openpifpaf_processor.daemon = True
 			self.openpifpaf_processor.start()
 
@@ -303,91 +405,52 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		if self.do_realsense:
-			frames = self.pipeline.wait_for_frames()
-			if not frames:
-				return
-			depthData = frames.get_depth_frame()
-			self.adepth = np.asanyarray(depthData.get_data(), dtype=np.uint16)  # MIRAR ESTO
-			self.acolor = np.asanyarray(frames.get_color_frame().get_data())
-			rgb_width = self.width
-			rgb_height = self.height
-			rgb_depth = 3
-			rgb_focal_x = self.rs_focal_x
-		else:
-			try:
-				all = self.camerargbdsimple_proxy.getAll(self.cameraname)
-				rgb = all.image
-				depth = all.depth
-				rgb_width = rgb.width
-				rgb_height = rgb.height
-				rgb_depth = rgb.depth
-				rgb_focal_x = rgb.focalx
-				self.adepth = np.frombuffer(depth.depth, dtype=np.float32).reshape(depth.height, depth.width)
-				self.acolor = np.frombuffer(rgb.image, np.uint8).reshape(rgb_height, rgb_width, rgb_depth)
-			except Ice.Exception as e:
-				print("Error connecting to camerargbd", e)
-				return
-
-		if self.horizontalflip:
-			self.acolor = cv2.flip(self.acolor, 1)
-			self.adepth = cv2.flip(self.adepth, 1)
-		if self.verticalflip:
-			self.acolor = cv2.flip(self.acolor, 0)
-			self.adepth = cv2.flip(self.adepth, 0)
-
-
-		if self.do_calibrate:
-			transform = self.calibrate_with_apriltag(self.acolor, rgb_focal_x)
-			print(transform)
-			if len(transform) > 0:
-				self.tm.add_transform("world", "camera", transform)
-				self.do_calibrate = False  # Do it once
-				print("Camera to World transform", self.tm.get_transform("camera", "world"))
-			else:
-				print("No AprilTag recognized. Exiting")
-				#sys.exit()
-
-		# send data to threads
-	#	openpifpaf_queue.put([self.acolor, self.adepth, rgb_focal_x])
-	#	peoplelist = peoplelist_queue.get()
-		peoplelist = []
-	
+		
+		image, peoplelist = peoplelist_queue.get()
+		
+		if len(image) > 0 and self.viewimage:
+			self.drawImage(image, peoplelist)
+			cv2.imshow(" ", image)
+		
 		if len(peoplelist) > 0:
 			#self.draw_points_in_coppelia(peoplelist[0])
-			self.move_avatar_in_coppelia(peoplelist[0])
+			#self.move_avatar_in_coppelia(peoplelist[0])
+			pass
+		
 		
 		if self.publishimage:
 			im = RoboCompCameraRGBDSimple.TImage()
 			im.cameraID = self.cameraid
-			im.width = rgb_width
-			im.height = rgb_height
-			im.focalx = rgb_focal_x
-			im.focaly = rgb_focal_y
-			im.depth = rgb_depth
-			im.image = self.acolor
+			height, width = image.shape[:2]
+			im.width = width
+			im.height = height
+			im.focalx = 500
+			im.focaly = 500
+			im.depth = 3
+			im.image = image
 
 			dep = RoboCompCameraRGBDSimple.TDepth()
-			#dep.cameraID = self.cameraid
-			#dep.width = self.width
-			#dep.height = self.height
+			dep.cameraID = self.cameraid
+			dep.width = self.width
+			dep.height = self.height
 			#dep.focalx = self.depth_focal_x
 			#dep.focaly = self.depth_focal_y
 			#dep.depth = self.adepth
 
 			try:
-				dep.alivetime = (time.time() - self.capturetime) * 1000
-				im.alivetime = (time.time() - self.capturetime) * 1000
+				#dep.alivetime = (time.time() - self.capturetime) * 1000
+				#im.alivetime = (time.time() - self.capturetime) * 1000
 				self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
 			except Exception as e:
 				print("Error on camerabody data publication")
 				print(e)
-
-		# draw
-		if self.viewimage and len(self.acolor) > 0:  #and len(peoplelist) > 0:
-			self.drawImage(self.acolor, peoplelist)
-			cv2.imshow(" ", self.acolor)
-
+			
+		try:
+			self.publishData(peoplelist)
+		except Exception as e:
+			print("Error on camerabody data publication")
+			print(e)
+				
 		# time
 		if time.time() - self.start > 1:
 			print("FPS:", self.contFPS)
@@ -406,9 +469,9 @@ class SpecificWorker(GenericWorker):
 				if name in names and keypoint.score > 0.3:
 					try:
 						body_pose = RoboCompCoppeliaUtils.PoseType()
-						body_pose.x = keypoint.wx
-						body_pose.y = keypoint.wy
-						body_pose.z = keypoint.wz
+						body_pose.x = keypoint.xw
+						body_pose.y = keypoint.yw
+						body_pose.z = keypoint.zw
 						self.coppeliautils_proxy.addOrModifyDummy(RoboCompCoppeliaUtils.TargetTypes.Info, name, body_pose)
 					except Exception as e:
 						print(e)
@@ -431,16 +494,16 @@ class SpecificWorker(GenericWorker):
 		
 		for name, keypoint in person.joints.items():
 			if name in left_names:
-				left_avatar_x += keypoint.wx
-				left_avatar_y += keypoint.wy
+				left_avatar_x += keypoint.xw
+				left_avatar_y += keypoint.yw
 				left_cont += 1
 		if left_cont > 0:
 			left_avatar_x /= left_cont
 			left_avatar_y /= left_cont
 		for name, keypoint in person.joints.items():
 			if name in right_names:
-				right_avatar_x += keypoint.wx
-				right_avatar_y += keypoint.wy
+				right_avatar_x += keypoint.xw
+				right_avatar_y += keypoint.yw
 				right_cont += 1
 		if right_cont > 0:
 			right_avatar_x /= right_cont
@@ -513,14 +576,14 @@ class SpecificWorker(GenericWorker):
 
 		roi.width = w
 		roi.height = h
-		roi.image = self.bcolor[y:y+h, x:x+w].tobytes()
+		roi.image = self.acolor[y:y+h, x:x+w].tobytes()
 		return roi
 
 		# to check roi aspect
-		cv2.circle(self.bcolor, (x, y), 10, (0, 0, 255))
-		cv2.circle(self.bcolor, (x, y+h), 10, (0, 0, 255))
-		cv2.circle(self.bcolor, (x+w, y), 10, (0, 0, 255))
-		cv2.circle(self.bcolor, (x+w, y+h), 10, (0, 0, 255))
+		cv2.circle(self.acolor, (x, y), 10, (0, 0, 255))
+		cv2.circle(self.acolor, (x, y+h), 10, (0, 0, 255))
+		cv2.circle(self.acolor, (x+w, y), 10, (0, 0, 255))
+		cv2.circle(self.acolor, (x+w, y+h), 10, (0, 0, 255))
 		#cv2.imshow("color", self.bcolor)
 		#if len(roi.image) > 0:
 		#	cv2.imshow("roi", self.bcolor[y:y+h, x:x+w])
@@ -532,15 +595,17 @@ class SpecificWorker(GenericWorker):
 ##### PUBLISHER
 ######################################
 
-	def publishData(self):
+	def publishData(self, peoplelist):
 		people = RoboCompHumanCameraBody.PeopleData()
 		people.cameraId = self.cameraid
 		people.timestamp = int(round(time.time() * 1000))
 		people.gt = self.gt
-		people.peoplelist = self.peoplelist
+		people.peoplelist = peoplelist
+				
+		
 		if len(people.peoplelist) > 0:
-			for person in people.peoplelist:
-				person.roi = self.getRoi(person)
+			#for person in people.peoplelist:
+				#person.roi = self.getRoi(person)
 			try:
 				self.humancamerabody_proxy.newPeopleData(people)
 			except:
