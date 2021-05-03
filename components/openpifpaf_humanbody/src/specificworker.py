@@ -155,6 +155,7 @@ class Process_Descriptor(threading.Thread):
 							keypoint.xw = p[1]
 							keypoint.yw = p[0]
 							keypoint.zw = -p[2]
+							
 							# descriptors
 							#desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
 							#kp, des = orb_extractor.compute(grey, [desKeypoint])
