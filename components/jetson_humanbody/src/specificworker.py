@@ -24,19 +24,23 @@ import traceback
 import torch
 import numpy as np
 import cv2
-#import matplotlib.pyplot as plt
-from openpifpaf import decoder, show, transforms, network
 import time
-import PIL
-import math
+from PIL import Image
 import threading
 import dt_apriltags as april
-from pytransform3d import rotations as pr
-from pytransform3d import transformations as pt
-from pytransform3d.transform_manager import TransformManager
+#from pytransform3d import rotations as pr
+#from pytransform3d import transformations as pt
+#from pytransform3d.transform_manager import TransformManager
 import queue
 import pyrealsense2 as rs
 
+#import trt_pose.coco
+#import trt_pose.models
+import torch2trt
+from torch2trt import TRTModule
+import torchvision.transforms as transforms
+#from trt_pose.parse_objects import ParseObjects
+device = torch.device("cuda")
 
 COCO_IDS = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
             "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
@@ -61,9 +65,9 @@ SKELETON_CONNECTIONS = [("left_ankle", "left_knee"),
                         ("left_ear", "left_shoulder"),
                         ("right_ear", "right_shoulder")]
 
-peoplelist_queue = queue.SimpleQueue()
-openpifpaf_queue = queue.SimpleQueue()
-descriptors_queue = queue.SimpleQueue()
+peoplelist_queue = queue.Queue()
+openpifpaf_queue = queue.Queue()
+descriptors_queue = queue.Queue()
 
 rgb_width = 0 #probando variables publishimage
 rgb_height = 0
@@ -404,7 +408,6 @@ class SpecificWorker(GenericWorker):
 
 		self.start = time.time()
 
-	@QtCore.Slot()
 	def compute(self):
 		
 		image, peoplelist = peoplelist_queue.get()

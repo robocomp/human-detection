@@ -19,7 +19,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, Ice, os
-from PySide2 import QtWidgets, QtCore
+
 
 ROBOCOMP = ''
 try:
@@ -28,15 +28,8 @@ except KeyError:
     print('$ROBOCOMP environment variable not set, using the default value /opt/robocomp')
     ROBOCOMP = '/opt/robocomp'
 
-Ice.loadSlice("-I ./src/ --all ./src/CommonBehavior.ice")
-import RoboCompCommonBehavior
-
 Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
-Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimplePub.ice")
-import RoboCompCameraRGBDSimplePub
-Ice.loadSlice("-I ./src/ --all ./src/CoppeliaUtils.ice")
-import RoboCompCoppeliaUtils
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
 import RoboCompHumanCameraBody
 
@@ -212,36 +205,19 @@ class People(list):
 setattr(RoboCompHumanCameraBody, "People", People)
 
 
+class GenericWorker(object):
 
-
-
-
-class GenericWorker(QtCore.QObject):
-
-    kill = QtCore.Signal()
 
     def __init__(self, mprx):
         super(GenericWorker, self).__init__()
 
         self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
-        self.coppeliautils_proxy = mprx["CoppeliaUtilsProxy"]
-        self.camerargbdsimplepub_proxy = mprx["CameraRGBDSimplePubPub"]
         self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
 
-        self.mutex = QtCore.QMutex(QtCore.QMutex.Recursive)
-        self.Period = 30
-        self.timer = QtCore.QTimer(self)
 
-
-    @QtCore.Slot()
     def killYourSelf(self):
         rDebug("Killing myself")
         self.kill.emit()
 
-    # \brief Change compute period
-    # @param per Period in ms
-    @QtCore.Slot(int)
     def setPeriod(self, p):
-        print("Period changed", p)
-        self.Period = p
-        self.timer.start(self.Period)
+        pass

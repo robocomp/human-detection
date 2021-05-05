@@ -66,40 +66,11 @@ from termcolor import colored
 # Ctrl+c handling
 import signal
 
-from PySide2 import QtCore
 
 from specificworker import *
 
-
-class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):
-    def __init__(self, _handler):
-        self.handler = _handler
-    def getFreq(self, current = None):
-        self.handler.getFreq()
-    def setFreq(self, freq, current = None):
-        self.handler.setFreq()
-    def timeAwake(self, current = None):
-        try:
-            return self.handler.timeAwake()
-        except:
-            print('Problem getting timeAwake')
-    def killYourSelf(self, current = None):
-        self.handler.killYourSelf()
-    def getAttrList(self, current = None):
-        try:
-            return self.handler.getAttrList()
-        except:
-            print('Problem getting getAttrList')
-            traceback.print_exc()
-            status = 1
-            return
-
-#SIGNALS handler
-def sigint_handler(*args):
-    QtCore.QCoreApplication.quit()
     
 if __name__ == '__main__':
-    app = QtCore.QCoreApplication(sys.argv)
     parser = argparse.ArgumentParser()
     parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
     parser.add_argument('--startup-check', action='store_true')
@@ -137,43 +108,6 @@ if __name__ == '__main__':
         print(e)
         print('Cannot get CameraRGBDSimpleProxy property.')
         status = 1
-
-
-    # Remote object connection for CoppeliaUtils
-    try:
-        proxyString = ic.getProperties().getProperty('CoppeliaUtilsProxy')
-        try:
-            basePrx = ic.stringToProxy(proxyString)
-            coppeliautils_proxy = RoboCompCoppeliaUtils.CoppeliaUtilsPrx.uncheckedCast(basePrx)
-            mprx["CoppeliaUtilsProxy"] = coppeliautils_proxy
-        except Ice.Exception:
-            print('Cannot connect to the remote object (CoppeliaUtils)', proxyString)
-            #traceback.print_exc()
-            status = 1
-    except Ice.Exception as e:
-        print(e)
-        print('Cannot get CoppeliaUtilsProxy property.')
-        status = 1
-
-
-    # Create a proxy to publish a CameraRGBDSimplePub topic
-    topic = False
-    try:
-        topic = topicManager.retrieve("CameraRGBDSimplePub")
-    except:
-        pass
-    while not topic:
-        try:
-            topic = topicManager.retrieve("CameraRGBDSimplePub")
-        except IceStorm.NoSuchTopic:
-            try:
-                topic = topicManager.create("CameraRGBDSimplePub")
-            except:
-                print('Another client created the CameraRGBDSimplePub topic? ...')
-    pub = topic.getPublisher().ice_oneway()
-    camerargbdsimplepubTopic = RoboCompCameraRGBDSimplePub.CameraRGBDSimplePubPrx.uncheckedCast(pub)
-    mprx["CameraRGBDSimplePubPub"] = camerargbdsimplepubTopic
-
 
     # Create a proxy to publish a HumanCameraBody topic
     topic = False
