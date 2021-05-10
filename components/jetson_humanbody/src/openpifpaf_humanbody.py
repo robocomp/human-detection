@@ -69,7 +69,10 @@ import signal
 
 from specificworker import *
 
-    
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+ 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('iceconfigfile', nargs='?', type=str, default='etc/config')
@@ -134,8 +137,8 @@ if __name__ == '__main__':
         print("Error getting required connections, check config file")
         sys.exit(-1)
 
-    signal.signal(signal.SIGINT, sigint_handler)
-    app.exec_()
+    signal.signal(signal.SIGINT, signal_handler)
+    
 
     if ic:
         # try:

@@ -24,23 +24,30 @@ import traceback
 import torch
 import numpy as np
 import cv2
+import copy
 import time
-from PIL import Image
+#from PIL import Image
+import PIL
 import threading
 import dt_apriltags as april
 #from pytransform3d import rotations as pr
 #from pytransform3d import transformations as pt
 #from pytransform3d.transform_manager import TransformManager
 import queue
+import json
 import pyrealsense2 as rs
 
-#import trt_pose.coco
-#import trt_pose.models
+import trt_pose.coco
+import trt_pose.models
 import torch2trt
 from torch2trt import TRTModule
 import torchvision.transforms as transforms
-#from trt_pose.parse_objects import ParseObjects
+from trt_pose.parse_objects import ParseObjects
 device = torch.device("cuda")
+
+model = 'resnet'
+# model = 'densenet'
+
 
 COCO_IDS = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
             "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee",
@@ -65,9 +72,9 @@ SKELETON_CONNECTIONS = [("left_ankle", "left_knee"),
                         ("left_ear", "left_shoulder"),
                         ("right_ear", "right_shoulder")]
 
-peoplelist_queue = queue.Queue()
-openpifpaf_queue = queue.Queue()
-descriptors_queue = queue.Queue()
+peoplelist_queue = queue.Queue(1)
+openpifpaf_queue = queue.Queue(1)
+descriptors_queue = queue.Queue(1)
 
 rgb_width = 0 #probando variables publishimage
 rgb_height = 0
@@ -75,48 +82,6 @@ rgb_focal_x = 0
 rgb_focal_y = 0
 rgb_depth = 0
 
-# openpifpaf configuration
-class Args:
-	source = 0
-	checkpoint = None
-	basenet = None
-	dilation = None
-	dilation_end = None
-	headnets = ['pif', 'paf']
-	dropout = 0.0
-	quad = 1
-	pretrained = False
-	keypoint_threshold = None
-	seed_threshold = 0.2
-	force_complete_pose = False
-	debug_pif_indices = []
-	debug_paf_indices = []
-	connection_method = 'max'
-	fixed_b = None
-	pif_fixed_scale = None
-	profile_decoder = None
-	instance_threshold = 0.05
-	device = torch.device(type="cpu")
-	disable_cuda = True
-	scale = 1
-	key_point_threshold = 0.05
-	head_dropout = 0.0
-	head_quad = 0
-	default_kernel_size = 1
-	default_padding = 0
-	default_dilation = 1
-	head_kernel_size = 1
-	head_padding = 0
-	head_dilation = 0
-	cross_talk = 0.0
-	two_scale = False
-	multi_scale = False
-	multi_scale_hflip = False
-	paf_th = 0.1
-	pif_th = 0.1
-	decoder_workers = None
-	experimental_decoder = False
-	extra_coupling = 0.0
 
 class Process_Descriptor(threading.Thread):
 	def __init__(self, scale, descriptor_size, tm, depth_scale):
@@ -128,7 +93,7 @@ class Process_Descriptor(threading.Thread):
 
 	def run(self):
 		while True:
-			[image, depth, focal, keypoint_sets, tm] = descriptors_queue.get(block=True)
+			[image, depth, focal, keypoint_sets, tm, counts, objects, peaks ] = descriptors_queue.get(block=True)
 			#grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 			orb_extractor = cv2.ORB_create()
 			peoplelist = []
@@ -186,30 +151,54 @@ class Process_Descriptor(threading.Thread):
 		min = cv2.reduce(image_roi, -1, cv2.REDUCE_MIN)
 		return float(np.min(min) * 1000.0)
 
-class OpenPifPaf_Extractor(threading.Thread):
-	def __init__(self, processor, scale, args, model, do_realsense, pipeline, width, height, rs_focal_x, hf, vf, calibrate):
+class Skeleton_Extractor(threading.Thread):
+	def __init__(self, do_realsense, pipeline, width, height, rs_focal_x, hf, vf, calibrate):
 		threading.Thread.__init__(self)
-		self.scale = scale
-		self.processor = processor
-		self.model = model
-		self.args = args
-		
+
 		self.do_realsense = do_realsense
 		self.pipeline = pipeline
-		self.width = widthsudo
+		self.width = width
 		self.height = height
 		self.rs_focal_x = rs_focal_x
 		self.horizontalflip = hf
 		self.verticalflip = vf
 		self.do_calibrate = calibrate
 
-		self.preprocess = transforms.Compose([
-			transforms.NormalizeAnnotations(),
-			transforms.CenterPadTight(16),
-			transforms.EVAL_TRANSFORM,
-		])
+		with open('human_pose.json', 'r') as f:
+			human_pose = json.load(f)
+		self.topology = trt_pose.coco.coco_category_to_topology(human_pose)
+		num_parts = len(human_pose['keypoints'])
+		num_links = len(human_pose['skeleton'])
+
+		if model == 'resnet':
+			MODEL_WEIGHTS = 'resnet18_baseline_att_224x224_A_epoch_249.pth'
+			OPTIMIZED_MODEL = 'resnet18_baseline_att_224x224_A_epoch_249_trt.pth'
+			self.model = trt_pose.models.resnet18_baseline_att(num_parts, 2 * num_links).cuda().eval()
+			self.WIDTH = 224
+			self.HEIGHT = 224
+		elif model == 'densenet':
+			print('------ model = densenet--------')
+			MODEL_WEIGHTS = 'densenet121_baseline_att_256x256_B_epoch_160.pth'
+			OPTIMIZED_MODEL = 'densenet121_baseline_att_256x256_B_epoch_160_trt.pth'
+			self.model = trt_pose.models.densenet121_baseline_att(num_parts, 2 * num_links).cuda().eval()
+			self.WIDTH = 256
+			self.HEIGHT = 256
+
+		self.X_compress = float(width) / float(self.WIDTH)
+		self.Y_compress = float(height) / float(self.HEIGHT)
+
+		data = torch.zeros((1, 3, self.HEIGHT, self.WIDTH)).cuda()
+		if os.path.exists(OPTIMIZED_MODEL) == False:
+			self.model.load_state_dict(torch.load(MODEL_WEIGHTS))
+			self.model_trt = torch2trt.torch2trt(model, [data], fp16_mode=True, max_workspace_size=1<<25)
+			torch.save(model_trt.state_dict(), OPTIMIZED_MODEL)
+
+		self.model_trt = TRTModule()
+		self.model_trt.load_state_dict(torch.load(OPTIMIZED_MODEL))
+		self.mean = torch.Tensor([0.485, 0.456, 0.406]).cuda()
+		self.std = torch.Tensor([0.229, 0.224, 0.225]).cuda()
 		
-		self.tm = TransformManager()
+		#self.tm = TransformManager()
 		self.detector = april.Detector(searchpath=['apriltags'], families='tagStandard41h12', nthreads=1,
 		 							   quad_decimate=1.0, quad_sigma=0.0, refine_edges=1, decode_sharpening=0.25,
 		 							   debug=0)
@@ -220,74 +209,62 @@ class OpenPifPaf_Extractor(threading.Thread):
 		self.temp_filter = rs.temporal_filter()    # Temporal   - reduces temporal noise
 		self.hole_filter = rs.hole_filling_filter()
 
+	def preprocess(self, image):
+			global device
+			image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+			image = PIL.Image.fromarray(image)
+			image = transforms.functional.to_tensor(image).to(device)
+			image.sub_(self.mean[:, None, None]).div_(self.std[:, None, None])
+			return image[None, ...]
+		
 	def run(self):
+		parse_objects = ParseObjects(self.topology)
+		
 		while True:
-			self.imgIn()
-			image = cv2.resize(self.acolor, None, fx=self.scale, fy=self.scale)
-			image_pil = PIL.Image.fromarray(image)
-			meta = {
-				'hflip': False,
-				'offset': np.array([0.0, 0.0]),
-				'scale': np.array([1.0, 1.0]),
-				'valid_area': np.array([0.0, 0.0, image_pil.size[0], image_pil.size[1]]),
-			}
-			
-			#processed_image, _, meta = self.preprocess(image_pil, [], meta)
-			#preds = self.processor.batch(self.model, torch.unsqueeze(processed_image, 0), device=self.args.device)[0]
-			
-			#print("Escribiendo en cola OPP")
-			#descriptors_queue.put([self.acolor, self.adepth, self.rs_focal_x, preds, self.tm])
-			
-	def imgIn(self):
-		if self.do_realsense:
-			frames = self.pipeline.wait_for_frames()
-			if not frames:
-				return
-			depthData = frames.get_depth_frame()
-			colorData = frames.get_color_frame()
-			#filtered = self.dec_filter.process(depthData)
-			filtered = self.spat_filter.process(depthData)
-			filtered = self.temp_filter.process(filtered)
-			filtered = self.hole_filter.process(filtered)
-			self.adepth = np.asanyarray(filtered.get_data(), dtype=np.uint16)  
-			self.acolor = np.asanyarray(colorData.get_data())
-			rgb_width = self.width#probando
-			rgb_height = self.height
-			rgb_depth = 3
-			rgb_focal_x = self.rs_focal_x
-		else:
-			try:
-				all = self.camerargbdsimple_proxy.getAll(self.cameraname)
-				rgb = all.image
-				depth = all.depth
-				rgb_width = rgb.width#probando
-				rgb_height = rgb.height
-				rgb_depth = rgb.depth
-				rgb_focal_x = rgb.focalx
-				self.adepth = np.frombuffer(depth.depth, dtype=np.float32).reshape(depth.height, depth.width)
-				self.acolor = np.frombuffer(rgb.image, np.uint8).reshape(rgb_height, rgb_width, rgb_depth)
-			except Ice.Exception as e:
-				print("Error connecting to camerargbd", e)
-				return
-			
-		if self.horizontalflip:
-			self.acolor = cv2.flip(self.acolor, 1)
-			self.adepth = cv2.flip(self.adepth, 1)
-		if self.verticalflip:
-			self.acolor = cv2.flip(self.acolor, 0)
-			self.adepth = cv2.flip(self.adepth, 0)
-			
-		if self.do_calibrate:
-			transform = self.calibrate_with_apriltag(self.acolor, rgb_focal_x)
-			print(transform)
-			if len(transform) > 0:
-				self.tm.add_transform("world", "camera", transform)
-				self.do_calibrate = False  # Do it once
-				print("Camera to World transform", self.tm.get_transform("camera", "world"))
-			else:
-				print("No AprilTag recognized. Exiting")
-				#sys.exit()
+			if self.do_realsense:
+				frames = self.pipeline.wait_for_frames()
+				if not frames:
+					return
+				depthData = frames.get_depth_frame()
+				colorData = frames.get_color_frame()
+				#filtered = self.dec_filter.process(depthData)
+				filtered = self.spat_filter.process(depthData)
+				filtered = self.temp_filter.process(filtered)
+				filtered = self.hole_filter.process(filtered)
+				self.adepth = np.asanyarray(filtered.get_data(), dtype=np.uint16)  
+				self.acolor = np.asanyarray(colorData.get_data())
+				rgb_width = self.width
+				rgb_height = self.height
+				rgb_depth = 3
+				rgb_focal_x = self.rs_focal_x
 				
+			if self.horizontalflip:
+				self.acolor = cv2.flip(self.acolor, 1)
+				self.adepth = cv2.flip(self.adepth, 1)
+			if self.verticalflip:
+				self.acolor = cv2.flip(self.acolor, 0)
+				self.adepth = cv2.flip(self.adepth, 0)
+				
+			if self.do_calibrate:
+				transform = self.calibrate_with_apriltag(self.acolor, rgb_focal_x)
+				print(transform)
+				if len(transform) > 0:
+					self.tm.add_transform("world", "camera", transform)
+					self.do_calibrate = False  # Do it once
+					print("Camera to World transform", self.tm.get_transform("camera", "world"))
+				else:
+					print("No AprilTag recognized. Exiting")
+					#sys.exit()
+					
+			# compute SKELETON
+			img = cv2.resize(self.acolor, dsize=(self.WIDTH, self.HEIGHT), interpolation=cv2.INTER_AREA)
+			data = self.preprocess(img)
+			cmap, paf = self.model_trt(data)
+			cmap, paf = cmap.detach().cpu(), paf.detach().cpu()
+			counts, objects, peaks = parse_objects(cmap, paf)#, cmap_threshold=0.15, link_threshold=0.15)
+			#return counts, objects, peaks
+					
+			descriptors_queue.put([self.acolor, self.adepth, self.rs_focal_x, None, None, counts, objects, peaks, self.WIDTH, self.HEIGHT, self.X_compress, self.Y_compress])
 
 	def calibrate_with_apriltag(self, rgb, focal):
 		grey = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
@@ -313,26 +290,13 @@ class OpenPifPaf_Extractor(threading.Thread):
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map, startup_check=False):
 		super(SpecificWorker, self).__init__(proxy_map)
-		self.timer.timeout.connect(self.compute)
+		#self.timer.timeout.connect(self.compute)
 		self.params = {}
 		self.cameraid = 0
 		self.gt = []
-		#self.adepth = []
-		#self.acolor = []
 		self.viewimage = False
-		self.timer.timeout.connect(self.compute)
-		self.Period = 50
 		self.contFPS = 0
-		self.descriptor_size = 10
-		self.processor = None
-		self.tm = TransformManager()
-		self.args = Args()
-		self.scale = 0.5
-		self.width = 0
-		self.height = 0
 		
-
-
 	def __del__(self):
 		print('SpecificWorker destructor')
 
@@ -355,9 +319,24 @@ class SpecificWorker(GenericWorker):
 		#self.hide()
 		self.initialize()
 		#self.timer.setSingleShot(True)
-		self.timer.start(50)
+		#self.timer.start(50)
 		return True
-
+	
+	def get_keypoint(self, humans, hnum, peaks):
+		kpoint = []
+		human = humans[0][hnum]
+		C = human.shape[0]
+		for j in range(C):
+			k = int(human[j])
+			if k >= 0:
+				peak = peaks[0][j][k]   # peak[1]:width, peak[0]:height
+				peak = (j, float(peak[0]), float(peak[1]))
+				kpoint.append(peak)
+			else:
+				peak = (j, None, None)
+				kpoint.append(peak)
+		return kpoint
+	
 	def initialize(self):
 
 		#apriltags
@@ -393,79 +372,122 @@ class SpecificWorker(GenericWorker):
 				sys.exit(-1)
 				
 		# openpifpaf
-		if self.do_openpifpaf=="false":
-			self.args = Args()
-			model, _ = network.Factory().factory()
-			self.model = model.to(self.args.device)
-			head_metas = [hn.meta for hn in model.head_nets]
-			self.processor = decoder.factory(head_metas)
-			self.desc_processor = Process_Descriptor(scale=self.scale, descriptor_size=self.descriptor_size, tm=self.tm, depth_scale = self.depth_scale)
-			self.desc_processor.daemon = True
-			self.desc_processor.start()
-			self.openpifpaf_processor = OpenPifPaf_Extractor(self.processor, 0.5, self.args, self.model,self.do_realsense, self.pipeline, self.width, self.height, self.rs_focal_x, self.horizontalflip, self.verticalflip, self.do_calibrate)
-			self.openpifpaf_processor.daemon = True
-			self.openpifpaf_processor.start()
-
+		
+		#self.desc_processor = Process_Descriptor(scale=self.scale, descriptor_size=self.descriptor_size, tm=self.tm, depth_scale = self.depth_scale)
+		#self.desc_processor.daemon = True
+		#self.desc_processor.start()
+		self.skeleton_processor = Skeleton_Extractor(self.do_realsense, self.pipeline,  \
+				self.width, self.height, self.rs_focal_x, self.horizontalflip, self.verticalflip, self.do_calibrate)
+		self.skeleton_processor.daemon = True
+		self.skeleton_processor.start()
+		
 		self.start = time.time()
+		self.compute()
 
 	def compute(self):
+		with open('human_pose.json', 'r') as f:
+			human_pose = json.load(f)
+		topology = trt_pose.coco.coco_category_to_topology(human_pose)
 		
-		image, peoplelist = peoplelist_queue.get()
-		
-		if len(image) > 0 and self.viewimage:
-			self.drawImage(image, peoplelist)
-			cv2.imshow(" ", image)
-		
-		if len(peoplelist) > 0:
-			#self.draw_points_in_coppelia(peoplelist[0])
-			#self.move_avatar_in_coppelia(peoplelist[0])
-			pass
-		
-		
-		if self.publishimage:
-			im = RoboCompCameraRGBDSimple.TImage()
-			im.cameraID = self.cameraid
-			height, width = image.shape[:2]
-			im.width = width
-			im.height = height
-			im.focalx = 500
-			im.focaly = 500
-			im.depth = 3
-			im.image = image
-
-			dep = RoboCompCameraRGBDSimple.TDepth()
-			dep.cameraID = self.cameraid
-			dep.width = self.width
-			dep.height = self.height
-			#dep.focalx = self.depth_focal_x
-			#dep.focaly = self.depth_focal_y
-			#dep.depth = self.adepth
-
-			try:
-				#dep.alivetime = (time.time() - self.capturetime) * 1000
-				#im.alivetime = (time.time() - self.capturetime) * 1000
-				self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
-			except Exception as e:
-				print("Error on camerabody data publication")
-				print(e)
+		while True:
+			#image, peoplelist = peoplelist_queue.get()
+			image, depth, rs_focal_x, _, _,counts, objects, peaks, WIDTH, HEIGHT, X_compress, Y_compress = descriptors_queue.get()
 			
-		try:
-			self.publishData(peoplelist)
-		except Exception as e:
-			print("Error on camerabody data publication")
-			print(e)
+			print(counts)
+			print(objects) 
+			print(peaks)
+			print("------------")
+			self.draw_points(image, counts, objects, peaks, WIDTH*X_compress, HEIGHT*Y_compress, topology)
+			cv2.imshow(" ", image)
+			cv2.waitKey(10)
+			
+			#peoplelist = []
+			#if len(image) > 0 and self.viewimage:
+		#		self.drawImage(image, peoplelist)
+		#		
+		#		cv2.imshow(" ", image)
+		#		cv2.waitKey(10)
 				
-		# time
-		if time.time() - self.start > 1:
-			print("FPS:", self.contFPS)
-			self.start = time.time()
-			self.contFPS = 0
-		self.contFPS += 1
-		return True
+			#if len(peoplelist) > 0:
+				##self.draw_points_in_coppelia(peoplelist[0])
+				##self.move_avatar_in_coppelia(peoplelist[0])
+				#pass
+				
+			#if self.publishimage:
+				#im = RoboCompCameraRGBDSimple.TImage()
+				#im.cameraID = self.cameraid
+				#height, width = image.shape[:2]
+				#im.width = width
+				#im.height = height
+				#im.focalx = 500
+				#im.focaly = 500
+				#im.depth = 3
+				#im.image = image
 
+				#dep = RoboCompCameraRGBDSimple.TDepth()
+				#dep.cameraID = self.cameraid
+				#dep.width = self.width
+				#dep.height = self.height
+				##dep.focalx = self.depth_focal_x
+				##dep.focaly = self.depth_focal_y
+				##dep.depth = self.adepth
+
+				#try:
+					##dep.alivetime = (time.time() - self.capturetime) * 1000
+					##im.alivetime = (time.time() - self.capturetime) * 1000
+					#self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
+				#except Exception as e:
+					#print("Error on camerabody data publication")
+					#print(e)
+
+			#try:
+				#self.publishData(peoplelist)
+			#except Exception as e:
+				#print("Error on camerabody data publication")
+				#print(e)
+				
+			# time
+			if time.time() - self.start > 1:
+				print("FPS:", self.contFPS)
+				self.start = time.time()
+				self.contFPS = 0
+			self.contFPS += 1
+			
 	###########################################################################
 	# 3D-world
 	###########################################################################
+	def draw_points(self, image, object_counts, objects, normalized_peaks, width, height, topology):
+		height = image.shape[0]
+		width = image.shape[1]
+		
+		K = topology.shape[0]
+		count = int(object_counts[0])
+		K = topology.shape[0]
+		for i in range(count):
+			color = (0, 255, 0)
+			obj = objects[0][i]
+			C = obj.shape[0]
+			for j in range(C):
+				k = int(obj[j])
+				if k >= 0:
+					peak = normalized_peaks[0][j][k]
+					x = round(float(peak[1]) * width)
+					y = round(float(peak[0]) * height)
+					cv2.circle(image, (x, y), 3, color, 2)
+
+			for k in range(K):
+				c_a = topology[k][2]
+				c_b = topology[k][3]
+				if obj[c_a] >= 0 and obj[c_b] >= 0:
+					peak0 = normalized_peaks[0][c_a][obj[c_a]]
+					peak1 = normalized_peaks[0][c_b][obj[c_b]]
+					x0 = round(float(peak0[1]) * width )
+					y0 = round(float(peak0[0]) * height )
+					x1 = round(float(peak1[1]) * width )
+					y1 = round(float(peak1[0]) * height)
+					cv2.line(image, (x0, y0), (x1, y1), color, 2)
+					
+					
 	def draw_points_in_coppelia(self, person):
 		names = ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip', "left_elbow", "right_elbow", "left_knee", "right_knee"]
 		for name, keypoint in person.joints.items():
