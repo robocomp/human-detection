@@ -22,7 +22,7 @@ viewimage = true
 verticalflip = true
 horizontalflip = true
 simulation = true
-width = 848
+width=848
 height = 480
 publishimage = false
 
