@@ -22,9 +22,9 @@ viewimage = true
 verticalflip = true
 horizontalflip = true
 simulation = true
-width=848
+width=640
 height = 480
-publishimage = false
+publishimage = true
 
 Ice.Warn.Connections=0
 Ice.Trace.Network=0

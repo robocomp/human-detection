@@ -78,9 +78,9 @@ class Camera_Reader(threading.Thread):
                 return
             depthData = frames.get_depth_frame()
             colorData = frames.get_color_frame()
-            filtered = self.dec_filter.process(depthData)
+            #filtered = self.dec_filter.process(depthData)
             #filtered = self.spat_filter.process(depthData)
-            filtered = self.temp_filter.process(filtered)
+            filtered = self.temp_filter.process(depthData)
             filtered = self.hole_filter.process(filtered)
             adepth = np.asanyarray(filtered.get_data(), dtype=np.uint16)  
             acolor = np.asanyarray(colorData.get_data())
@@ -184,7 +184,6 @@ class SpecificWorker(GenericWorker):
                     print("No visible mark")
                     sys.exit()
                 
-                
                 config.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, 30)
                 config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, 30)
                 self.pipeline = rs.pipeline()
@@ -214,6 +213,7 @@ class SpecificWorker(GenericWorker):
         self.color_intrin = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
         self.depth_to_color_extrin =  profile.get_stream(rs.stream.depth).as_video_stream_profile().get_extrinsics_to(profile.get_stream(rs.stream.color))
         self.color_to_depth_extrin =  profile.get_stream(rs.stream.color).as_video_stream_profile().get_extrinsics_to(profile.get_stream(rs.stream.depth))
+        
         # DNN
         num_parts = len(self.human_pose['keypoints'])
         num_links = len(self.human_pose['skeleton'])
@@ -265,10 +265,8 @@ class SpecificWorker(GenericWorker):
         global device
         
         while True:
-            
-            
             image, depth = camera_queue.get()
-            
+             
             # compute SKELETON
             img = cv2.resize(image, dsize=(self.WIDTH, self.HEIGHT), interpolation=cv2.INTER_AREA)
             imgr = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -280,57 +278,52 @@ class SpecificWorker(GenericWorker):
             counts, objects, peaks = self.parse_objects(cmap, paf)#, cmap_threshold=0.15, link_threshold=0.15)
             
             # compute camera and world coordinates
-            #peoplelist = self.compute_coordinates(counts, objects, peaks, image, depth)
-            #self.drawImage(image, peoplelist)
-            #draw points
-            self.draw_points(image, counts, objects, peaks, self.WIDTH*self.X_compress, self.HEIGHT*self.Y_compress, self.topology)
-            cv2.imshow(" ", image)
-            cv2.waitKey(1)
+            peoplelist = self.compute_coordinates(counts, objects, peaks, image, depth)
+            #self.draw_points(image, counts, objects, peaks, self.WIDTH*self.X_compress, self.HEIGHT*self.Y_compress, self.topology)
             
             #peoplelist = []
-            #if len(image) > 0 and self.viewimage:
-        #        self.drawImage(image, peoplelist)
-        #        
-        #        cv2.imshow(" ", image)
-        #        cv2.waitKey(10)
+            if len(image) > 0 and self.viewimage:
+                self.drawImage(image, peoplelist)        
+                cv2.imshow(" ", image)
+                cv2.waitKey(1)
                 
             #if len(peoplelist) > 0:
                 ##self.draw_points_in_coppelia(peoplelist[0])
                 ##self.move_avatar_in_coppelia(peoplelist[0])
                 #pass
                 
-            #if self.publishimage:
-                #im = RoboCompCameraRGBDSimple.TImage()
-                #im.cameraID = self.cameraid
-                #height, width = image.shape[:2]
-                #im.width = width
-                #im.height = height
-                #im.focalx = 500
-                #im.focaly = 500
-                #im.depth = 3
-                #im.image = image
+            if self.publishimage:
+                im = RoboCompCameraRGBDSimple.TImage()
+                im.cameraID = self.cameraid
+                height, width = image.shape[:2]
+                im.width = width
+                im.height = height
+                im.focalx = 500
+                im.focaly = 500
+                im.depth = 3
+                im.image = image
 
-                #dep = RoboCompCameraRGBDSimple.TDepth()
+                dep = RoboCompCameraRGBDSimple.TDepth()
                 #dep.cameraID = self.cameraid
                 #dep.width = self.width
                 #dep.height = self.height
-                ##dep.focalx = self.depth_focal_x
-                ##dep.focaly = self.depth_focal_y
+                #dep.focalx = self.depth_focal_x
+                #dep.focaly = self.depth_focal_y
                 ##dep.depth = self.adepth
 
-                #try:
+                try:
                     ##dep.alivetime = (time.time() - self.capturetime) * 1000
                     ##im.alivetime = (time.time() - self.capturetime) * 1000
-                    #self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
-                #except Exception as e:
-                    #print("Error on camerabody data publication")
-                    #print(e)
+                    self.camerargbdsimple_proxy.pushRGBD(im, dep)
+                except Exception as e:
+                    print("Error on camerabody data publication")
+                    print(e)
 
-            #try:
-                #self.publishData(peoplelist)
-            #except Exception as e:
-                #print("Error on camerabody data publication")
-                #print(e)
+            try:
+                self.publishData(peoplelist)
+            except Exception as e:
+                print("Error on camerabody data publication")
+                print(e)
                 
             # time
             if time.time() - self.start > 1:
@@ -364,17 +357,20 @@ class SpecificWorker(GenericWorker):
             print("April calibratoin OK")
         return transform
     
-    def getDepth(self, image, i, j, median=False):
+    def getDepth(self, depth, i, j, median=False):
         OFFSET = 19
-        x = i - OFFSET
-        y = j - OFFSET
-        x_max = np.minimum(i + OFFSET, image.shape[0])
-        y_max = np.minimum(j + OFFSET, image.shape[1])
-        image_roi = image[y:y_max, x: x_max]
+        x_min = np.maximum(i - OFFSET, 0)
+        y_min = np.maximum(j - OFFSET, 0)
+        x_max = np.minimum(i + OFFSET, depth.shape[1])
+        y_max = np.minimum(j + OFFSET, depth.shape[0])
+        image_roi = depth[y_min:y_max, x_min: x_max]
         if median:
             image_roi = cv2.medianBlur(image_roi, 3)
-        min = cv2.reduce(image_roi, -1, cv2.REDUCE_MIN)
-        return float(np.min(min) * 1000.0)
+        #min = cv2.reduce(image_roi, 1, cv2.REDUCE_MIN, cv2.CV_32F)
+        #print(x,y,x_max, y_max,image_roi.shape)
+        min = np.amin(image_roi);
+        return min
+        #return float(np.min(min) * 1000.0)
     
     def compute_coordinates(self, counts, objects, peaks, image, depth):
   
@@ -388,7 +384,7 @@ class SpecificWorker(GenericWorker):
             for i in range(counts[0]):
                 keypoints = self.get_keypoint(objects, i, peaks)
                 person = RoboCompHumanCameraBody.Person()
-                person.id = id
+                person.id = i
                 person.joints = dict()
                 for j in range(len(keypoints)):
                 #for pos, joint in enumerate(p.data):
@@ -403,9 +399,7 @@ class SpecificWorker(GenericWorker):
                         keypoint.score = float(keypoints[j][0])
                         ki = keypoint.i - width / 2
                         kj = height / 2 - keypoint.j
-                        #pdepth = self.getDepth(depth, keypoint.i, keypoint.j, False) * self.depth_scale
-                        #pdepth = depth[keypoint.i, keypoint.j] * self.depth_scale
-                        pdepth = 100
+                        pdepth = self.getDepth(depth, keypoint.i, keypoint.j, False) * self.depth_scale
                         #print("pdepth " , pdepth)
                         if pdepth < 10000 and pdepth > 0:
                             keypoint.z = pdepth
@@ -413,11 +407,11 @@ class SpecificWorker(GenericWorker):
                             keypoint.y = kj * keypoint.z / self.rs_focal_y#focal
                             #print(keypoint.x, keypoint.y)
                             # compute world transform
-                            p = pt.transform(self.tm.get_transform("camera", "world"),
-                                             np.array([keypoint.x, -keypoint.y, keypoint.z, 1]))
-                            keypoint.xw = p[1]
-                            keypoint.yw = p[0]
-                            keypoint.zw = -p[2]
+                            #p = pt.transform(self.tm.get_transform("camera", "world"),
+                            #np.array([keypoint.x, -keypoint.y, keypoint.z, 1]))
+                            #keypoint.xw = p[1]
+                            #keypoint.yw = p[0]
+                            #keypoint.zw = -p[2]
                             
                             # descriptors
                             #desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
@@ -584,8 +578,7 @@ class SpecificWorker(GenericWorker):
         return roi
 
 ####################################################################################################
-
-    ######################################
+######################################
 ##### PUBLISHER
 ######################################
 
