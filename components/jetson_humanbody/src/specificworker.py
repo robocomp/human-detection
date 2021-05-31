@@ -157,6 +157,8 @@ class SpecificWorker(GenericWorker):
         # NAMES and topology
         with open('human_pose.json', 'r') as f:
             self.human_pose = json.load(f)
+        print(self.human_pose)
+        
         self.topology = trt_pose.coco.coco_category_to_topology(self.human_pose)
         
 
@@ -190,7 +192,6 @@ class SpecificWorker(GenericWorker):
                 cfg = self.pipeline.start(config)
                 profile = cfg.get_stream(rs.stream.color) # Fetch stream profile for depth stream
                 intr = profile.as_video_stream_profile().get_intrinsics() # Downcast to video_stream_profile and fetch intrinsics
-                
                 self.rs_focal_x = intr.fx
                 self.rs_focal_y = intr.fy
                 ds = cfg.get_device().first_depth_sensor()
@@ -265,6 +266,7 @@ class SpecificWorker(GenericWorker):
         global device
         
         while True:
+            
             image, depth = camera_queue.get()
              
             # compute SKELETON
@@ -281,7 +283,8 @@ class SpecificWorker(GenericWorker):
             peoplelist = self.compute_coordinates(counts, objects, peaks, image, depth)
             #self.draw_points(image, counts, objects, peaks, self.WIDTH*self.X_compress, self.HEIGHT*self.Y_compress, self.topology)
             
-            #peoplelist = []
+            print(peoplelist)
+            
             if len(image) > 0 and self.viewimage:
                 self.drawImage(image, peoplelist)        
                 cv2.imshow(" ", image)
@@ -293,15 +296,16 @@ class SpecificWorker(GenericWorker):
                 #pass
                 
             if self.publishimage:
+                img = cv2.resize(image, dsize=(int(self.WIDTH/2), int(self.HEIGHT/2)), interpolation=cv2.INTER_AREA)
                 im = RoboCompCameraRGBDSimple.TImage()
                 im.cameraID = self.cameraid
-                height, width = image.shape[:2]
+                height, width = img.shape[:2]
                 im.width = width
                 im.height = height
                 im.focalx = 500
                 im.focaly = 500
                 im.depth = 3
-                im.image = image
+                im.image = img
 
                 dep = RoboCompCameraRGBDSimple.TDepth()
                 #dep.cameraID = self.cameraid
@@ -314,7 +318,7 @@ class SpecificWorker(GenericWorker):
                 try:
                     ##dep.alivetime = (time.time() - self.capturetime) * 1000
                     ##im.alivetime = (time.time() - self.capturetime) * 1000
-                    self.camerargbdsimple_proxy.pushRGBD(im, dep)
+                    self.camerargbdsimplepub_proxy.pushRGBD(im, dep)
                 except Exception as e:
                     print("Error on camerabody data publication")
                     print(e)
@@ -331,6 +335,8 @@ class SpecificWorker(GenericWorker):
                 self.start = time.time()
                 self.contFPS = 0
             self.contFPS += 1
+            
+            time.sleep(0.00001)
             
     ###########################################################################
     # AprilTags
@@ -368,7 +374,7 @@ class SpecificWorker(GenericWorker):
             image_roi = cv2.medianBlur(image_roi, 3)
         #min = cv2.reduce(image_roi, 1, cv2.REDUCE_MIN, cv2.CV_32F)
         #print(x,y,x_max, y_max,image_roi.shape)
-        min = np.amin(image_roi);
+        min = np.amin(image_roi)*1000;
         return min
         #return float(np.min(min) * 1000.0)
     
@@ -386,6 +392,7 @@ class SpecificWorker(GenericWorker):
                 person = RoboCompHumanCameraBody.Person()
                 person.id = i
                 person.joints = dict()
+                
                 for j in range(len(keypoints)):
                 #for pos, joint in enumerate(p.data):
                     #if float(joint[2]) > 0.5:
@@ -400,18 +407,18 @@ class SpecificWorker(GenericWorker):
                         ki = keypoint.i - width / 2
                         kj = height / 2 - keypoint.j
                         pdepth = self.getDepth(depth, keypoint.i, keypoint.j, False) * self.depth_scale
-                        #print("pdepth " , pdepth)
+                        
                         if pdepth < 10000 and pdepth > 0:
                             keypoint.z = pdepth
                             keypoint.x = ki * keypoint.z / self.rs_focal_x#focal
                             keypoint.y = kj * keypoint.z / self.rs_focal_y#focal
-                            #print(keypoint.x, keypoint.y)
+                            
                             # compute world transform
-                            #p = pt.transform(self.tm.get_transform("camera", "world"),
-                            #np.array([keypoint.x, -keypoint.y, keypoint.z, 1]))
-                            #keypoint.xw = p[1]
-                            #keypoint.yw = p[0]
-                            #keypoint.zw = -p[2]
+                            p = pt.transform(self.tm.get_transform("camera", "world"),
+                            np.array([keypoint.x, -keypoint.y, keypoint.z, 1]))
+                            keypoint.xw = p[1]
+                            keypoint.yw = p[0]
+                            keypoint.zw = -p[2]
                             
                             # descriptors
                             #desKeypoint = cv2.KeyPoint(keypoint.i, keypoint.j, self.descriptor_size, -1)
@@ -419,10 +426,13 @@ class SpecificWorker(GenericWorker):
                             #cv2.drawKeypoints(grey, kp, grey, color=(255, 0, 0), flags=0)
                             #if type(des).__module__ == np.__name__:
                             #    keypoint.floatdesclist = des.tolist()
+                            
                             person.joints[self.human_pose['keypoints'][j]] = keypoint
+                            #print(person, keypoint)
                         else:
                             #print("Incorrect depth")
                             pass
+                    #print(person)
                     if len(person.joints) > 2:
                         peoplelist.append(person)
             return peoplelist
@@ -594,7 +604,13 @@ class SpecificWorker(GenericWorker):
             #for person in people.peoplelist:
                 #person.roi = self.getRoi(person)
             try:
+                #print(people)
                 self.humancamerabody_proxy.newPeopleData(people)
             except:
                 print("Error on camerabody data publication")
                 traceback.print_exc()
+
+#############################################
+    def CameraRGBDSimple_getImage(self, camera):
+        print("recibe")
+        

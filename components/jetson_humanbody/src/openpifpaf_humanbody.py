@@ -96,21 +96,26 @@ if __name__ == '__main__':
         print(colored('Cannot connect to rcnode! This must be running to use pub/sub.', 'red'))
         exit(1)
 
-    # Remote object connection for CameraRGBDSimple
+
+    # Create a proxy to publish CameraRGBSSIMPLE topic
+    topic = False
     try:
-        proxyString = ic.getProperties().getProperty('CameraRGBDSimpleProxy')
+        topic = topicManager.retrieve("CameraRGBDSimplePub")
+    except:
+        pass
+    while not topic:
         try:
-            basePrx = ic.stringToProxy(proxyString)
-            camerargbdsimple_proxy = RoboCompCameraRGBDSimple.CameraRGBDSimplePrx.uncheckedCast(basePrx)
-            mprx["CameraRGBDSimpleProxy"] = camerargbdsimple_proxy
-        except Ice.Exception:
-            print('Cannot connect to the remote object (CameraRGBDSimple)', proxyString)
-            #traceback.print_exc()
-            status = 1
-    except Ice.Exception as e:
-        print(e)
-        print('Cannot get CameraRGBDSimpleProxy property.')
-        status = 1
+            topic = topicManager.retrieve("CameraRGBDSimplePub")
+        except IceStorm.NoSuchTopic:
+            try:
+                topic = topicManager.create("CameraRGBDSimplePub")
+            except:
+                print('Another client created the HumanCameraBody topic? ...')
+    pub = topic.getPublisher().ice_oneway()
+    camerargbdsimplepubTopic = RoboCompCameraRGBDSimplePub.CameraRGBDSimplePubPrx.uncheckedCast(pub)
+    mprx["CameraRGBDSimplePubPub"] = camerargbdsimplepubTopic
+
+
 
     # Create a proxy to publish a HumanCameraBody topic
     topic = False
@@ -137,6 +142,10 @@ if __name__ == '__main__':
         print("Error getting required connections, check config file")
         sys.exit(-1)
 
+    adapter = ic.createObjectAdapter('CameraRGBDSimple')
+    adapter.add(camerargbdsimpleI.CameraRGBDSimpleI(worker), ic.stringToIdentity('camerargbdsimple'))
+    adapter.activate()
+    
     signal.signal(signal.SIGINT, signal_handler)
     
 

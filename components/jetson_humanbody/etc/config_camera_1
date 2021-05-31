@@ -3,12 +3,15 @@ CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10096
 #CoppeliaUtilsProxy = coppeliautils:tcp -p 10666 -h 158.49.247.142
 CoppeliaUtilsProxy = coppeliautils:tcp -p 10666 
 
+CameraRGBDSimple.Endpoints=tcp -p 10096
 
 # This property is used by the clients to connect to IceStorm.
-TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
-#TopicManager.Proxy=IceStorm/TopicManager:default -h 158.49.247.142 -p 9999
+#TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
+TopicManager.Proxy=IceStorm/TopicManager:default -h 158.49.247.142 -p 9999
 
 device_serial=909522060513
+
+#device_serial=839112060624
 
 #device_serial=839112061901
 

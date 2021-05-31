@@ -9,7 +9,8 @@ CoppeliaUtilsProxy = coppeliautils:tcp -p 10666 -h 158.49.247.167
 #TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
 TopicManager.Proxy=IceStorm/TopicManager:default -h 158.49.247.167 -p 9999
 
-device_serial=839112062698
+#device_serial=839112062698
+device_serial=909522060513
 
 calibrate = true
 openpifpaf = true

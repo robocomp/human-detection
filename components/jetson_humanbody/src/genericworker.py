@@ -30,6 +30,8 @@ except KeyError:
 
 Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimple.ice")
 import RoboCompCameraRGBDSimple
+Ice.loadSlice("-I ./src/ --all ./src/CameraRGBDSimplePub.ice")
+import RoboCompCameraRGBDSimplePub
 Ice.loadSlice("-I ./src/ --all ./src/HumanCameraBody.ice")
 import RoboCompHumanCameraBody
 
@@ -204,6 +206,7 @@ class People(list):
 
 setattr(RoboCompHumanCameraBody, "People", People)
 
+import camerargbdsimpleI
 
 class GenericWorker(object):
 
@@ -211,7 +214,7 @@ class GenericWorker(object):
     def __init__(self, mprx):
         super(GenericWorker, self).__init__()
 
-        self.camerargbdsimple_proxy = mprx["CameraRGBDSimpleProxy"]
+        self.camerargbdsimplepub_proxy = mprx["CameraRGBDSimplePubPub"]
         self.humancamerabody_proxy = mprx["HumanCameraBodyPub"]
 
 
