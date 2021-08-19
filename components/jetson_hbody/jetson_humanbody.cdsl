@@ -1,0 +1,15 @@
+import "CameraRGBDSimple.idsl";
+import "HumanCameraBody.idsl";
+import "CoppeliaUtils.idsl";
+import "CameraRGBDSimplePub.idsl";
+
+Component jetson_humanbody
+{
+    Communications
+    {
+        requires CameraRGBDSimple, CoppeliaUtils;
+        publishes HumanCameraBody, CameraRGBDSimplePub;
+    };
+	language python;
+};
+

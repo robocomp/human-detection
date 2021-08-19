@@ -1,0 +1,23 @@
+# Proxies for required interfaces
+CameraRGBDSimpleProxy = camerargbdsimple:tcp -p 10096
+
+# This property is used by the clients to connect to IceStorm.
+TopicManager.Proxy=IceStorm/TopicManager:default -h localhost -p 9999
+CoppeliaUtilsProxy = coppeliautils:tcp -h localhost -p 10666
+
+
+cameraid=1
+cameraname=wall_camera_1
+viewimage=true
+verticalflip=false
+horizontalflip=false
+simulation=true
+openpifpaf=true
+calibrate=true
+
+Ice.Warn.Connections=0
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+Ice.MessageSizeMax=20004800
+
+
